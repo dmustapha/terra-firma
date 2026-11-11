@@ -85,7 +85,7 @@ function Drain({ c }: { c: Card }) {
         <span className={`absolute top-1/2 right-3 -translate-y-1/2 text-right text-[0.875rem] leading-tight font-semibold text-[color:var(--plate)] transition-opacity duration-300 ${w < 55 ? "opacity-100" : "opacity-0"}`}>{big(c.totals.usdCounterfactual8)} in {c.stock}<span className="block font-display text-[0.9375rem] font-normal italic opacity-85">not yours</span></span>
       </div>
       <div className="mt-2 flex items-center justify-end gap-3 text-[0.8125rem]">
-        <span className={`mr-auto pl-36 opacity-75 transition-opacity max-sm:pl-0 max-sm:pt-8 ${k >= 1 ? "" : "opacity-0"}`}>{pct < 0.5 ? "bag shown at a 3px minimum: to scale it would be invisible" : "bag drawn to scale"}</span>
+        <span className={`mr-auto pl-36 transition-opacity max-sm:pl-0 max-sm:pt-8 ${k >= 1 ? "opacity-75" : "opacity-0"}`}>{pct < 0.5 ? "to scale, your bag is invisible (shown at 3px)" : "bag drawn to scale"}</span>
         <button type="button" onClick={() => setRun((r) => r + 1)} className="rounded-sm px-1 font-semibold underline decoration-1 underline-offset-4 hover:opacity-80 focus-visible:outline-2 focus-visible:outline-current">Replay ↺</button>
       </div>
     </div>
