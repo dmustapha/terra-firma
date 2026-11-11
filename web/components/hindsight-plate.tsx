@@ -71,7 +71,7 @@ function Drain({ c }: { c: Card }) {
         <p className="num font-display text-[clamp(4rem,2.4rem+5vw,7.25rem)] leading-[0.85] tracking-[-0.025em]" aria-label={big(gapRaw)}>
           {k >= 1 ? big(gapRaw) : `$${Math.floor((stock - bag) * k).toLocaleString("en-US")}`}
         </p>
-        <p className="pb-2 font-display text-[1.25rem] leading-tight italic opacity-95 sm:text-right">= <span className="num">{shares18(c.totals.shares18)}</span> {c.stock} shares<br />you don&apos;t own</p>
+        <p className="pb-2 font-display text-[1.25rem] leading-tight italic opacity-95 sm:text-right"><span className="num">{shares18(c.totals.shares18)}</span> {c.stock} shares<br />you never bought</p>
       </div>
       <div className="relative mt-6 h-12 rounded-[4px] bg-[color:var(--accent)] bg-[repeating-linear-gradient(135deg,transparent_0_6px,rgb(0_0_0/0.16)_6px_7px)]" role="img" aria-label={`To scale: the bag is ${pct.toFixed(2)}% of the ${c.stock} line`}>
         <span className="absolute inset-y-0 left-0 flex min-w-[3px] items-center overflow-hidden rounded-l-[4px] bg-[color:var(--danger)]" style={{ width: `${w}%` }}>
@@ -114,7 +114,7 @@ export function HindsightReceipts({ initial }: { initial: Card | null }) {
           <table className="num w-full text-[0.875rem] sm:min-w-[34rem] sm:text-[0.9375rem]">
             <caption className="px-4 pt-3 pb-1 text-left text-xs font-semibold text-muted">The {top.length} biggest of {buys.length.toLocaleString("en-US")} buys, all into {memesLine(c)}</caption>
             <thead className="text-left text-xs font-semibold text-muted">
-              <tr><th className="px-4 py-3 max-sm:px-2">Day (UTC)</th><th className="px-4 py-3 text-right max-sm:px-2">Paid</th><th className="px-4 py-3 text-right max-sm:hidden">{c.stock} at buy</th><th className="px-4 py-3 text-right max-sm:px-2">Would be</th><th className="px-4 py-3 text-right max-sm:hidden">Tx</th></tr>
+              <tr><th className="px-4 py-3 max-sm:px-2">Time (UTC)</th><th className="px-4 py-3 text-right max-sm:px-2">Paid</th><th className="px-4 py-3 text-right max-sm:hidden">{c.stock} at buy</th><th className="px-4 py-3 text-right max-sm:px-2">Would be</th><th className="px-4 py-3 text-right max-sm:hidden">Tx</th></tr>
             </thead>
             <tbody>
               {top.map((b) => (
@@ -172,7 +172,7 @@ export function HindsightPlate({ initial }: { initial: Card | null }) {
               <div className="sheet !rounded-[10px] px-5 pt-4 pb-5">
                 <p className="ui-label text-accent">In {c.stock}<span className="max-sm:hidden"> you&apos;d have</span></p>
                 <p className="num mt-1 font-display text-[clamp(2.25rem,1.5rem+2.4vw,3.6rem)] leading-[0.95]">{big(c.totals.usdCounterfactual8)}</p>
-                <p className="mt-2 text-sm text-muted"><span className="num">{shares18(c.totals.shares18)}</span> shares, same days</p>
+                <p className="mt-2 text-sm text-muted"><span className="num">{shares18(c.totals.shares18)}</span> shares, bought the same moments</p>
               </div>
             </div>
             <Drain c={c} />

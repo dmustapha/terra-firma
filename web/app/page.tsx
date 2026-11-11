@@ -77,8 +77,8 @@ export default async function Home() {
       {/* THE LOOP, as one connected flow that climbs out of the ground: well → sheet → plate. */}
       <section aria-labelledby="how-title" className="py-24 text-center">
         <p className="ui-label mb-4 text-accent">What you do with a dead bag</p>
-        <h2 id="how-title" className="mx-auto max-w-[16ch] font-display text-[clamp(2.4rem,1.6rem+2.6vw,4rem)] leading-[1] tracking-[-0.02em]">
-          Sweep it into stock.<br /><span className="text-muted">Fees burn $WIF every epoch.</span>
+        <h2 id="how-title" className="mx-auto max-w-[20ch] text-balance font-display text-[clamp(2.4rem,1.6rem+2.6vw,4rem)] leading-[1] tracking-[-0.02em]">
+          Sweep it into stock.<br /><span className="text-muted">Half the fees burn $WIF every epoch.</span>
         </h2>
         <LoopRail />
       </section>
