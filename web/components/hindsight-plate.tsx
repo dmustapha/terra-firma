@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Card } from "@/lib/hindsight";
 import { HISTORY_ADDR } from "@/lib/ui-chain";
-import { date, dateTime, shares18, short, usd8, usdWhole8 } from "@/lib/ui-format";
+import { dateTime, shares18, short, usd8, usdWhole8 } from "@/lib/ui-format";
 import { recomputeHref } from "./guarantee";
 import { useCard } from "./hooks";
 import { Skeleton, TextLink, TxLink } from "./ui";
@@ -71,7 +71,7 @@ function Drain({ c }: { c: Card }) {
         <p className="num font-display text-[clamp(4rem,2.4rem+5vw,7.25rem)] leading-[0.85] tracking-[-0.025em]" aria-label={big(gapRaw)}>
           {k >= 1 ? big(gapRaw) : `$${Math.floor((stock - bag) * k).toLocaleString("en-US")}`}
         </p>
-        <p className="pb-2 font-display text-[1.25rem] leading-tight italic opacity-80 sm:text-right">= <span className="num">{shares18(c.totals.shares18)}</span> {c.stock} shares<br />you don&apos;t own</p>
+        <p className="pb-2 font-display text-[1.25rem] leading-tight italic opacity-95 sm:text-right">= <span className="num">{shares18(c.totals.shares18)}</span> {c.stock} shares<br />you don&apos;t own</p>
       </div>
       <div className="relative mt-6 h-12 rounded-[4px] bg-[color:var(--accent)] bg-[repeating-linear-gradient(135deg,transparent_0_6px,rgb(0_0_0/0.16)_6px_7px)]" role="img" aria-label={`To scale: the bag is ${pct.toFixed(2)}% of the ${c.stock} line`}>
         <span className="absolute inset-y-0 left-0 flex min-w-[3px] items-center overflow-hidden rounded-l-[4px] bg-[color:var(--danger)]" style={{ width: `${w}%` }}>
@@ -118,7 +118,7 @@ export function HindsightReceipts({ initial }: { initial: Card | null }) {
             <tbody>
               {top.map((b) => (
                 <tr key={b.tx + b.usdPaid8} className="border-t border-dashed border-fg/15">
-                  <td className="px-4 py-3 whitespace-nowrap text-muted max-sm:px-2"><span className="max-sm:hidden">{dateTime(b.ts).replace(/, \d{4}/, "")}</span><span className="sm:hidden"><TxLink hash={b.tx}>{date(b.ts).replace(/, \d{4}/, "")}</TxLink></span></td>
+                  <td className="px-4 py-3 whitespace-nowrap text-muted max-sm:px-2"><span className="max-sm:hidden">{dateTime(b.ts).replace(/, \d{4}/, "")}</span><span className="sm:hidden"><TxLink hash={b.tx}>{dateTime(b.ts).replace(/, \d{4}/, "").replace(/ UTC$/, "").replace(/\s+/g, " ")}</TxLink></span></td>
                   <td className="px-4 py-3 font-semibold max-sm:hidden">${b.sym}</td>
                   <td className="px-4 py-3 text-right font-semibold max-sm:px-2">{big(b.usdPaid8)}</td>
                   <td className="px-4 py-3 text-right text-muted max-sm:px-2">{usd8(b.stockUsd8)}</td>
@@ -130,10 +130,10 @@ export function HindsightReceipts({ initial }: { initial: Card | null }) {
             <tfoot>
               <tr className="border-t-[1.5px] border-fg">
                 <td colSpan={6} className="p-2">
-                  <div className="well grid gap-3 px-5 py-4 sm:grid-cols-3 sm:gap-4">
-                    <p><span className="block text-xs font-semibold text-muted">All {buys.length.toLocaleString("en-US")} buys, paid</span><span className="font-display text-[1.75rem] leading-tight">{big(c.totals.usdPaid8)}</span></p>
-                    <p><span className="block text-xs font-semibold text-danger">Worth now</span><span className="font-display text-[1.75rem] leading-tight text-danger">{usd8(c.totals.usdToday8)}</span></p>
-                    <p><span className="block text-xs font-semibold text-accent">Would be, in {c.stock}</span><span className="font-display text-[1.75rem] leading-tight text-accent">{big(c.totals.usdCounterfactual8)}</span></p>
+                  <div className="well grid grid-cols-3 gap-3 px-4 py-4 sm:gap-4 sm:px-5">
+                    <p><span className="block text-xs font-semibold text-muted">All {buys.length.toLocaleString("en-US")} buys, paid</span><span className="font-display text-[clamp(1.25rem,1rem+1.2vw,1.75rem)] leading-tight">{big(c.totals.usdPaid8)}</span></p>
+                    <p><span className="block text-xs font-semibold text-danger">Worth now</span><span className="font-display text-[clamp(1.25rem,1rem+1.2vw,1.75rem)] leading-tight text-danger">{usd8(c.totals.usdToday8)}</span></p>
+                    <p><span className="block text-xs font-semibold text-accent">Would be, in {c.stock}</span><span className="font-display text-[clamp(1.25rem,1rem+1.2vw,1.75rem)] leading-tight text-accent">{big(c.totals.usdCounterfactual8)}</span></p>
                   </div>
                 </td>
               </tr>
@@ -159,7 +159,7 @@ export function HindsightPlate({ initial }: { initial: Card | null }) {
     <div className="plate-stack">
       <article aria-labelledby="hs-title" className="plate seat px-6 pt-5 pb-6 sm:px-8">
         <header className="mb-2 flex items-center justify-between gap-3 pr-24 sm:pr-0">
-          <h2 id="hs-title" className="ui-label">Hindsight · a real wallet <span className="num block normal-case tracking-normal text-muted sm:inline">{short(HISTORY_ADDR)}</span></h2>
+          <h2 id="hs-title" className="ui-label">Hindsight<span className="max-sm:hidden"> · a real wallet</span> · <span className="num normal-case tracking-normal text-muted">{short(HISTORY_ADDR)}</span></h2>
         </header>
 
         {c && c.memes.length > 0 ? (

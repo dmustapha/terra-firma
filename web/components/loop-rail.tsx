@@ -9,14 +9,14 @@ import { LinkButton, cx } from "./ui";
 const STATIONS = [
   { n: "01", title: "The sweep", line: "Tick the memes that died and sweep them in one transaction. Each meme needs a one-time approval first." },
   { n: "02", title: "Stock lands", line: "Real Stock Tokens in your Jar, your stock wallet. Withdraw any time." },
-  { n: "03", title: "$WIF burns", line: "The 0.5% fee splits off: half buys $WIF and burns it, half buys stock for $WIF stakers." },
+  { n: "03", title: "$WIF burns", line: "The 0.5% fee (0.3% if you stake 10k $WIF) splits off: half buys $WIF and burns it, half buys stock for stakers." },
 ];
 
 // phase 0: dead meme at 01 · phase 1: it travels to 02 and becomes stock · phase 2: the fee chip splits off to 03.
 const STEPS_MS = [1200, 2500];
 // Centre of column i in a 3-column grid with a 2rem gap (matches the tiles below, so each tick meets its dot).
 const COL = ["calc((100% - 4rem) / 6)", "50%", "calc(100% - (100% - 4rem) / 6)"];
-const CHIPS = ["$AI · dead bag", "NVDA · in your Jar", "0.5% fee → $WIF burned"];
+const CHIPS = ["$AI · dead bag", "NVDA · in your Jar", "0.5% fee → half burns $WIF"];
 
 export function LoopRail() {
   const [phase, setPhase] = useState(2);
@@ -52,7 +52,7 @@ export function LoopRail() {
           <span key={main.label} className={cx("rise inline-block rounded-full border-[1.5px] border-fg px-4 py-1.5 text-[0.9375rem] font-semibold whitespace-nowrap text-[color:var(--plate)] shadow-[3px_3px_0_var(--plate-offset)]", main.tone)}>{main.label}</span>
         </span>
         <span className={cx("absolute top-[62%] -translate-x-[88%] -translate-y-[175%]", move, phase === 2 ? "opacity-100" : "opacity-0")} style={{ left: phase === 2 ? COL[2] : COL[1] }}>
-          <span className="stamp !rotate-[-4deg] !text-[1rem] whitespace-nowrap !font-sans font-bold">0.5% fee → $WIF burned</span>
+          <span className="stamp !rotate-[-4deg] !text-[1rem] whitespace-nowrap !font-sans font-bold">0.5% fee → half burns $WIF</span>
         </span>
       </div>
       <ol className="mt-4 grid gap-6 lg:grid-cols-3 lg:gap-8">
@@ -69,7 +69,7 @@ export function LoopRail() {
           </li>
         ))}
       </ol>
-      <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-2">
+      <div className="mt-10 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center sm:gap-x-8">
         <LinkButton href="/jar" className="min-h-13 px-7 text-[1.0625rem]">Sweep my dead memes</LinkButton>
         <LinkButton href="/stake" variant="secondary">Stake $WIF</LinkButton>
       </div>

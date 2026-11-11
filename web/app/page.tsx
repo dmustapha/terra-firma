@@ -4,7 +4,6 @@ import { HindsightPlate, HindsightReceipts } from "@/components/hindsight-plate"
 import { LiveProof } from "@/components/live-proof";
 import { LoopRail } from "@/components/loop-rail";
 import { MobileCheckBar } from "@/components/mobile-check-bar";
-import { TextLink } from "@/components/ui";
 import { getCard } from "@/lib/card-cache";
 import type { Card } from "@/lib/hindsight";
 import { HISTORY_ADDR } from "@/lib/ui-chain";
@@ -28,14 +27,14 @@ const LOOP = [
   { n: "03", head: "$WIF burns" },
 ];
 
-/** The loop in one line: no container, no tabs. Each step jumps to its station below. */
+/** The loop in one line: no container, no tabs. Each step keeps its leading arrow (never an orphaned arrow). */
 function LoopLine() {
   return (
     <p aria-label="How Terra Firma works" className="flex flex-wrap items-baseline gap-x-2 gap-y-1 font-display text-[clamp(1.2rem,1rem+1vw,2rem)] leading-tight sm:gap-x-3">
       {LOOP.map((s, i) => (
-        <span key={s.n} style={{ "--i": i } as React.CSSProperties} className="rise inline-flex items-baseline gap-3">
+        <span key={s.n} style={{ "--i": i } as React.CSSProperties} className="rise inline-flex items-baseline gap-2 whitespace-nowrap sm:gap-3">
+          {i > 0 && <span aria-hidden className="text-muted">→</span>}
           <a href={`#step-${s.n}`} className={`underline decoration-transparent decoration-1 underline-offset-[6px] transition-colors hover:decoration-current ${i === 2 ? "text-accent" : ""}`}>{s.head}</a>
-          {i < LOOP.length - 1 && <span aria-hidden className="text-muted">→</span>}
         </span>
       ))}
     </p>
@@ -57,7 +56,7 @@ export default async function Home() {
               Your memes died. <em className="text-accent">NVDA didn&apos;t.</em>
             </h1>
             <p className="mt-6 max-w-[44ch] text-[1.1875rem] leading-relaxed text-fg/85 max-sm:hidden">
-              See what your bag would be worth in real stock. Then sweep the dead coins into it in one transaction, and the fee on every sweep burns $WIF.
+              See what your bag would be worth in real stock. Then sweep the dead coins into it in one transaction. Half of every 0.5% fee buys $WIF and burns it.
             </p>
             <div className="mt-5 sm:mt-8"><LoopLine /></div>
           </div>
