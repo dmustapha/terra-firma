@@ -2,7 +2,7 @@
  "skill": "hackathon-debug",
  "debugMode": "full",
  "autonomous_mode": true,
- "status": "in-progress",
+ "status": "complete",
  "currentPhase": 6,
  "projectComponents": {
   "contracts": true,
@@ -46,7 +46,8 @@
    }
   },
   "6": {
-   "status": "in-progress"
+   "status": "complete",
+   "mustFixRemaining": 0
   }
  },
  "delegationHandoff": [
@@ -110,16 +111,48 @@
  "infraBlocks": [],
  "detectiveDispatches": 1,
  "testSourceRatio": {
-  "ratio": 0.15,
-  "sourceCount": 81,
-  "testCount": 12,
-  "status": "FAIL(<0.3)"
+  "ratio": 0.4,
+  "sourceCount": 88,
+  "testCount": 35,
+  "status": "WARN(<0.5)"
  },
  "testFilesWritten": [
   "contracts/test/debug-p2-reentrancy.t.sol",
   "contracts/test/debug-p2-staking-invariant.t.sol",
   "contracts/test/debug-p2-weekend-staleness.t.sol",
-  "scripts/debug-p2-hindsight-latency.live.ts"
+  "scripts/debug-p2-hindsight-latency.live.ts",
+  "contracts/test/debug-p6-feepool.t.sol",
+  "contracts/test/debug-p6-hindsight-phase.t.sol",
+  "contracts/test/debug-p6-crossepoch-lock.t.sol",
+  "web/lib/{rpc,hindsight,card-cache,api-validation,api-hindsight,api-quote,api-stream}.test.ts",
+  "web/lib/{ui-format,ui-errors,ui-report,ui-logs}.test.ts"
  ],
- "confidenceScore": 0
+ "confidenceScore": 85,
+ "lensContracts": [
+  {
+   "name": "Hindsight heavy-wallet totals",
+   "status": "SAME",
+   "expectedChange": false
+  },
+  {
+   "name": "card per-meme today value",
+   "status": "CHANGED",
+   "expectedChange": true
+  },
+  {
+   "name": "FeePool.distribute signature",
+   "status": "CHANGED",
+   "expectedChange": true
+  },
+  {
+   "name": "deposit event (Swept\u2192Deposited)",
+   "status": "CHANGED",
+   "expectedChange": true
+  },
+  {
+   "name": "fork drill hero flow",
+   "status": "SAME",
+   "expectedChange": false
+  }
+ ]
 }

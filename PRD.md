@@ -624,7 +624,7 @@ See `ROUTE-ARCHITECTURE.md` (multi-page, landing required, separate `/proof` jud
 
 ## 7.6 Judge Proof Artifacts
 
-- **Proof route:** `/proof` plus README "Proof" section and `submission/proof.md`. <!-- [CRITIQUE E-2] --> /proof opens with a rubric map: three cards ("A real reason to use $WIF", "A flywheel that holds up", "Works and built well") each linking to live evidence (burn tx, staker claim, fee-discount rule; routed volume → burn → stream totals; 7 verified contracts, 38 fork tests, recompute box).
+- **Proof route:** `/proof` plus README "Proof" section and `submission/proof.md`. <!-- [CRITIQUE E-2] --> /proof opens with a rubric map: three cards ("A real reason to use $WIF", "A flywheel that holds up", "Works and built well") each linking to live evidence (burn tx, staker claim, fee-discount rule; routed volume → burn → stream totals; 7 verified contracts, 62 fork tests, recompute box).
 - **Required artifacts:** verified contract addresses (TerraRouter, Jar, FeePool, WifStaking, StockOracle, HindsightLens, FriendJar) linked to `https://robinhoodchain.blockscout.com/address/{addr}`; tx hashes for: first convert, first sweep trade, first `Distributed` with WIF burn, first staker `Claimed`, a HindsightLens recompute call (eth_call result shown); running totals from events; fork test count and command.
 - **Proof generation:** `scripts/proof.ts` reads events from deployment block, writes `submission/proof.md` and `web/data/proof.json` (also served live by `/proof` directly from chain).
 - **Explorer link pattern:** `https://robinhoodchain.blockscout.com/tx/{hash}` and `/address/{addr}` (explorer UI works in browsers; its API is Cloudflare-gated, so proof reads come from RPC).
