@@ -3,6 +3,7 @@ import { AddressLookup } from "@/components/address-lookup";
 import { HindsightPlate, HindsightReceipts } from "@/components/hindsight-plate";
 import { LiveProof } from "@/components/live-proof";
 import { LoopRail } from "@/components/loop-rail";
+import { MobileCheckBar } from "@/components/mobile-check-bar";
 import { TextLink } from "@/components/ui";
 import { getCard } from "@/lib/card-cache";
 import type { Card } from "@/lib/hindsight";
@@ -30,7 +31,7 @@ const LOOP = [
 /** The loop in one line: no container, no tabs. Each step jumps to its station below. */
 function LoopLine() {
   return (
-    <p aria-label="How Terra Firma works" className="flex flex-wrap items-baseline gap-x-3 gap-y-1 font-display text-[clamp(1.5rem,1.2rem+1vw,2rem)] leading-tight">
+    <p aria-label="How Terra Firma works" className="flex flex-wrap items-baseline gap-x-2 gap-y-1 font-display text-[clamp(1.2rem,1rem+1vw,2rem)] leading-tight sm:gap-x-3">
       {LOOP.map((s, i) => (
         <span key={s.n} style={{ "--i": i } as React.CSSProperties} className="rise inline-flex items-baseline gap-3">
           <a href={`#step-${s.n}`} className={`underline decoration-transparent decoration-1 underline-offset-[6px] transition-colors hover:decoration-current ${i === 2 ? "text-accent" : ""}`}>{s.head}</a>
@@ -49,7 +50,7 @@ export default async function Home() {
       <section aria-labelledby="hero-title" className="band bleed">
         <div className="mx-auto grid max-w-[80rem] items-center gap-x-16 gap-y-10 px-4 pt-10 pb-16 sm:pt-14 lg:gap-y-8 sm:px-6 lg:grid-cols-[1fr_1.12fr] lg:px-8 lg:pt-20 lg:pb-20">
           <div className="lg:self-end">
-            <p className="mb-6 flex items-center gap-2 text-sm font-semibold text-muted">
+            <p className="mb-6 flex items-center gap-2 text-sm font-semibold text-muted max-sm:hidden">
               <span className="live-dot" aria-hidden /> Live on Robinhood Chain
             </p>
             <h1 id="hero-title" className="font-display text-[clamp(3rem,1.6rem+5vw,6rem)] leading-[0.92] tracking-[-0.025em] text-balance">
@@ -58,7 +59,7 @@ export default async function Home() {
             <p className="mt-6 max-w-[44ch] text-[1.1875rem] leading-relaxed text-fg/85 max-sm:hidden">
               See what your bag would be worth in real stock. Then sweep the dead coins into it in one transaction, and the fee on every sweep burns $WIF.
             </p>
-            <div className="mt-8"><LoopLine /></div>
+            <div className="mt-5 sm:mt-8"><LoopLine /></div>
           </div>
           <div className="lg:col-start-2 lg:row-span-2 lg:row-start-1"><HindsightPlate initial={card} /></div>
           <div className="lg:col-start-1 lg:row-start-2 lg:self-start">
@@ -82,6 +83,8 @@ export default async function Home() {
         </h2>
         <LoopRail />
       </section>
+
+      <MobileCheckBar />
 
       {/* CLOSE: the one inverted plate. */}
       <section aria-labelledby="close-title" className="mb-16 rounded-[20px] border-[1.5px] border-fg bg-[color:var(--slab)] px-8 py-14 text-[color:var(--slab-fg)] shadow-[8px_8px_0_var(--plate-offset)] sm:px-14">

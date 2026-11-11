@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Card } from "@/lib/hindsight";
 import { HISTORY_ADDR } from "@/lib/ui-chain";
-import { dateTime, shares18, short, usd8, usdWhole8 } from "@/lib/ui-format";
+import { date, dateTime, shares18, short, usd8, usdWhole8 } from "@/lib/ui-format";
 import { recomputeHref } from "./guarantee";
 import { useCard } from "./hooks";
 import { Skeleton, TextLink, TxLink } from "./ui";
@@ -71,20 +71,20 @@ function Drain({ c }: { c: Card }) {
         <p className="num font-display text-[clamp(4rem,2.4rem+5vw,7.25rem)] leading-[0.85] tracking-[-0.025em]" aria-label={big(gapRaw)}>
           {k >= 1 ? big(gapRaw) : `$${Math.floor((stock - bag) * k).toLocaleString("en-US")}`}
         </p>
-        <p className="pb-2 text-right font-display text-[1.25rem] leading-tight italic opacity-80">= <span className="num">{shares18(c.totals.shares18)}</span> {c.stock} shares<br />you don&apos;t own</p>
+        <p className="pb-2 font-display text-[1.25rem] leading-tight italic opacity-80 sm:text-right">= <span className="num">{shares18(c.totals.shares18)}</span> {c.stock} shares<br />you don&apos;t own</p>
       </div>
       <div className="relative mt-6 h-12 rounded-[4px] bg-[color:var(--accent)] bg-[repeating-linear-gradient(135deg,transparent_0_6px,rgb(0_0_0/0.16)_6px_7px)]" role="img" aria-label={`To scale: the bag is ${pct.toFixed(2)}% of the ${c.stock} line`}>
         <span className="absolute inset-y-0 left-0 flex min-w-[3px] items-center overflow-hidden rounded-l-[4px] bg-[color:var(--danger)]" style={{ width: `${w}%` }}>
-          <span className={`px-3 text-[0.9375rem] font-semibold whitespace-nowrap text-[color:var(--plate)] transition-opacity duration-300 ${k < 0.55 ? "opacity-100" : "opacity-0"}`}>{big(c.totals.usdPaid8)} aped</span>
+          <span className={`px-3 text-[0.9375rem] font-semibold whitespace-nowrap text-[color:var(--plate)] transition-opacity duration-300 ${w > 45 ? "opacity-100" : "opacity-0"}`}>{big(c.totals.usdPaid8)} aped</span>
         </span>
         <span className={`absolute top-full left-0 flex flex-col items-start transition-opacity duration-500 ${k >= 1 ? "opacity-100" : "opacity-0"}`} aria-hidden>
           <span className="ml-[1px] h-3 w-px bg-[color:var(--danger)]" />
           <span className="rounded-[4px] bg-[color:var(--danger)] px-2 py-0.5 text-[0.8125rem] font-semibold whitespace-nowrap text-[color:var(--plate)]">your bag: {usd8(c.totals.usdToday8)}</span>
         </span>
-        <span className="absolute top-1/2 right-3 -translate-y-1/2 text-right text-[0.875rem] leading-tight font-semibold text-[color:var(--plate)]">{big(c.totals.usdCounterfactual8)} in {c.stock}<span className="block font-display text-[0.9375rem] font-normal italic opacity-85">not yours</span></span>
+        <span className={`absolute top-1/2 right-3 -translate-y-1/2 text-right text-[0.875rem] leading-tight font-semibold text-[color:var(--plate)] transition-opacity duration-300 ${w < 55 ? "opacity-100" : "opacity-0"}`}>{big(c.totals.usdCounterfactual8)} in {c.stock}<span className="block font-display text-[0.9375rem] font-normal italic opacity-85">not yours</span></span>
       </div>
       <div className="mt-2 flex items-center justify-end gap-3 text-[0.8125rem]">
-        <span className="mr-auto pl-36 opacity-75 max-sm:pl-0 max-sm:pt-6">bag drawn to scale</span>
+        <span className="mr-auto pl-36 opacity-75 max-sm:pl-0 max-sm:pt-8">bag drawn to scale</span>
         <button type="button" onClick={() => setRun((r) => r + 1)} className="rounded-sm px-1 font-semibold underline decoration-1 underline-offset-4 hover:opacity-80 focus-visible:outline-2 focus-visible:outline-current">Replay ↺</button>
       </div>
     </div>
@@ -111,18 +111,18 @@ export function HindsightReceipts({ initial }: { initial: Card | null }) {
         </div>
         <div className="plate overflow-x-auto px-2 pt-2 pb-1">
           <table className="num w-full text-[0.9375rem] sm:min-w-[34rem]">
-            <caption className="px-4 pt-3 pb-1 text-left text-xs font-semibold text-muted">The {top.length} biggest of {buys.length.toLocaleString("en-US")} buys</caption>
+            <caption className="px-4 pt-3 pb-1 text-left text-xs font-semibold text-muted">The {top.length} biggest of {buys.length.toLocaleString("en-US")} buys, all into {memesLine(c)}</caption>
             <thead className="text-left text-xs font-semibold text-muted">
-              <tr><th className="px-4 py-3">Day</th><th className="px-4 py-3">Aped into</th><th className="px-4 py-3 text-right">Paid</th><th className="px-4 py-3 text-right max-sm:hidden">{c.stock} that day</th><th className="px-4 py-3 text-right max-sm:hidden">Would be {c.stock}</th><th className="px-4 py-3 text-right max-sm:hidden">Tx</th></tr>
+              <tr><th className="px-4 py-3 max-sm:px-2">Day</th><th className="px-4 py-3 max-sm:hidden">Aped into</th><th className="px-4 py-3 text-right max-sm:px-2">Paid</th><th className="px-4 py-3 text-right max-sm:px-2">{c.stock} that day</th><th className="px-4 py-3 text-right max-sm:px-2">Would be</th><th className="px-4 py-3 text-right max-sm:hidden">Tx</th></tr>
             </thead>
             <tbody>
               {top.map((b) => (
                 <tr key={b.tx + b.usdPaid8} className="border-t border-dashed border-fg/15">
-                  <td className="px-4 py-3 whitespace-nowrap text-muted">{dateTime(b.ts).replace(/, \d{4}/, "")}</td>
-                  <td className="px-4 py-3 font-semibold">${b.sym}</td>
-                  <td className="px-4 py-3 text-right font-semibold">{big(b.usdPaid8)}</td>
-                  <td className="px-4 py-3 text-right text-muted max-sm:hidden">{usd8(b.stockUsd8)}</td>
-                  <td className="px-4 py-3 text-right max-sm:hidden">{shares18(b.shares18)} sh</td>
+                  <td className="px-4 py-3 whitespace-nowrap text-muted max-sm:px-2"><span className="max-sm:hidden">{dateTime(b.ts).replace(/, \d{4}/, "")}</span><span className="sm:hidden"><TxLink hash={b.tx}>{date(b.ts).replace(/, \d{4}/, "")}</TxLink></span></td>
+                  <td className="px-4 py-3 font-semibold max-sm:hidden">${b.sym}</td>
+                  <td className="px-4 py-3 text-right font-semibold max-sm:px-2">{big(b.usdPaid8)}</td>
+                  <td className="px-4 py-3 text-right text-muted max-sm:px-2">{usd8(b.stockUsd8)}</td>
+                  <td className="px-4 py-3 text-right max-sm:px-2">{shares18(b.shares18)} sh</td>
                   <td className="px-4 py-3 text-right text-sm max-sm:hidden"><TxLink hash={b.tx} /></td>
                 </tr>
               ))}
@@ -159,7 +159,7 @@ export function HindsightPlate({ initial }: { initial: Card | null }) {
     <div className="plate-stack">
       <article aria-labelledby="hs-title" className="plate seat px-6 pt-5 pb-6 sm:px-8">
         <header className="mb-2 flex items-center justify-between gap-3 pr-24 sm:pr-0">
-          <h2 id="hs-title" className="ui-label">Hindsight · a real wallet <span className="num block text-muted sm:inline">{short(HISTORY_ADDR)}</span></h2>
+          <h2 id="hs-title" className="ui-label">Hindsight · a real wallet <span className="num block normal-case tracking-normal text-muted sm:inline">{short(HISTORY_ADDR)}</span></h2>
         </header>
 
         {c && c.memes.length > 0 ? (
@@ -174,7 +174,7 @@ export function HindsightPlate({ initial }: { initial: Card | null }) {
                 <p className="mt-2 text-sm text-muted">the bag, sold today</p>
               </div>
               <div className="sheet !rounded-[10px] px-5 pt-4 pb-5">
-                <p className="ui-label text-accent">In {c.stock} you&apos;d have</p>
+                <p className="ui-label text-accent">In {c.stock}<span className="max-sm:hidden"> you&apos;d have</span></p>
                 <p className="num mt-1 font-display text-[clamp(2.25rem,1.5rem+2.4vw,3.6rem)] leading-[0.95]">{big(c.totals.usdCounterfactual8)}</p>
                 <p className="mt-2 text-sm text-muted"><span className="num">{shares18(c.totals.shares18)}</span> shares, same days</p>
               </div>
