@@ -5,14 +5,14 @@ import type { PoolEntry } from "./registry";
 import { QuoteUnavailable, bestQuote, pickBestQuote, quoteStock, routeFor, v3Path } from "./quote";
 import { RpcError } from "./rpc";
 
-const TOKEN = "0x39dBED3a2bd333467115dE45665cC57F813C4571" as Address;
+const PONS = "0x39dBED3a2bd333467115dE45665cC57F813C4571" as Address;
 const NVDA = "0xd0601CE157Db5bdC3162BbaC2a2C8aF5320D9EEC" as Address;
 const ZERO = "0x0000000000000000000000000000000000000000" as Address;
 const hexOf = (a: string) => a.slice(2).toLowerCase();
 
 const v2: PoolEntry = { kind: 1, version: "v2", pool: ZERO, quote: "WETH", liquidityUsd: 1 };
 const v3: PoolEntry = { kind: 2, version: "v3", pool: ZERO, fee: 3000, quote: "WETH", liquidityUsd: 1 };
-const v4Key = { currency0: ZERO, currency1: TOKEN, fee: 8388608, tickSpacing: 60, hooks: ADDR.wifHook };
+const v4Key = { currency0: ZERO, currency1: PONS, fee: 8388608, tickSpacing: 60, hooks: ADDR.wifHook };
 const v4: PoolEntry = { kind: 3, version: "v4", id: "0x01", key: v4Key, liquidityUsd: 1 };
 
 describe("v3Path", () => {
@@ -34,23 +34,23 @@ describe("v3Path", () => {
 
 describe("routeFor", () => {
   it("builds v2 and v3 routes with WETH on the input side for buys and the output side for sells", () => {
-    expect(routeFor(v2, TOKEN, "buy").v2Path).toEqual([ADDR.weth, TOKEN]);
-    expect(routeFor(v2, TOKEN, "sell").v2Path).toEqual([TOKEN, ADDR.weth]);
-    expect(routeFor(v3, TOKEN, "buy")).toMatchObject({ kind: 2, v2Path: [], v3Path: v3Path(ADDR.weth, 3000, TOKEN) });
-    expect(routeFor(v3, TOKEN, "sell").v3Path).toBe(v3Path(TOKEN, 3000, ADDR.weth));
+    expect(routeFor(v2, PONS, "buy").v2Path).toEqual([ADDR.weth, PONS]);
+    expect(routeFor(v2, PONS, "sell").v2Path).toEqual([PONS, ADDR.weth]);
+    expect(routeFor(v3, PONS, "buy")).toMatchObject({ kind: 2, v2Path: [], v3Path: v3Path(ADDR.weth, 3000, PONS) });
+    expect(routeFor(v3, PONS, "sell").v3Path).toBe(v3Path(PONS, 3000, ADDR.weth));
   });
 
   it("passes a hooked, dynamic-fee v4 key through verbatim (fee 8388608 kept)", () => {
-    const r = routeFor(v4, TOKEN, "buy");
+    const r = routeFor(v4, PONS, "buy");
     expect(r).toEqual({ kind: 3, v2Path: [], v3Path: "0x", key: v4Key });
   });
 
   it("never returns a v2/v3 route whose endpoints differ from the declared token (TerraRouter._validate would revert BadRoute)", () => {
     for (const side of ["buy", "sell"] as const) {
-      const r2 = routeFor(v2, TOKEN, side);
-      expect(r2.v2Path).toContain(TOKEN);
+      const r2 = routeFor(v2, PONS, side);
+      expect(r2.v2Path).toContain(PONS);
       expect(r2.v2Path).toContain(ADDR.weth);
-      expect(routeFor(v3, TOKEN, side).v3Path.toLowerCase()).toContain(hexOf(TOKEN));
+      expect(routeFor(v3, PONS, side).v3Path.toLowerCase()).toContain(hexOf(PONS));
     }
   });
 });
@@ -76,23 +76,23 @@ describe("pickBestQuote (M3/S8: unavailable vs no route)", () => {
   const rateLimited = new RpcError(429, "HTTP 429");
 
   it("picks the largest decoded output and builds that pool's route", () => {
-    const best = pickBestQuote([v2, v3], [v2Out(100n), v3Out(250n)], TOKEN, "sell");
+    const best = pickBestQuote([v2, v3], [v2Out(100n), v3Out(250n)], PONS, "sell");
     expect(best?.amountOut).toBe(250n);
     expect(best?.route.kind).toBe(2);
   });
 
   it("uses the surviving pools when only some calls errored", () => {
-    expect(pickBestQuote([v2, v3], [rateLimited, v3Out(7n)], TOKEN, "sell")?.amountOut).toBe(7n);
+    expect(pickBestQuote([v2, v3], [rateLimited, v3Out(7n)], PONS, "sell")?.amountOut).toBe(7n);
   });
 
   it("throws QuoteUnavailable when every call failed at the RPC layer (never 'no route' / $0)", () => {
-    expect(() => pickBestQuote([v2, v3], [rateLimited, new RpcError(-32603, "internal")], TOKEN, "sell")).toThrow(QuoteUnavailable);
+    expect(() => pickBestQuote([v2, v3], [rateLimited, new RpcError(-32603, "internal")], PONS, "sell")).toThrow(QuoteUnavailable);
   });
 
   it("returns null when pools answered but none can fill (revert, zero output, undecodable)", () => {
     const revert = new RpcError(3, "execution reverted");
-    expect(pickBestQuote([v2, v3], [revert, v3Out(0n)], TOKEN, "sell")).toBeNull();
-    expect(pickBestQuote([v2], ["0xdead"], TOKEN, "sell")).toBeNull();
-    expect(pickBestQuote([], [], TOKEN, "sell")).toBeNull();
+    expect(pickBestQuote([v2, v3], [revert, v3Out(0n)], PONS, "sell")).toBeNull();
+    expect(pickBestQuote([v2], ["0xdead"], PONS, "sell")).toBeNull();
+    expect(pickBestQuote([], [], PONS, "sell")).toBeNull();
   });
 });

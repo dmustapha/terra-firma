@@ -1,0 +1,13 @@
+GETBLOCK_RPC_FRA eth_chainId=0x1237 616ms
+GETBLOCK_RPC_NYC eth_chainId=0x1237 1180ms
+PUBLIC_RPC eth_chainId=0x1237 611ms
+head=111418737
+GETBLOCK_RPC_FRA getLogs(5000 blocks WIF) -> {"error":"Block range is too large"}
+PUBLIC_RPC getLogs(5000 blocks WIF) -> {"logs":18}
+hypersync height: {"height":111418753}
+hypersync query no-token: HTTP 401
+ENVIO_API_TOKEN len=0
+quicknode base (no token) chainId: {"error":"UNAUTHORIZED","instance":"spring-multi-lake","request-id":""}
+dexscreener PONS pairs: 30
+WSS subscribe ok id=0xb5b2…
+WSS newHeads block=111418778 after 631ms

@@ -22,7 +22,9 @@ export const TOO_MANY_LOGS = (e: unknown) =>
 const LOG_METHODS = new Set(["eth_getLogs"]);
 
 function providers(calls: RpcCall[] = []): string[] {
-  if (calls.some((c) => LOG_METHODS.has(c.method))) return [PUBLIC_RPC, PUBLIC_RPC];
+  // LOGS_RPC (optional) points log scans at another 10M-range provider, e.g. a local fork in wire tests.
+  const logs = process.env.LOGS_RPC || PUBLIC_RPC;
+  if (calls.some((c) => LOG_METHODS.has(c.method))) return [logs, logs];
   return [process.env.GETBLOCK_RPC_FRA, process.env.GETBLOCK_RPC_NYC, PUBLIC_RPC].filter(
     (u): u is string => typeof u === "string" && u.length > 0,
   );

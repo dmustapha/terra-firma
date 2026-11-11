@@ -1,0 +1,8 @@
+geo US -> {"country":"US","restricted":true}
+geo NG -> {"country":"NG","restricted":false}
+geo DE -> {"country":"DE","restricted":false}
+geo CU -> {"country":"CU","restricted":true}
+FORK Jar NVDA of A=2638187500320606; of B=0
+FORK B withdraw A-sized amount -> execution reverted: custom error 0x1dc930eb, data: 
+FORK B credit(A, NVDA, 1) without transferring -> execution reverted: custom error 0x3cc50b45, data: 
+FORK A Jar NVDA after B's attempts=2638187500320606

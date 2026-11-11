@@ -1,0 +1,25 @@
+GET /api/health -> 200 497ms :: {"rpc":"ok","block":111418983,"deployed":false,"feeds":{"ETH":true,"NVDA":true,"TSLA":true,"GOOGL":true,"SNDK":true,"SPY":true,"QQQ":true},"feePoolWei":null}
+GET /api/quote?token=0x39dBED3a2bd333467115dE45665cC57F813C4571&side=buy&amount=1000000000000000 -> 200 612ms :: {"token":"0x39dBED3a2bd333467115dE45665cC57F813C4571","symbol":"PONS","route":{"kind":1,"v2Path":["0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73","0x39dBED3a2bd333467115dE45665cC57F813C4571"],"v3Path":"0x","key":{"currency0":"0x0000000000000000000000000000000000000000","currency1":"0x0000000000000000000000000000000000000000","fee":0,"tickSpacing":0,"hooks":"0x0000000000000000000000000000000000000000"
+GET /api/quote?token=0x39dBED3a2bd333467115dE45665cC57F813C4571&side=sell&amount=1000000000000000000000 -> 200 471ms :: {"token":"0x39dBED3a2bd333467115dE45665cC57F813C4571","symbol":"PONS","route":{"kind":2,"v2Path":[],"v3Path":"0x39dbed3a2bd333467115de45665cc57f813c4571000bb80bd7d308f8e1639fab988df18a8011f41eacad73","key":{"currency0":"0x0000000000000000000000000000000000000000","currency1":"0x000000000000000000000
+GET /api/geo -> 200 421ms :: {"country":"UNKNOWN","restricted":false,"unknown":true,"list":"2026-11-11T01:20:26.131Z"}
+GET /api/qn-jar -> 200 709ms :: {"enabled":false}
+GET /api/hindsight?addr=0x3fDBeB0FC14cca8fDd238Dd21725F0b8585Ab09E -> 200 12239ms :: {"wallet":"0x3fDBeB0FC14cca8fDd238Dd21725F0b8585Ab09E","stock":"NVDA","asOfBlock":111419008,"totals":{"usdPaid8":"1538079582596","usdPaidQuoted8":"1538079582596","usdToday8":"1851860740","usdCounterfactual8":"1501629115196","shares18":"86886728902480641554"},"memes":[{"token":"0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18","symbol":"AI","usdPaid8":"1538079582596","usdToday8":"1851860740","todayReason":null,"usdCounterfactual8":"1501629115196","holding":"630258644577504286613","buys":[{"tx":"0xe2582
+GET /api/hindsight?addr=0x3fDBeB0FC14cca8fDd238Dd21725F0b8585Ab09E -> 200 22ms :: {"wallet":"0x3fDBeB0FC14cca8fDd238Dd21725F0b8585Ab09E","stock":"NVDA","asOfBlock":111419008,"totals":{"usdPaid8":"1538079582596","usdPaidQuoted8":"1538079582596","usdToday8":"1851860740","usdCounterfa
+GET /api/hindsight?addr=notanaddress -> 400 19ms :: {"error":"bad_address"}
+GET /api/card-check?addr=0x3fDBeB0FC14cca8fDd238Dd21725F0b8585Ab09E -> 400 291ms :: {"error":"bad_request"}
+PAGE / -> 500
+PAGE /app -> 500
+PAGE /app/convert -> 500
+PAGE /trade -> 500
+PAGE /jar -> 500
+PAGE /stake -> 500
+PAGE /board -> 500
+PAGE /proof -> 500
+PAGE /card/0x3fDBeB0FC14cca8fDd238Dd21725F0b8585Ab09E -> 500
+PAGE /friends -> 500
+(eval):12: command not found: timeout
+stream: 
+card-check honest: {"verified":true,"derived":"1538079582596"}
+card-check forged: {"verified":false,"derived":"1538079582596"}
+stream: hello within 5s; 22 concurrent -> 20x200 + 2x503 (cap 20)
+ETH/USD 2059.26; expected meme legs 0.007860 ETH = $16.1858; card says $16.1858

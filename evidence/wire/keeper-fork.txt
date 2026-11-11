@@ -1,0 +1,13 @@
+--- keeper --dry (FORK)
+FeePool 0xb1FDE1C822a3fA7542B7A87D730a1969B2bFf5EB epoch 3 balance 0.000260000000000001 ETH canDistribute true
+burn leg 0.00013 ETH (capped per epoch; $WIF is never priced, no minimum is sent)
+dry run: distribute not sent
+--- keeper live (FORK, keeper key, fork-funded)
+FeePool 0xb1FDE1C822a3fA7542B7A87D730a1969B2bFf5EB epoch 3 balance 0.000260000000000001 ETH canDistribute true
+burn leg 0.00013 ETH (capped per epoch; $WIF is never priced, no minimum is sent)
+distribute tx 0x3812fc963183c125fec0c5728320fea6be902784fba04bbeb5407331e1a100d6
+Distributed epoch 3 ethIn 0.000260000000000001 wifBurned 204.411117096891120928 stockBought [1549340385100373,0,0,0,0,0] carried 0.000000000000000001
+--- keeper second run same epoch
+FeePool 0xb1FDE1C822a3fA7542B7A87D730a1969B2bFf5EB epoch 3 balance 0.000000000000000001 ETH canDistribute false
+skip (epoch already distributed)
+FORK WIF burned by keeper run = 204.41111709689113

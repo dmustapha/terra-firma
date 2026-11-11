@@ -211,98 +211,98 @@ Files in this phase were written and tested during forge Phase 2; tasks verify p
 - Expected: prints the generated line count, exit 0
 - Commit: `feat(scripts): add gen-plan.py`
 
-#### Task F049: create `web/app/api/geo/route.ts`
+#### Task F050: create `web/app/api/geo/route.ts`
 - Architecture: Section 15 (C13 Live Stream + ops API), File: web/app/api/geo/route.ts
 - Action: create the file with exactly the code block under `#### File: web/app/api/geo/route.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add route.ts`
 
-#### Task F050: create `web/app/api/health/route.ts`
+#### Task F051: create `web/app/api/health/route.ts`
 - Architecture: Section 15 (C13 Live Stream + ops API), File: web/app/api/health/route.ts
 - Action: create the file with exactly the code block under `#### File: web/app/api/health/route.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add route.ts`
 
-#### Task F051: create `web/app/api/hindsight/route.ts`
+#### Task F052: create `web/app/api/hindsight/route.ts`
 - Architecture: Section 13 (C7 Hindsight Indexer), File: web/app/api/hindsight/route.ts
 - Action: create the file with exactly the code block under `#### File: web/app/api/hindsight/route.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add route.ts`
 
-#### Task F053: create `web/app/api/quote/route.ts`
+#### Task F054: create `web/app/api/quote/route.ts`
 - Architecture: Section 14 (C8 Route Builder), File: web/app/api/quote/route.ts
 - Action: create the file with exactly the code block under `#### File: web/app/api/quote/route.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add route.ts`
 
-#### Task F107: create `web/lib/config.ts`
+#### Task F108: create `web/lib/config.ts`
 - Architecture: Section 12 (Shared web infrastructure), File: web/lib/config.ts
 - Action: create the file with exactly the code block under `#### File: web/lib/config.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add config.ts`
 
-#### Task F109: create `web/lib/hindsight.ts`
+#### Task F110: create `web/lib/hindsight.ts`
 - Architecture: Section 13 (C7 Hindsight Indexer), File: web/lib/hindsight.ts
 - Action: create the file with exactly the code block under `#### File: web/lib/hindsight.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add hindsight.ts`
 
-#### Task F112: create `web/lib/quote.ts`
+#### Task F113: create `web/lib/quote.ts`
 - Architecture: Section 14 (C8 Route Builder), File: web/lib/quote.ts
 - Action: create the file with exactly the code block under `#### File: web/lib/quote.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add quote.ts`
 
-#### Task F113: create `web/lib/registry.ts`
+#### Task F114: create `web/lib/registry.ts`
 - Architecture: Section 14 (C8 Route Builder), File: web/lib/registry.ts
 - Action: create the file with exactly the code block under `#### File: web/lib/registry.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add registry.ts`
 
-#### Task F116: create `web/lib/rounds.ts`
+#### Task F117: create `web/lib/rounds.ts`
 - Architecture: Section 13 (C7 Hindsight Indexer), File: web/lib/rounds.ts
 - Action: create the file with exactly the code block under `#### File: web/lib/rounds.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add rounds.ts`
 
-#### Task F118: create `web/lib/rpc.ts`
+#### Task F119: create `web/lib/rpc.ts`
 - Architecture: Section 12 (Shared web infrastructure), File: web/lib/rpc.ts
 - Action: create the file with exactly the code block under `#### File: web/lib/rpc.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add rpc.ts`
 
-#### Task F130: create `web/next.config.ts`
+#### Task F131: create `web/next.config.ts`
 - Architecture: Section 12 (Shared web infrastructure), File: web/next.config.ts
 - Action: create the file with exactly the code block under `#### File: web/next.config.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add next.config.ts`
 
-#### Task F131: create `web/package.json`
+#### Task F132: create `web/package.json`
 - Architecture: Section 12 (Shared web infrastructure), File: web/package.json
 - Action: create the file with exactly the code block under `#### File: web/package.json` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add package.json`
 
-#### Task F132: create `web/postcss.config.mjs`
+#### Task F133: create `web/postcss.config.mjs`
 - Architecture: Section 12 (Shared web infrastructure), File: web/postcss.config.mjs
 - Action: create the file with exactly the code block under `#### File: web/postcss.config.mjs` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add postcss.config.mjs`
 
-#### Task F133: create `web/tsconfig.json`
+#### Task F134: create `web/tsconfig.json`
 - Architecture: Section 12 (Shared web infrastructure), File: web/tsconfig.json
 - Action: create the file with exactly the code block under `#### File: web/tsconfig.json` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
@@ -503,7 +503,14 @@ Files in this phase were written and tested during forge Phase 2; tasks verify p
 - Expected: no type errors (exit 0)
 - Commit: `feat(scripts): add verify-claims.ts`
 
-#### Task F047: create `tsconfig.json`
+#### Task F047: create `scripts/wire-card-fork.ts`
+- Architecture: Section 17 (C10/C11 Scripts + keeper), File: scripts/wire-card-fork.ts
+- Action: create the file with exactly the code block under `#### File: scripts/wire-card-fork.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
+- Command: `npx tsc --noEmit -p tsconfig.json`
+- Expected: no type errors (exit 0)
+- Commit: `feat(scripts): add wire-card-fork.ts`
+
+#### Task F048: create `tsconfig.json`
 - Architecture: Section 17 (C10/C11 Scripts + keeper), File: tsconfig.json
 - Action: create the file with exactly the code block under `#### File: tsconfig.json` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `npx tsc --noEmit -p tsconfig.json`
@@ -518,455 +525,455 @@ Files in this phase were written and tested during forge Phase 2; tasks verify p
 - [ ] data files built from chain; `cd web && npx tsc --noEmit` still clean
 
 ## Phase P2: UI completion + local hero flow on a fork deployment
-#### Task F048: create `web/app/api/card-check/route.ts`
+#### Task F049: create `web/app/api/card-check/route.ts`
 - Architecture: Section 16 (C9 Frontend), File: web/app/api/card-check/route.ts
 - Action: create the file with exactly the code block under `#### File: web/app/api/card-check/route.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add route.ts`
 
-#### Task F055: create `web/app/app/convert/page.tsx`
+#### Task F056: create `web/app/app/convert/page.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/app/app/convert/page.tsx
 - Action: create the file with exactly the code block under `#### File: web/app/app/convert/page.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add page.tsx`
 
-#### Task F056: create `web/app/app/page.tsx`
+#### Task F057: create `web/app/app/page.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/app/app/page.tsx
 - Action: create the file with exactly the code block under `#### File: web/app/app/page.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add page.tsx`
 
-#### Task F058: create `web/app/card/[addr]/loading.tsx`
+#### Task F059: create `web/app/card/[addr]/loading.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/app/card/[addr]/loading.tsx
 - Action: create the file with exactly the code block under `#### File: web/app/card/[addr]/loading.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add loading.tsx`
 
-#### Task F059: create `web/app/card/[addr]/opengraph-image.tsx`
+#### Task F060: create `web/app/card/[addr]/opengraph-image.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/app/card/[addr]/opengraph-image.tsx
 - Action: create the file with exactly the code block under `#### File: web/app/card/[addr]/opengraph-image.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add opengraph-image.tsx`
 
-#### Task F060: create `web/app/card/[addr]/page.tsx`
+#### Task F061: create `web/app/card/[addr]/page.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/app/card/[addr]/page.tsx
 - Action: create the file with exactly the code block under `#### File: web/app/card/[addr]/page.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add page.tsx`
 
-#### Task F061: create `web/app/error.tsx`
+#### Task F062: create `web/app/error.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/app/error.tsx
 - Action: create the file with exactly the code block under `#### File: web/app/error.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add error.tsx`
 
-#### Task F063: create `web/app/globals.css`
+#### Task F064: create `web/app/globals.css`
 - Architecture: Section 16 (C9 Frontend), File: web/app/globals.css
 - Action: create the file with exactly the code block under `#### File: web/app/globals.css` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add globals.css`
 
-#### Task F064: create `web/app/jar/page.tsx`
+#### Task F065: create `web/app/jar/page.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/app/jar/page.tsx
 - Action: create the file with exactly the code block under `#### File: web/app/jar/page.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add page.tsx`
 
-#### Task F068: create `web/app/layout.tsx`
+#### Task F069: create `web/app/layout.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/app/layout.tsx
 - Action: create the file with exactly the code block under `#### File: web/app/layout.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add layout.tsx`
 
-#### Task F069: create `web/app/not-found.tsx`
+#### Task F070: create `web/app/not-found.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/app/not-found.tsx
 - Action: create the file with exactly the code block under `#### File: web/app/not-found.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add not-found.tsx`
 
-#### Task F070: create `web/app/page.tsx`
+#### Task F071: create `web/app/page.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/app/page.tsx
 - Action: create the file with exactly the code block under `#### File: web/app/page.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add page.tsx`
 
-#### Task F071: create `web/app/proof/page.tsx`
+#### Task F072: create `web/app/proof/page.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/app/proof/page.tsx
 - Action: create the file with exactly the code block under `#### File: web/app/proof/page.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add page.tsx`
 
-#### Task F072: create `web/app/stake/page.tsx`
+#### Task F073: create `web/app/stake/page.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/app/stake/page.tsx
 - Action: create the file with exactly the code block under `#### File: web/app/stake/page.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add page.tsx`
 
-#### Task F073: create `web/app/trade/[token]/page.tsx`
+#### Task F074: create `web/app/trade/[token]/page.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/app/trade/[token]/page.tsx
 - Action: create the file with exactly the code block under `#### File: web/app/trade/[token]/page.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add page.tsx`
 
-#### Task F074: create `web/app/trade/page.tsx`
+#### Task F075: create `web/app/trade/page.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/app/trade/page.tsx
 - Action: create the file with exactly the code block under `#### File: web/app/trade/page.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add page.tsx`
 
-#### Task F075: create `web/components/address-lookup.tsx`
+#### Task F076: create `web/components/address-lookup.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/components/address-lookup.tsx
 - Action: create the file with exactly the code block under `#### File: web/components/address-lookup.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add address-lookup.tsx`
 
-#### Task F076: create `web/components/app-home.tsx`
+#### Task F077: create `web/components/app-home.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/components/app-home.tsx
 - Action: create the file with exactly the code block under `#### File: web/components/app-home.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add app-home.tsx`
 
-#### Task F077: create `web/components/board-view.tsx`
+#### Task F078: create `web/components/board-view.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/components/board-view.tsx
 - Action: create the file with exactly the code block under `#### File: web/components/board-view.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add board-view.tsx`
 
-#### Task F078: create `web/components/card-actions.tsx`
+#### Task F079: create `web/components/card-actions.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/components/card-actions.tsx
 - Action: create the file with exactly the code block under `#### File: web/components/card-actions.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add card-actions.tsx`
 
-#### Task F079: create `web/components/card-view.tsx`
+#### Task F080: create `web/components/card-view.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/components/card-view.tsx
 - Action: create the file with exactly the code block under `#### File: web/components/card-view.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add card-view.tsx`
 
-#### Task F080: create `web/components/connect-button.tsx`
+#### Task F081: create `web/components/connect-button.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/components/connect-button.tsx
 - Action: create the file with exactly the code block under `#### File: web/components/connect-button.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add connect-button.tsx`
 
-#### Task F081: create `web/components/convert-panel.tsx`
+#### Task F082: create `web/components/convert-panel.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/components/convert-panel.tsx
 - Action: create the file with exactly the code block under `#### File: web/components/convert-panel.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add convert-panel.tsx`
 
-#### Task F082: create `web/components/friends-view.tsx`
+#### Task F083: create `web/components/friends-view.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/components/friends-view.tsx
 - Action: create the file with exactly the code block under `#### File: web/components/friends-view.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add friends-view.tsx`
 
-#### Task F083: create `web/components/geo-gate.tsx`
+#### Task F084: create `web/components/geo-gate.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/components/geo-gate.tsx
 - Action: create the file with exactly the code block under `#### File: web/components/geo-gate.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add geo-gate.tsx`
 
-#### Task F084: create `web/components/guarantee.tsx`
+#### Task F085: create `web/components/guarantee.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/components/guarantee.tsx
 - Action: create the file with exactly the code block under `#### File: web/components/guarantee.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add guarantee.tsx`
 
-#### Task F085: create `web/components/hindsight-card.tsx`
+#### Task F086: create `web/components/hindsight-card.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/components/hindsight-card.tsx
 - Action: create the file with exactly the code block under `#### File: web/components/hindsight-card.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add hindsight-card.tsx`
 
-#### Task F086: create `web/components/hooks.ts`
+#### Task F087: create `web/components/hooks.ts`
 - Architecture: Section 16 (C9 Frontend), File: web/components/hooks.ts
 - Action: create the file with exactly the code block under `#### File: web/components/hooks.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add hooks.ts`
 
-#### Task F087: create `web/components/jar-view.tsx`
+#### Task F088: create `web/components/jar-view.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/components/jar-view.tsx
 - Action: create the file with exactly the code block under `#### File: web/components/jar-view.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add jar-view.tsx`
 
-#### Task F088: create `web/components/landing-connect.tsx`
+#### Task F089: create `web/components/landing-connect.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/components/landing-connect.tsx
 - Action: create the file with exactly the code block under `#### File: web/components/landing-connect.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add landing-connect.tsx`
 
-#### Task F089: create `web/components/landing-live.tsx`
+#### Task F090: create `web/components/landing-live.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/components/landing-live.tsx
 - Action: create the file with exactly the code block under `#### File: web/components/landing-live.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add landing-live.tsx`
 
-#### Task F090: create `web/components/proof-view.tsx`
+#### Task F091: create `web/components/proof-view.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/components/proof-view.tsx
 - Action: create the file with exactly the code block under `#### File: web/components/proof-view.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add proof-view.tsx`
 
-#### Task F091: create `web/components/providers.tsx`
+#### Task F092: create `web/components/providers.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/components/providers.tsx
 - Action: create the file with exactly the code block under `#### File: web/components/providers.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add providers.tsx`
 
-#### Task F092: create `web/components/report-share.tsx`
+#### Task F093: create `web/components/report-share.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/components/report-share.tsx
 - Action: create the file with exactly the code block under `#### File: web/components/report-share.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add report-share.tsx`
 
-#### Task F093: create `web/components/site-header.tsx`
+#### Task F094: create `web/components/site-header.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/components/site-header.tsx
 - Action: create the file with exactly the code block under `#### File: web/components/site-header.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add site-header.tsx`
 
-#### Task F094: create `web/components/stake-view.tsx`
+#### Task F095: create `web/components/stake-view.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/components/stake-view.tsx
 - Action: create the file with exactly the code block under `#### File: web/components/stake-view.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add stake-view.tsx`
 
-#### Task F095: create `web/components/stock-select.tsx`
+#### Task F096: create `web/components/stock-select.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/components/stock-select.tsx
 - Action: create the file with exactly the code block under `#### File: web/components/stock-select.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add stock-select.tsx`
 
-#### Task F096: create `web/components/theme-toggle.tsx`
+#### Task F097: create `web/components/theme-toggle.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/components/theme-toggle.tsx
 - Action: create the file with exactly the code block under `#### File: web/components/theme-toggle.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add theme-toggle.tsx`
 
-#### Task F097: create `web/components/trade-terminal.tsx`
+#### Task F098: create `web/components/trade-terminal.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/components/trade-terminal.tsx
 - Action: create the file with exactly the code block under `#### File: web/components/trade-terminal.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add trade-terminal.tsx`
 
-#### Task F098: create `web/components/tx-status.tsx`
+#### Task F099: create `web/components/tx-status.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/components/tx-status.tsx
 - Action: create the file with exactly the code block under `#### File: web/components/tx-status.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add tx-status.tsx`
 
-#### Task F099: create `web/components/ui.tsx`
+#### Task F100: create `web/components/ui.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/components/ui.tsx
 - Action: create the file with exactly the code block under `#### File: web/components/ui.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add ui.tsx`
 
-#### Task F100: create `web/lib/api-hindsight.test.ts`
+#### Task F101: create `web/lib/api-hindsight.test.ts`
 - Architecture: Section 16 (C9 Frontend), File: web/lib/api-hindsight.test.ts
 - Action: create the file with exactly the code block under `#### File: web/lib/api-hindsight.test.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add api-hindsight.test.ts`
 
-#### Task F101: create `web/lib/api-quote.test.ts`
+#### Task F102: create `web/lib/api-quote.test.ts`
 - Architecture: Section 16 (C9 Frontend), File: web/lib/api-quote.test.ts
 - Action: create the file with exactly the code block under `#### File: web/lib/api-quote.test.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add api-quote.test.ts`
 
-#### Task F102: create `web/lib/api-stream.test.ts`
+#### Task F103: create `web/lib/api-stream.test.ts`
 - Architecture: Section 16 (C9 Frontend), File: web/lib/api-stream.test.ts
 - Action: create the file with exactly the code block under `#### File: web/lib/api-stream.test.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add api-stream.test.ts`
 
-#### Task F103: create `web/lib/api-validation.test.ts`
+#### Task F104: create `web/lib/api-validation.test.ts`
 - Architecture: Section 16 (C9 Frontend), File: web/lib/api-validation.test.ts
 - Action: create the file with exactly the code block under `#### File: web/lib/api-validation.test.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add api-validation.test.ts`
 
-#### Task F104: create `web/lib/card-cache.test.ts`
+#### Task F105: create `web/lib/card-cache.test.ts`
 - Architecture: Section 16 (C9 Frontend), File: web/lib/card-cache.test.ts
 - Action: create the file with exactly the code block under `#### File: web/lib/card-cache.test.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add card-cache.test.ts`
 
-#### Task F105: create `web/lib/card-cache.ts`
+#### Task F106: create `web/lib/card-cache.ts`
 - Architecture: Section 16 (C9 Frontend), File: web/lib/card-cache.ts
 - Action: create the file with exactly the code block under `#### File: web/lib/card-cache.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add card-cache.ts`
 
-#### Task F106: create `web/lib/concurrency.ts`
+#### Task F107: create `web/lib/concurrency.ts`
 - Architecture: Section 16 (C9 Frontend), File: web/lib/concurrency.ts
 - Action: create the file with exactly the code block under `#### File: web/lib/concurrency.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add concurrency.ts`
 
-#### Task F108: create `web/lib/hindsight.test.ts`
+#### Task F109: create `web/lib/hindsight.test.ts`
 - Architecture: Section 16 (C9 Frontend), File: web/lib/hindsight.test.ts
 - Action: create the file with exactly the code block under `#### File: web/lib/hindsight.test.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add hindsight.test.ts`
 
-#### Task F110: create `web/lib/hypersync.ts`
+#### Task F111: create `web/lib/hypersync.ts`
 - Architecture: Section 13 (C7 Hindsight Indexer), File: web/lib/hypersync.ts
 - Action: create the file with exactly the code block under `#### File: web/lib/hypersync.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add hypersync.ts`
 
-#### Task F111: create `web/lib/quote.test.ts`
+#### Task F112: create `web/lib/quote.test.ts`
 - Architecture: Section 16 (C9 Frontend), File: web/lib/quote.test.ts
 - Action: create the file with exactly the code block under `#### File: web/lib/quote.test.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add quote.test.ts`
 
-#### Task F114: create `web/lib/rounds.integration.ts`
+#### Task F115: create `web/lib/rounds.integration.ts`
 - Architecture: Section 16 (C9 Frontend), File: web/lib/rounds.integration.ts
 - Action: create the file with exactly the code block under `#### File: web/lib/rounds.integration.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add rounds.integration.ts`
 
-#### Task F115: create `web/lib/rounds.test.ts`
+#### Task F116: create `web/lib/rounds.test.ts`
 - Architecture: Section 16 (C9 Frontend), File: web/lib/rounds.test.ts
 - Action: create the file with exactly the code block under `#### File: web/lib/rounds.test.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add rounds.test.ts`
 
-#### Task F117: create `web/lib/rpc.test.ts`
+#### Task F118: create `web/lib/rpc.test.ts`
 - Architecture: Section 16 (C9 Frontend), File: web/lib/rpc.test.ts
 - Action: create the file with exactly the code block under `#### File: web/lib/rpc.test.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add rpc.test.ts`
 
-#### Task F119: create `web/lib/stock-paths.integration.ts`
+#### Task F120: create `web/lib/stock-paths.integration.ts`
 - Architecture: Section 16 (C9 Frontend), File: web/lib/stock-paths.integration.ts
 - Action: create the file with exactly the code block under `#### File: web/lib/stock-paths.integration.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add stock-paths.integration.ts`
 
-#### Task F120: create `web/lib/ui-chain.ts`
+#### Task F121: create `web/lib/ui-chain.ts`
 - Architecture: Section 16 (C9 Frontend), File: web/lib/ui-chain.ts
 - Action: create the file with exactly the code block under `#### File: web/lib/ui-chain.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add ui-chain.ts`
 
-#### Task F121: create `web/lib/ui-errors.test.ts`
+#### Task F122: create `web/lib/ui-errors.test.ts`
 - Architecture: Section 16 (C9 Frontend), File: web/lib/ui-errors.test.ts
 - Action: create the file with exactly the code block under `#### File: web/lib/ui-errors.test.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add ui-errors.test.ts`
 
-#### Task F122: create `web/lib/ui-errors.ts`
+#### Task F123: create `web/lib/ui-errors.ts`
 - Architecture: Section 16 (C9 Frontend), File: web/lib/ui-errors.ts
 - Action: create the file with exactly the code block under `#### File: web/lib/ui-errors.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add ui-errors.ts`
 
-#### Task F123: create `web/lib/ui-format.test.ts`
+#### Task F124: create `web/lib/ui-format.test.ts`
 - Architecture: Section 16 (C9 Frontend), File: web/lib/ui-format.test.ts
 - Action: create the file with exactly the code block under `#### File: web/lib/ui-format.test.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add ui-format.test.ts`
 
-#### Task F124: create `web/lib/ui-format.ts`
+#### Task F125: create `web/lib/ui-format.ts`
 - Architecture: Section 16 (C9 Frontend), File: web/lib/ui-format.ts
 - Action: create the file with exactly the code block under `#### File: web/lib/ui-format.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add ui-format.ts`
 
-#### Task F125: create `web/lib/ui-logs.test.ts`
+#### Task F126: create `web/lib/ui-logs.test.ts`
 - Architecture: Section 16 (C9 Frontend), File: web/lib/ui-logs.test.ts
 - Action: create the file with exactly the code block under `#### File: web/lib/ui-logs.test.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add ui-logs.test.ts`
 
-#### Task F126: create `web/lib/ui-logs.ts`
+#### Task F127: create `web/lib/ui-logs.ts`
 - Architecture: Section 16 (C9 Frontend), File: web/lib/ui-logs.ts
 - Action: create the file with exactly the code block under `#### File: web/lib/ui-logs.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add ui-logs.ts`
 
-#### Task F127: create `web/lib/ui-report.test.ts`
+#### Task F128: create `web/lib/ui-report.test.ts`
 - Architecture: Section 16 (C9 Frontend), File: web/lib/ui-report.test.ts
 - Action: create the file with exactly the code block under `#### File: web/lib/ui-report.test.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add ui-report.test.ts`
 
-#### Task F128: create `web/lib/ui-report.ts`
+#### Task F129: create `web/lib/ui-report.ts`
 - Architecture: Section 16 (C9 Frontend), File: web/lib/ui-report.ts
 - Action: create the file with exactly the code block under `#### File: web/lib/ui-report.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add ui-report.ts`
 
-#### Task F129: create `web/lib/wagmi.ts`
+#### Task F130: create `web/lib/wagmi.ts`
 - Architecture: Section 16 (C9 Frontend), File: web/lib/wagmi.ts
 - Action: create the file with exactly the code block under `#### File: web/lib/wagmi.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
@@ -1057,49 +1064,49 @@ Files in this phase were written and tested during forge Phase 2; tasks verify p
 
 ## Phase P5: Depth adds live + mobile
 Entry rule (peer review, adopted): no P5 task starts until the Phase P4 gate is fully ticked on mainnet.
-#### Task F052: create `web/app/api/qn-jar/route.ts`
+#### Task F053: create `web/app/api/qn-jar/route.ts`
 - Architecture: Section 15 (C13 Live Stream + ops API), File: web/app/api/qn-jar/route.ts
 - Action: create the file with exactly the code block under `#### File: web/app/api/qn-jar/route.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add route.ts`
 
-#### Task F054: create `web/app/api/stream/route.ts`
+#### Task F055: create `web/app/api/stream/route.ts`
 - Architecture: Section 15 (C13 Live Stream + ops API), File: web/app/api/stream/route.ts
 - Action: create the file with exactly the code block under `#### File: web/app/api/stream/route.ts` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add route.ts`
 
-#### Task F057: create `web/app/board/page.tsx`
+#### Task F058: create `web/app/board/page.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/app/board/page.tsx
 - Action: create the file with exactly the code block under `#### File: web/app/board/page.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add page.tsx`
 
-#### Task F062: create `web/app/friends/page.tsx`
+#### Task F063: create `web/app/friends/page.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/app/friends/page.tsx
 - Action: create the file with exactly the code block under `#### File: web/app/friends/page.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add page.tsx`
 
-#### Task F065: create `web/app/jar/report/[addr]/loading.tsx`
+#### Task F066: create `web/app/jar/report/[addr]/loading.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/app/jar/report/[addr]/loading.tsx
 - Action: create the file with exactly the code block under `#### File: web/app/jar/report/[addr]/loading.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add loading.tsx`
 
-#### Task F066: create `web/app/jar/report/[addr]/opengraph-image.tsx`
+#### Task F067: create `web/app/jar/report/[addr]/opengraph-image.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/app/jar/report/[addr]/opengraph-image.tsx
 - Action: create the file with exactly the code block under `#### File: web/app/jar/report/[addr]/opengraph-image.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
 - Expected: no type errors (exit 0)
 - Commit: `feat(web): add opengraph-image.tsx`
 
-#### Task F067: create `web/app/jar/report/[addr]/page.tsx`
+#### Task F068: create `web/app/jar/report/[addr]/page.tsx`
 - Architecture: Section 16 (C9 Frontend), File: web/app/jar/report/[addr]/page.tsx
 - Action: create the file with exactly the code block under `#### File: web/app/jar/report/[addr]/page.tsx` (forge pre-built files: confirm parity — `python3 scripts/gen-architecture.py` then `git diff --exit-code ARCHITECTURE.md`)
 - Command: `cd web && npx tsc --noEmit`
