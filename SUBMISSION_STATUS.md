@@ -2,7 +2,7 @@
 _Last updated: forge Phase 2 (2026-11-11 ~01:30 WAT)_
 
 ## Status
-- [x] Contracts written (7) and fork-tested on Robinhood Chain mainnet state: 38 tests pass (evidence/forge-test.txt)
+- [x] Contracts written (7) and fork-tested on Robinhood Chain mainnet state: 54 tests pass (evidence/forge-test.txt)
 - [x] Hindsight engine, route builder, API routes (hindsight, quote, geo, health, stream) — typecheck clean
 - [ ] UI pages (in progress)
 - [ ] Data files built (registry, round tables, restricted list) (in progress)

@@ -130,7 +130,8 @@ function Staker({ user, nextAt, now }: { user: Address; nextAt?: number; now: nu
   const stakeSym = hasStake ? mySym : pick;
   const wei = parseAmount(amt);
   const unWei = parseAmount(unAmt);
-  const mins = nextAt ? Math.max(1, Math.ceil((nextAt - now) / 60)) : null;
+  // WifStaking activates a stake placed in epoch e at the start of e+2 (one full epoch after the next boundary).
+  const mins = nextAt ? Math.max(1, Math.ceil((nextAt + 3600 - now) / 60)) : null;
   const reward = pend?.[1] ?? 0n;
   const rq = market.data?.[pend?.[0] ?? stockId];
   const blocked = gate.status === "restricted";
@@ -145,7 +146,7 @@ function Staker({ user, nextAt, now }: { user: Address; nextAt?: number; now: nu
       if (!wei) return;
       const id = STOCKS.find((s) => s.symbol === stakeSym)!.id;
       const r = await tx.run([approve(WIF, TF.WifStaking, wei, "$WIF"), { label: "Stake $WIF", call: { address: TF.WifStaking, abi: wifStakingAbi as unknown as Abi, functionName: "stake", args: [wei, id] } }]);
-      if (r) after(`Staked. You start earning ${stakeSym} from the next epoch${mins ? ` (in ${mins} min)` : ""}.`)();
+      if (r) after(`Staked. You start earning ${stakeSym} after one full epoch${mins ? ` (in ${mins} min)` : ""}.`)();
     });
   const call = (label: string, fn: string, args: readonly unknown[], done: string, stockLeg = false) => {
     const go = async () => {
@@ -173,7 +174,7 @@ function Staker({ user, nextAt, now }: { user: Address; nextAt?: number; now: nu
       <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Fig k="Wallet $WIF" v={wifBal.data !== undefined ? token(wifBal.data) : undefined} />
         <Fig k="Active" v={activeOf !== undefined ? token(activeOf) : undefined} sub={hasStake ? `earning ${mySym}` : undefined} />
-        <Fig k="Activating next epoch" v={st ? token(pendingStake) : undefined} />
+        <Fig k="Activating" v={st ? token(pendingStake) : undefined} />
         <Fig k="Reward to claim" v={pend ? (rq ? `${shares18(sharesOf(reward, rq))} ${STOCKS[pend[0]]?.symbol}` : token(reward)) : undefined} accent />
       </dl>
 
@@ -187,7 +188,7 @@ function Staker({ user, nextAt, now }: { user: Address; nextAt?: number; now: nu
             {wifBal.data !== undefined && <Button variant="secondary" onClick={() => setAmt(formatUnits(wifBal.data!, 18))}>Max</Button>}
           </div>
           <Button className="w-full" disabled={!wei || blocked || tx.busy || (wifBal.data !== undefined && wei > wifBal.data)} onClick={stake}>Approve and stake</Button>
-          <p className="text-xs text-muted">New stake starts earning at the next epoch, so nobody can grab a payout by staking just before it.</p>
+          <p className="text-xs text-muted">New stake starts earning after one full epoch, so nobody can grab a payout by staking just before it.</p>
         </section>
 
         <section aria-labelledby="manage-h" className="space-y-4">
@@ -198,7 +199,7 @@ function Staker({ user, nextAt, now }: { user: Address; nextAt?: number; now: nu
           {hasStake && (
             <div className="space-y-2">
               <StockSelect value={pick} onChange={setPick} label="Switch reward stock" name="switch-stock" />
-              <Button variant="secondary" className="w-full" disabled={pick === mySym || blocked || tx.busy} onClick={() => call(`Switch to ${pick}`, "switchStock", [STOCKS.find((s) => s.symbol === pick)!.id], `Switched. You earn ${pick} from the next epoch.`, true)}>
+              <Button variant="secondary" className="w-full" disabled={pick === mySym || blocked || tx.busy} onClick={() => call(`Switch to ${pick}`, "switchStock", [STOCKS.find((s) => s.symbol === pick)!.id], `Switched. You earn ${pick} after one full epoch.`, true)}>
                 Switch to {pick}
               </Button>
             </div>

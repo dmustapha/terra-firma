@@ -84,7 +84,7 @@ Critical-review survivors (INVARIANTS.md, forge Phase 3.5) and accepted risks, s
 | FriendJar | pending deploy | pending deploy |
 
 Addresses come from `contracts/deployments/4663.json` after deploy; each row links to
-`https://robinhoodchain.blockscout.com/address/{addr}` once verified. Fork tests: 38 passing on a mainnet fork
+`https://robinhoodchain.blockscout.com/address/{addr}` once verified. Fork tests: 54 passing on a mainnet fork
 (block 111155803) — `evidence/forge-test.txt`; that is a fork result, not a mainnet event.
 
 ## Reporting

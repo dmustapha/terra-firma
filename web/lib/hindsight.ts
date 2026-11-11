@@ -56,7 +56,12 @@ export interface Card {
 
 type Log = { address: Address; topics: Hex[]; data: Hex; blockNumber: Hex; transactionHash: Hex };
 type Tx = { from: Address; to: Address | null; value: Hex; blockNumber: Hex; hash: Hex };
-type Receipt = { logs: Log[] };
+type Receipt = { logs: (Log & { blockTimestamp?: Hex })[] };
+/** Block time from a receipt's logs (Nitro includes blockTimestamp there; eth_getLogs reports "0x0", never used). */
+const receiptTs = (rc: Receipt | undefined) => {
+  const ts = Number(rc?.logs[0]?.blockTimestamp ?? 0);
+  return ts > 0 ? ts : undefined;
+};
 
 /** Step 1-2: every Transfer(to = wallet) of each registry meme, per-token, 10M-block spans, split on overflow. */
 async function scanBuys(wallet: Address, head: number, memes: Meme[]): Promise<Log[]> {
@@ -103,7 +108,7 @@ async function scanBuys(wallet: Address, head: number, memes: Meme[]): Promise<L
   return logs.filter((l) => sources.has(topicAddr(l.topics[1]).toLowerCase()));
 }
 
-type Payment = { payKind: 0 | 1 | 2; payStockId: number; amount: bigint; block: number };
+type Payment = { payKind: 0 | 1 | 2; payStockId: number; amount: bigint; block: number; ts?: number };
 type Unpriced = { unpriced: string };
 
 /** Meme leg of a buy through Terra Firma's own router: tx.value minus the protocol fee and the sweep (from its events). */
@@ -144,7 +149,7 @@ async function payments(wallet: Address, hashes: Hex[]) {
     const value = BigInt(t.value);
     if (value > 0n) {
       const leg = viaRouter(t) ? routerMemeLeg(receiptByHash.get(t.hash), value) : value;
-      out.set(t.hash, leg === null ? { unpriced: "router tx without a Traded event" } : { payKind: 0, payStockId: 0, amount: leg, block });
+      out.set(t.hash, leg === null ? { unpriced: "router tx without a Traded event" } : { payKind: 0, payStockId: 0, amount: leg, block, ts: receiptTs(receiptByHash.get(t.hash)) });
       continue;
     }
     const outgoing = (receiptByHash.get(t.hash)?.logs ?? []).filter(
@@ -158,9 +163,10 @@ async function payments(wallet: Address, hashes: Hex[]) {
     }
     const tok = paid.address.toLowerCase();
     const amount = BigInt(paid.data);
-    if (tok === ADDR.weth.toLowerCase()) out.set(t.hash, { payKind: 0, payStockId: 0, amount, block });
-    else if (tok === ADDR.usdg.toLowerCase()) out.set(t.hash, { payKind: 1, payStockId: 0, amount, block });
-    else out.set(t.hash, { payKind: 2, payStockId: stockIdx.get(tok)!, amount, block });
+    const ts = receiptTs(receiptByHash.get(t.hash));
+    if (tok === ADDR.weth.toLowerCase()) out.set(t.hash, { payKind: 0, payStockId: 0, amount, block, ts });
+    else if (tok === ADDR.usdg.toLowerCase()) out.set(t.hash, { payKind: 1, payStockId: 0, amount, block, ts });
+    else out.set(t.hash, { payKind: 2, payStockId: stockIdx.get(tok)!, amount, block, ts });
   }
   return out;
 }
@@ -187,9 +193,13 @@ export async function buildCard(wallet: Address, stockId: StockId = 0): Promise<
   const heldMemes = REGISTRY.memes.filter((_, i) => allBal[i] > 0n);
   const logs = await scanBuys(wallet, head, heldMemes);
   const hashes = [...new Set(logs.map((l) => l.transactionHash))];
-  const [pay, times, ethT, usdgT, histT, nowStock, nowEth] = await Promise.all([
-    payments(wallet, hashes),
-    blockTimes(logs.map((l) => Number(l.blockNumber))),
+  // payments() runs alone first: overlapping it with blockTimes() put ~8 POSTs in flight and drew a 429 storm with
+  // multi-second backoffs on the public RPC (heavy wallet 29s, debug-results/phase-2-known-risks.md). Only priced txs
+  // need a block timestamp, and those with a receipt already carry it, so blockTimes() fetches only the rest.
+  const pay = await payments(wallet, hashes);
+  const untimed = logs.filter((l) => { const p = pay.get(l.transactionHash); return p && !("unpriced" in p) && p.ts === undefined; });
+  const [times, ethT, usdgT, histT, nowStock, nowEth] = await Promise.all([
+    blockTimes(untimed.map((l) => Number(l.blockNumber))),
     loadTable(ADDR.ethUsd),
     loadTable(ADDR.usdgUsd),
     loadTable(stock.historyFeed),
@@ -217,9 +227,10 @@ export async function buildCard(wallet: Address, stockId: StockId = 0): Promise<
       continue;
     }
     const meme = memesInTx[0];
-    const ts = times.get(Number(txLogs[0].blockNumber))!;
+    const ts = p.ts ?? times.get(Number(txLogs[0].blockNumber))!;
     const payTable = p.payKind === 0 ? ethT : p.payKind === 1 ? usdgT : await loadTable(STOCKS[p.payStockId].historyFeed);
-    const [payRound, stockRound] = await Promise.all([roundAtLive(payTable, ts), roundAtLive(histT, ts)]);
+    const payLatest = p.payKind === 0 ? nowEth : undefined;
+    const [payRound, stockRound] = await Promise.all([roundAtLive(payTable, ts, payLatest), roundAtLive(histT, ts, nowStock)]);
     if (!payRound || !stockRound) {
       skip("before Chainlink price history");
       continue;

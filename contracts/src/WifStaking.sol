@@ -99,7 +99,7 @@ contract WifStaking is ReentrancyGuard {
         wif.safeTransferFrom(msg.sender, address(this), amount);
         s.stockId = stockId;
         _addPending(s, stockId, amount);
-        emit Staked(msg.sender, amount, stockId, currentEpoch() + 1);
+        emit Staked(msg.sender, amount, stockId, currentEpoch() + 2); // first epoch it earns in (see _matured)
     }
 
     /// @notice Move your whole stake to another reward stock. Claims first; earns in the new pool from next epoch.
@@ -228,6 +228,14 @@ contract WifStaking is ReentrancyGuard {
         Pool storage p = pools[stockId];
         _rollPool(stockId);
         uint256 e = currentEpoch();
+        // A staker tracks one pending batch. An older batch still pending (placed in e-1; _touch already activated
+        // anything older) moves into this epoch's bucket and activates with the top-up at e+2: never earlier (anti-JIT),
+        // and never left in a bucket the staker no longer points at (stranded rewards / underflow lock).
+        if (s.pending > 0 && s.pendingEpoch != e) {
+            _removePending(stockId, s.pendingEpoch, s.pending);
+            amount += s.pending;
+            s.pending = 0;
+        }
         uint256 slot = 2;
         for (uint256 k; k < 2; ++k) {
             if (p.pend[k].amount > 0 && p.pend[k].epoch == e) slot = k;

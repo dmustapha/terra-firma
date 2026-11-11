@@ -17,7 +17,7 @@
     "typecheck:web": "pnpm --dir web typecheck",
     "forge:build": "scripts/forge.sh build",
     "test": "pnpm --dir web test",
-    "test:live": "tsx --conditions=react-server scripts/hindsight.live.ts && scripts/fork-tests.sh",
+    "test:live": "tsx --conditions=react-server scripts/hindsight.live.ts && tsx --conditions=react-server scripts/debug-p2-hindsight-latency.live.ts && scripts/fork-tests.sh",
     "check": "pnpm typecheck && pnpm typecheck:web && pnpm forge:build && pnpm test && pnpm verify-claims",
     "clean-room": "scripts/clean-room.sh"
   },

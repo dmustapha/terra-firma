@@ -8,10 +8,12 @@ import { rpc } from "@/lib/rpc";
 export const runtime = "nodejs";
 
 export async function GET() {
+  // Pre-deploy TF.FeePool is the zero address; its balance is not the FeePool's, so report null instead.
+  const deployed = (TF as unknown as { deployed?: boolean }).deployed !== false;
   try {
     const [block, feePoolWei, ...feeds] = await Promise.all([
       rpc<string>("eth_blockNumber", []),
-      rpc<string>("eth_getBalance", [TF.FeePool, "latest"]),
+      deployed ? rpc<string>("eth_getBalance", [TF.FeePool, "latest"]) : null,
       latestPrice8(ADDR.ethUsd),
       ...STOCKS.map((s) => latestPrice8(s.liveFeed)),
     ]);
@@ -19,7 +21,7 @@ export async function GET() {
     const fresh = Object.fromEntries(
       [["ETH", feeds[0]], ...STOCKS.map((s, i) => [s.symbol, feeds[i + 1]] as const)].map(([k, f]) => [k, now - (f as { updatedAt: number }).updatedAt < 25 * 3600]),
     );
-    return NextResponse.json({ rpc: "ok", block: Number(block), deployed: (TF as unknown as { deployed?: boolean }).deployed !== false, feeds: fresh, feePoolWei: BigInt(feePoolWei).toString() });
+    return NextResponse.json({ rpc: "ok", block: Number(block), deployed, feeds: fresh, feePoolWei: feePoolWei === null ? null : BigInt(feePoolWei).toString() });
   } catch (e) {
     return NextResponse.json({ rpc: "degraded", error: String(e) }, { status: 503 });
   }

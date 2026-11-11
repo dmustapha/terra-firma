@@ -82,7 +82,19 @@ const getRoundAbi = [
   },
 ] as const;
 
+/** Historic rounds never change once written, so a round with updatedAt != 0 is memoized (binary searches overlap). */
+const roundMemo = new Map<string, { price8: bigint; updatedAt: number }>();
+
 async function roundData(feed: Address, n: number): Promise<{ price8: bigint; updatedAt: number }> {
+  const key = `${feed.toLowerCase()}:${n}`;
+  const hit = roundMemo.get(key);
+  if (hit) return hit;
+  const r = await fetchRoundData(feed, n);
+  if (r.updatedAt !== 0) roundMemo.set(key, r);
+  return r;
+}
+
+async function fetchRoundData(feed: Address, n: number): Promise<{ price8: bigint; updatedAt: number }> {
   const data = encodeFunctionData({ abi: getRoundAbi, functionName: "getRoundData", args: [PHASE_BASE + BigInt(n)] });
   const raw = await rpc<`0x${string}`>("eth_call", [{ to: feed, data }, "latest"]);
   const [, answer, , updatedAt] = decodeFunctionResult({ abi: getRoundAbi, functionName: "getRoundData", data: raw });
@@ -94,7 +106,7 @@ async function roundData(feed: Address, n: number): Promise<{ price8: bigint; up
  * are read live (binary search between the last table round and the latest round), so HindsightLens.recompute on the
  * same inputs never reverts BadRound for a recent buy. Returns null when `ts` precedes the feed (row goes "unpriced").
  */
-export async function roundAtLive(t: RoundTable, ts: number) {
+export async function roundAtLive(t: RoundTable, ts: number, latestRound?: Awaited<ReturnType<typeof latestPrice8>>) {
   const rows = t.rounds;
   if (rows.length === 0 || rows[0][2] > ts) return null;
   const last = rows[rows.length - 1];
@@ -105,7 +117,7 @@ export async function roundAtLive(t: RoundTable, ts: number) {
     return { ...r, price8: normalize8(t.feed, nOf(r.roundId), r.price8) };
   }
   // Case 2: no newer round exists onchain, or the latest round is not after ts.
-  const latest = await latestPrice8(t.feed);
+  const latest = latestRound ?? (await latestPrice8(t.feed)); // caller may pass this feed's latest round, read once per card
   const latestN = nOf(latest.roundId);
   if (latestN <= last[0]) return { roundId: PHASE_BASE + BigInt(last[0]), price8: BigInt(last[1]), updatedAt: last[2] };
   if (latest.updatedAt <= ts) return { roundId: latest.roundId, price8: normalize8(t.feed, latestN, latest.price8), updatedAt: latest.updatedAt };
