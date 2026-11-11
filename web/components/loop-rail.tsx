@@ -43,7 +43,7 @@ export function LoopRail() {
       <div className="relative hidden h-24 lg:block" aria-hidden>
         <div className="well absolute top-[62%] h-3 -translate-y-1/2 !rounded-full" style={{ left: COL[0], right: "calc((100% - 4rem) / 6)" }}>
           <span className={cx("absolute inset-y-0 left-0 rounded-full bg-accent", move)} style={{ width: `${Math.min(phase, 1) * 50}%` }} />
-          <span className={cx("absolute top-1/2 left-1/2 h-0.5 -translate-y-1/2 bg-[color:var(--danger)]", move)} style={{ width: phase === 2 ? "50%" : "0%" }} />
+          <span className={cx("absolute inset-y-0 left-1/2 rounded-r-full bg-[color:var(--danger)]", move)} style={{ width: phase === 2 ? "50%" : "0%" }} />
         </div>
         {STATIONS.map((st, i) => (
           <span key={st.n} className={cx("absolute top-[62%] size-6 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-fg transition-colors duration-300", i <= phase ? "bg-accent" : "bg-plate")} style={{ left: COL[i] }} />

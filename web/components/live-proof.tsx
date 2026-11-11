@@ -59,7 +59,7 @@ export function LiveProof() {
           </div>
           <div className="rounded-[10px] bg-fg px-5 py-4 text-bg shadow-[var(--sh-well)]">
             <p className="mb-2 text-xs font-semibold opacity-70">Since launch, read every 30s</p>
-            <ul className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-[0.9375rem] opacity-90">
+            <ul className="grid gap-x-6 gap-y-1.5 text-[0.9375rem] opacity-90 min-[400px]:grid-cols-2">
               <Fig label="$WIF burned" href={addrUrl(TF.FeePool)} value={rv(burned, (v) => token(v))} />
               <Fig label="ETH into stakers' stock" href={addrUrl(TF.FeePool)} value={rv(toStock, (v) => eth(v))} />
               <Fig label="slice trades" href={addrUrl(TF.TerraRouter)} value={lv((l) => only(l.router, "Traded").length)} />

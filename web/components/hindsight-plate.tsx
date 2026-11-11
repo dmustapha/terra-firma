@@ -11,6 +11,7 @@ import { useCard } from "./hooks";
 import { Skeleton, TextLink, TxLink } from "./ui";
 
 const big = usdWhole8;
+const sh3 = (v: string) => (Number(BigInt(v) / 10n ** 12n) / 1e6).toFixed(3);
 
 
 /** Loss on the priced memes, truncated (never rounded) so a 99.998% drop never reads as −100%. */
@@ -75,7 +76,7 @@ function Drain({ c }: { c: Card }) {
       </div>
       <div className="relative mt-6 h-12 rounded-[4px] bg-[color:var(--accent)] bg-[repeating-linear-gradient(135deg,transparent_0_6px,rgb(0_0_0/0.16)_6px_7px)]" role="img" aria-label={`To scale: the bag is ${pct.toFixed(2)}% of the ${c.stock} line`}>
         <span className="absolute inset-y-0 left-0 flex min-w-[3px] items-center overflow-hidden rounded-l-[4px] bg-[color:var(--danger)]" style={{ width: `${w}%` }}>
-          <span className={`px-3 text-[0.9375rem] font-semibold whitespace-nowrap text-[color:var(--plate)] transition-opacity duration-300 ${w > 45 ? "opacity-100" : "opacity-0"}`}>{big(c.totals.usdPaid8)} aped</span>
+          <span className={`px-3 text-[0.9375rem] font-semibold whitespace-nowrap text-[color:var(--plate)] transition-opacity duration-300 ${w > 85 ? "opacity-100" : "opacity-0"}`}>{big(c.totals.usdPaid8)} aped</span>
         </span>
         <span className={`absolute top-full left-0 flex flex-col items-start transition-opacity duration-500 ${k >= 1 ? "opacity-100" : "opacity-0"}`} aria-hidden>
           <span className="ml-[1px] h-3 w-px bg-[color:var(--danger)]" />
@@ -110,20 +111,20 @@ export function HindsightReceipts({ initial }: { initial: Card | null }) {
           <TextLink href={`/card/${HISTORY_ADDR}`} className="mt-4">All {buys.length.toLocaleString("en-US")} receipts<span aria-hidden>&nbsp;→</span></TextLink>
         </div>
         <div className="plate min-w-0 px-1 pt-2 pb-1 sm:px-2">
-          <div className="overflow-x-auto max-sm:[mask-image:linear-gradient(90deg,#000_92%,transparent)]">
+          <div className="overflow-x-auto">
           <table className="num w-full text-[0.875rem] sm:min-w-[34rem] sm:text-[0.9375rem]">
             <caption className="px-4 pt-3 pb-1 text-left text-xs font-semibold text-muted">The {top.length} biggest of {buys.length.toLocaleString("en-US")} buys, all into {memesLine(c)}</caption>
             <thead className="text-left text-xs font-semibold text-muted">
-              <tr><th className="px-4 py-3 max-sm:px-2">Time (UTC)</th><th className="px-4 py-3 text-right max-sm:px-2">Paid</th><th className="px-4 py-3 text-right max-sm:hidden">{c.stock} at buy</th><th className="px-4 py-3 text-right max-sm:px-2">Would be</th><th className="px-4 py-3 text-right max-sm:hidden">Tx</th></tr>
+              <tr><th className="px-4 py-3 max-sm:px-2">Time (UTC)</th><th className="px-4 py-3 text-right max-sm:px-2">Paid</th><th className="px-4 py-3 text-right max-sm:hidden">{c.stock} at buy</th><th className="px-4 py-3 text-right max-sm:hidden">Would be</th><th className="px-4 py-3 text-right max-sm:hidden">Tx</th></tr>
             </thead>
             <tbody>
               {top.map((b) => (
                 <tr key={b.tx + b.usdPaid8} className="border-t border-dashed border-fg/15">
-                  <td className="px-4 py-3 whitespace-nowrap text-muted max-sm:px-2"><span className="max-sm:hidden">{dateTime(b.ts).replace(/, \d{4}/, "").replace(/ UTC$/, "")}</span><span className="sm:hidden"><TxLink hash={b.tx}>{new Date(b.ts * 1000).toISOString().slice(5, 16).replace("T", " ")}</TxLink></span></td>
+                  <td className="px-4 py-3 whitespace-nowrap text-muted max-sm:px-2 max-sm:py-2.5"><span className="max-sm:hidden">{dateTime(b.ts).replace(/, \d{4}/, "").replace(/ UTC$/, "")}</span><span className="block sm:hidden">{new Date(b.ts * 1000).toISOString().slice(5, 16).replace("T", " ")}<span className="mt-0.5 block text-[0.8125rem]">@ {usd8(b.stockUsd8)} → {sh3(b.shares18)} sh · <TxLink hash={b.tx} /></span></span></td>
                   
-                  <td className="px-4 py-3 text-right font-semibold whitespace-nowrap max-sm:px-2">{usd8(b.usdPaid8)}</td>
+                  <td className="px-4 py-3 text-right align-top font-semibold whitespace-nowrap max-sm:px-2 max-sm:py-2.5">{usd8(b.usdPaid8)}</td>
                   <td className="px-4 py-3 text-right whitespace-nowrap text-muted max-sm:hidden">{usd8(b.stockUsd8)}</td>
-                  <td className="px-4 py-3 text-right whitespace-nowrap max-sm:px-2">{shares18(b.shares18)} sh</td>
+                  <td className="px-4 py-3 text-right whitespace-nowrap max-sm:hidden">{sh3(b.shares18)} sh</td>
                   <td className="px-4 py-3 text-right text-sm max-sm:hidden"><TxLink hash={b.tx} /></td>
                 </tr>
               ))}
@@ -155,7 +156,7 @@ export function HindsightPlate({ initial }: { initial: Card | null }) {
     <div className="plate-stack">
       <article aria-labelledby="hs-title" className="plate seat px-6 pt-5 pb-6 sm:px-8">
         <header className="mb-2 flex items-center justify-between gap-3 pr-24 sm:pr-0">
-          <h2 id="hs-title" className="ui-label"><span className="max-sm:hidden">Hindsight · </span>A real wallet · <span className="num whitespace-nowrap normal-case tracking-normal text-muted">{short(HISTORY_ADDR)}</span></h2>
+          <h2 id="hs-title" className="ui-label"><span className="max-sm:hidden">Hindsight · </span>A real wallet <span className="num whitespace-nowrap normal-case tracking-normal text-muted">{short(HISTORY_ADDR)}</span></h2>
         </header>
 
         {c && c.memes.length > 0 ? (
