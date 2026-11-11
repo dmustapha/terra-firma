@@ -24,7 +24,7 @@ export function AddressLookup({ id = "lookup", placeholder = "Paste a 0x address
       }}
     >
       <label htmlFor={id} className={label ? "text-sm font-semibold" : "sr-only"}>{label ?? "Wallet address"}</label>
-      <div className="flex min-w-0">
+      <div className={cx("flex min-w-0", primary && "max-sm:flex-col max-sm:gap-2")}>
         <input
           id={id}
           value={v}
@@ -33,13 +33,13 @@ export function AddressLookup({ id = "lookup", placeholder = "Paste a 0x address
             setErr(false);
           }}
           placeholder={placeholder}
-          className={cx(inputCls, "min-w-0 flex-1 rounded-r-none border-r-0", !primary && "font-mono", primary && "min-h-13 border-fg bg-well shadow-[var(--sh-well)]")}
+          className={cx(inputCls, "min-w-0 flex-1", primary ? "sm:rounded-r-none sm:border-r-0" : "rounded-r-none border-r-0", !primary && "font-mono", primary && "min-h-13 border-fg bg-well shadow-[var(--sh-well)]")}
           aria-invalid={err}
           aria-describedby={err ? errId : undefined}
           autoComplete="off"
           spellCheck={false}
         />
-        <Button type="submit" variant={primary ? "primary" : "secondary"} className={cx("shrink-0 rounded-l-none px-4", primary && "min-h-13 px-6 text-[1.0625rem]")}>{button}</Button>
+        <Button type="submit" variant={primary ? "primary" : "secondary"} className={cx("shrink-0 px-4", primary ? "min-h-13 px-6 text-[1.0625rem] sm:rounded-l-none" : "rounded-l-none")}>{button}</Button>
       </div>
       {err && <p id={errId} role="alert" className="text-sm text-danger">Enter a 0x address (42 characters).</p>}
     </form>

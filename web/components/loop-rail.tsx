@@ -14,6 +14,9 @@ const STATIONS = [
 
 // phase 0: dead meme at 01 · phase 1: it travels to 02 and becomes stock · phase 2: the fee chip splits off to 03.
 const STEPS_MS = [1200, 2500];
+// Centre of column i in a 3-column grid with a 2rem gap (matches the tiles below, so each tick meets its dot).
+const COL = ["calc((100% - 4rem) / 6)", "50%", "calc(100% - (100% - 4rem) / 6)"];
+const CHIPS = ["$AI · dead bag", "NVDA · in your Jar", "0.5% fee → $WIF burned"];
 
 export function LoopRail() {
   const [phase, setPhase] = useState(2);
@@ -34,29 +37,31 @@ export function LoopRail() {
     return () => { io.disconnect(); timers.forEach(clearTimeout); };
   }, []);
   const move = snap ? "transition-none" : "transition-[left,width,opacity] duration-[1000ms] ease-in-out";
-  const main = phase === 0 ? { left: "0%", label: "$AI · dead bag", tone: "bg-[color:var(--danger)]" } : { left: "50%", label: "NVDA · in your Jar", tone: "bg-[color:var(--accent)]" };
+  const main = phase === 0 ? { left: COL[0], label: "$AI · dead bag", tone: "bg-[color:var(--danger)]" } : { left: COL[1], label: "NVDA · in your Jar", tone: "bg-[color:var(--accent)]" };
   return (
     <div ref={ref} className="mt-14">
-      <div className="relative mx-[8%] h-24" aria-hidden>
-        <div className="well absolute top-[62%] right-0 left-0 h-3 -translate-y-1/2 !rounded-full">
+      <div className="relative hidden h-24 lg:block" aria-hidden>
+        <div className="well absolute top-[62%] h-3 -translate-y-1/2 !rounded-full" style={{ left: COL[0], right: "calc((100% - 4rem) / 6)" }}>
           <span className={cx("absolute inset-y-0 left-0 rounded-full bg-accent", move)} style={{ width: `${Math.min(phase, 1) * 50}%` }} />
           <span className={cx("absolute top-1/2 left-1/2 h-0.5 -translate-y-1/2 bg-[color:var(--danger)]", move)} style={{ width: phase === 2 ? "50%" : "0%" }} />
         </div>
         {STATIONS.map((st, i) => (
-          <span key={st.n} className={cx("absolute top-[62%] size-6 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-fg transition-colors duration-300", i <= phase ? "bg-accent" : "bg-plate")} style={{ left: `${i * 50}%` }} />
+          <span key={st.n} className={cx("absolute top-[62%] size-6 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-fg transition-colors duration-300", i <= phase ? "bg-accent" : "bg-plate")} style={{ left: COL[i] }} />
         ))}
         <span className={cx("absolute top-[62%] -translate-x-1/2 -translate-y-[155%]", move)} style={{ left: main.left }}>
           <span key={main.label} className={cx("rise inline-block rounded-full border-[1.5px] border-fg px-4 py-1.5 text-[0.9375rem] font-semibold whitespace-nowrap text-[color:var(--plate)] shadow-[3px_3px_0_var(--plate-offset)]", main.tone)}>{main.label}</span>
         </span>
-        <span className={cx("absolute top-[62%] -translate-x-[88%] -translate-y-[175%]", move, phase === 2 ? "opacity-100" : "opacity-0")} style={{ left: phase === 2 ? "100%" : "50%" }}>
+        <span className={cx("absolute top-[62%] -translate-x-[88%] -translate-y-[175%]", move, phase === 2 ? "opacity-100" : "opacity-0")} style={{ left: phase === 2 ? COL[2] : COL[1] }}>
           <span className="stamp !rotate-[-4deg] !text-[1rem] whitespace-nowrap !font-sans font-bold">0.5% fee → $WIF burned</span>
         </span>
       </div>
       <ol className="mt-4 grid gap-6 lg:grid-cols-3 lg:gap-8">
+        {/* tiles */}
         {STATIONS.map((st) => (
           <li key={st.n} id={`step-${st.n}`} className="relative scroll-mt-28 text-center">
             <span aria-hidden className="absolute -top-4 left-1/2 hidden h-4 w-0.5 -translate-x-1/2 bg-fg lg:block" />
             <div className="sheet h-full px-6 pt-5 pb-6">
+            <p className="mb-3 lg:hidden"><span className={cx("inline-block rounded-full border-[1.5px] border-fg px-3 py-1 text-[0.875rem] font-semibold", ["bg-[color:var(--danger)] text-[color:var(--plate)]", "bg-[color:var(--accent)] text-[color:var(--plate)]", "border-[color:var(--danger)] text-danger"][Number(st.n) - 1])}>{CHIPS[Number(st.n) - 1]}</span></p>
             <p className="num text-sm font-semibold text-accent">{st.n}</p>
             <h3 className="mt-1 font-display text-[2.5rem] leading-none">{st.title}</h3>
             <p className="mx-auto mt-3 max-w-[30ch] text-[1rem] leading-relaxed text-fg/85">{st.line}</p>

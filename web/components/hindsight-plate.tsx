@@ -81,10 +81,10 @@ function Drain({ c }: { c: Card }) {
           <span className="ml-[1px] h-3 w-px bg-[color:var(--danger)]" />
           <span className="rounded-[4px] bg-[color:var(--danger)] px-2 py-0.5 text-[0.8125rem] font-semibold whitespace-nowrap text-[color:var(--plate)]">your bag: {usd8(c.totals.usdToday8)}</span>
         </span>
-        <span className="absolute top-1/2 right-3 -translate-y-1/2 text-[0.875rem] font-semibold text-[color:var(--plate)]">{big(c.totals.usdCounterfactual8)} in {c.stock}</span>
+        <span className="absolute top-1/2 right-3 -translate-y-1/2 text-right text-[0.875rem] leading-tight font-semibold text-[color:var(--plate)]">{big(c.totals.usdCounterfactual8)} in {c.stock}<span className="block font-display text-[0.9375rem] font-normal italic opacity-85">not yours</span></span>
       </div>
       <div className="mt-2 flex items-center justify-end gap-3 text-[0.8125rem]">
-        <span className="mr-auto pl-36 opacity-75 max-sm:hidden">drawn to scale</span>
+        <span className="mr-auto pl-36 opacity-75 max-sm:pl-0 max-sm:pt-6">bag drawn to scale</span>
         <button type="button" onClick={() => setRun((r) => r + 1)} className="rounded-sm px-1 font-semibold underline decoration-1 underline-offset-4 hover:opacity-80 focus-visible:outline-2 focus-visible:outline-current">Replay ↺</button>
       </div>
     </div>
@@ -158,8 +158,8 @@ export function HindsightPlate({ initial }: { initial: Card | null }) {
   return (
     <div className="plate-stack">
       <article aria-labelledby="hs-title" className="plate seat px-6 pt-5 pb-6 sm:px-8">
-        <header className="mb-2 flex items-center justify-between gap-3">
-          <h2 id="hs-title" className="ui-label">Hindsight · a real wallet <span className="num text-muted">{short(HISTORY_ADDR)}</span></h2>
+        <header className="mb-2 flex items-center justify-between gap-3 pr-24 sm:pr-0">
+          <h2 id="hs-title" className="ui-label">Hindsight · a real wallet <span className="num block text-muted sm:inline">{short(HISTORY_ADDR)}</span></h2>
         </header>
 
         {c && c.memes.length > 0 ? (
@@ -181,7 +181,7 @@ export function HindsightPlate({ initial }: { initial: Card | null }) {
             </div>
             <Drain c={c} />
             {loss && (
-              <span aria-label={`the bag is down ${loss} percent`} className="stamp stamp-land absolute -top-6 -right-3 text-[1.75rem] sm:-right-6 sm:text-[2.1rem]">
+              <span aria-label={`the bag is down ${loss} percent`} className="stamp stamp-land absolute -top-5 -right-2 text-[1.375rem] sm:-top-6 sm:-right-6 sm:text-[2.1rem]">
                 −{loss}%
               </span>
             )}

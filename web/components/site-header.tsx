@@ -48,7 +48,7 @@ export function SiteHeader() {
           <ConnectButton variant="secondary" label="Connect" className="min-h-10 min-w-0 px-3 text-sm sm:px-4" />
         </div>
       </div>
-      <nav aria-label="Main (compact)" className="border-t border-fg/10 lg:hidden">
+      <nav aria-label="Main (compact)" className="border-t border-fg/10 [mask-image:linear-gradient(90deg,#000_85%,transparent)] lg:hidden">
         <ul className="mx-auto flex max-w-[80rem] gap-x-4 overflow-x-auto px-4 sm:px-6">
           {NAV.map((n) => (
             <li key={n.href} className="shrink-0">

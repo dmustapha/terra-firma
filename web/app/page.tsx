@@ -47,24 +47,26 @@ export default async function Home() {
     <div className="-mt-8 sm:-mt-10">
       {/* HERO: a recessed press bed; the plate pops off it. */}
       <section aria-labelledby="hero-title" className="band bleed">
-        <div className="mx-auto grid max-w-[80rem] items-center gap-x-16 gap-y-14 px-4 pt-14 pb-16 sm:px-6 lg:grid-cols-[1fr_1.12fr] lg:px-8 lg:pt-20 lg:pb-20">
-          <div>
+        <div className="mx-auto grid max-w-[80rem] items-center gap-x-16 gap-y-10 px-4 pt-10 pb-16 sm:pt-14 lg:gap-y-8 sm:px-6 lg:grid-cols-[1fr_1.12fr] lg:px-8 lg:pt-20 lg:pb-20">
+          <div className="lg:self-end">
             <p className="mb-6 flex items-center gap-2 text-sm font-semibold text-muted">
               <span className="live-dot" aria-hidden /> Live on Robinhood Chain
             </p>
             <h1 id="hero-title" className="font-display text-[clamp(3rem,1.6rem+5vw,6rem)] leading-[0.92] tracking-[-0.025em] text-balance">
               Your memes died. <em className="text-accent">NVDA didn&apos;t.</em>
             </h1>
-            <p className="mt-6 max-w-[44ch] text-[1.1875rem] leading-relaxed text-fg/85">
+            <p className="mt-6 max-w-[44ch] text-[1.1875rem] leading-relaxed text-fg/85 max-sm:hidden">
               See what your bag would be worth in real stock. Then sweep the dead coins into it in one transaction, and the fee on every sweep burns $WIF.
             </p>
             <div className="mt-8"><LoopLine /></div>
-            <div id="check" className="mt-8 max-w-[34rem]">
+          </div>
+          <div className="lg:col-start-2 lg:row-span-2 lg:row-start-1"><HindsightPlate initial={card} /></div>
+          <div className="lg:col-start-1 lg:row-start-2 lg:self-start">
+            <div id="check" className="max-w-[34rem]">
               <AddressLookup id="lookup" label="Paste your wallet" placeholder="0x… your wallet" button="Check my bag" primary />
               <p className="mt-3 text-sm text-muted">Read-only. Nothing to sign to see your card.</p>
             </div>
           </div>
-          <HindsightPlate initial={card} />
         </div>
       </section>
 
