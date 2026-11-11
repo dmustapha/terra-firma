@@ -56,7 +56,7 @@ export default async function Home() {
               Your memes died. <em className="text-accent">NVDA didn&apos;t.</em>
             </h1>
             <p className="mt-6 max-w-[44ch] text-[1.1875rem] leading-relaxed text-fg/85 max-sm:hidden">
-              See what your bag would be worth in real stock. Then sweep the dead coins into it in one transaction, after a one-time approval per coin. Every fee pools up, and each epoch half of it buys $WIF and burns it.
+              See what your bag would be worth in real stock. Then sweep the dead coins into real stock tokens in one transaction, after a one-time approval per coin. Every fee pools up, and each epoch half of it buys $WIF and burns it.
             </p>
             <div className="mt-5 sm:mt-8"><LoopLine /></div>
           </div>
@@ -78,7 +78,7 @@ export default async function Home() {
       <section aria-labelledby="how-title" className="py-24 text-center">
         <p className="ui-label mb-4 text-accent">What you do with a dead bag</p>
         <h2 id="how-title" className="mx-auto max-w-[16ch] font-display text-[clamp(2.4rem,1.6rem+2.6vw,4rem)] leading-[1] tracking-[-0.02em]">
-          Sweep it into stock.<br /><span className="text-muted">Burn $WIF on the way.</span>
+          Sweep it into stock.<br /><span className="text-muted">Fees burn $WIF every epoch.</span>
         </h2>
         <LoopRail />
       </section>

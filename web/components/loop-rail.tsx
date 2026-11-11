@@ -16,7 +16,7 @@ const STATIONS = [
 const STEPS_MS = [1200, 2500];
 // Centre of column i in a 3-column grid with a 2rem gap (matches the tiles below, so each tick meets its dot).
 const COL = ["calc((100% - 4rem) / 6)", "50%", "calc(100% - (100% - 4rem) / 6)"];
-const CHIPS = ["$AI · dead bag", "NVDA · in your Jar", "fee pool → half burns $WIF each epoch"];
+const CHIPS = ["$AI · dead bag", "NVDA · in your Jar", "$WIF · burned"];
 
 export function LoopRail() {
   const [phase, setPhase] = useState(2);
