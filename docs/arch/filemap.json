@@ -1,0 +1,418 @@
+{
+ "contracts/foundry.toml": {
+  "section": 3,
+  "name": "Shared contract infrastructure"
+ },
+ "contracts/script/Deploy.s.sol": {
+  "section": 3,
+  "name": "Shared contract infrastructure"
+ },
+ "contracts/script/TerraConfig.sol": {
+  "section": 3,
+  "name": "Shared contract infrastructure"
+ },
+ "contracts/src/interfaces/IExternal.sol": {
+  "section": 3,
+  "name": "Shared contract infrastructure"
+ },
+ "contracts/src/lib/URCodec.sol": {
+  "section": 3,
+  "name": "Shared contract infrastructure"
+ },
+ "contracts/src/StockOracle.sol": {
+  "section": 4,
+  "name": "C5 StockOracle"
+ },
+ "contracts/src/Jar.sol": {
+  "section": 5,
+  "name": "C2 Jar"
+ },
+ "contracts/src/WifStaking.sol": {
+  "section": 6,
+  "name": "C4 WifStaking"
+ },
+ "contracts/src/FeePool.sol": {
+  "section": 7,
+  "name": "C3 FeePool"
+ },
+ "contracts/src/TerraRouter.sol": {
+  "section": 8,
+  "name": "C1 TerraRouter"
+ },
+ "contracts/src/HindsightLens.sol": {
+  "section": 9,
+  "name": "C6 HindsightLens"
+ },
+ "contracts/src/FriendJar.sol": {
+  "section": 10,
+  "name": "C12 FriendJar (gated by OD7)"
+ },
+ "contracts/test/HindsightLens.t.sol": {
+  "section": 11,
+  "name": "Contract tests"
+ },
+ "contracts/test/TerraFirma.t.sol": {
+  "section": 11,
+  "name": "Contract tests"
+ },
+ "contracts/test/URProbe.t.sol": {
+  "section": 11,
+  "name": "Contract tests"
+ },
+ "web/lib/config.ts": {
+  "section": 12,
+  "name": "Shared web infrastructure"
+ },
+ "web/lib/rpc.ts": {
+  "section": 12,
+  "name": "Shared web infrastructure"
+ },
+ "web/next.config.ts": {
+  "section": 12,
+  "name": "Shared web infrastructure"
+ },
+ "web/package.json": {
+  "section": 12,
+  "name": "Shared web infrastructure"
+ },
+ "web/postcss.config.mjs": {
+  "section": 12,
+  "name": "Shared web infrastructure"
+ },
+ "web/tsconfig.json": {
+  "section": 12,
+  "name": "Shared web infrastructure"
+ },
+ "web/app/api/hindsight/route.ts": {
+  "section": 13,
+  "name": "C7 Hindsight Indexer"
+ },
+ "web/lib/hindsight.ts": {
+  "section": 13,
+  "name": "C7 Hindsight Indexer"
+ },
+ "web/lib/hypersync.ts": {
+  "section": 13,
+  "name": "C7 Hindsight Indexer"
+ },
+ "web/lib/rounds.ts": {
+  "section": 13,
+  "name": "C7 Hindsight Indexer"
+ },
+ "web/app/api/quote/route.ts": {
+  "section": 14,
+  "name": "C8 Route Builder"
+ },
+ "web/lib/quote.ts": {
+  "section": 14,
+  "name": "C8 Route Builder"
+ },
+ "web/lib/registry.ts": {
+  "section": 14,
+  "name": "C8 Route Builder"
+ },
+ "web/app/api/geo/route.ts": {
+  "section": 15,
+  "name": "C13 Live Stream + ops API"
+ },
+ "web/app/api/health/route.ts": {
+  "section": 15,
+  "name": "C13 Live Stream + ops API"
+ },
+ "web/app/api/qn-jar/route.ts": {
+  "section": 15,
+  "name": "C13 Live Stream + ops API"
+ },
+ "web/app/api/stream/route.ts": {
+  "section": 15,
+  "name": "C13 Live Stream + ops API"
+ },
+ "web/app/api/card-check/route.ts": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/app/app/convert/page.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/app/app/page.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/app/board/page.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/app/card/[addr]/loading.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/app/card/[addr]/opengraph-image.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/app/card/[addr]/page.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/app/error.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/app/friends/page.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/app/globals.css": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/app/jar/page.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/app/jar/report/[addr]/loading.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/app/jar/report/[addr]/opengraph-image.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/app/jar/report/[addr]/page.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/app/layout.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/app/not-found.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/app/page.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/app/proof/page.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/app/stake/page.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/app/trade/[token]/page.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/app/trade/page.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/components/app-home.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/components/board-view.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/components/card-actions.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/components/card-view.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/components/connect-button.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/components/convert-panel.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/components/friends-view.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/components/geo-gate.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/components/hindsight-card.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/components/hooks.ts": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/components/jar-view.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/components/landing-connect.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/components/landing-live.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/components/proof-view.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/components/providers.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/components/report-share.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/components/site-header.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/components/stake-view.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/components/stock-select.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/components/theme-toggle.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/components/trade-terminal.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/components/tx-status.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/components/ui.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/lib/ui-chain.ts": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/lib/ui-errors.ts": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/lib/ui-format.ts": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/lib/ui-logs.ts": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/lib/ui-report.ts": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/lib/wagmi.ts": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ ".github/workflows/keeper.yml": {
+  "section": 17,
+  "name": "C10/C11 Scripts + keeper"
+ },
+ "package.json": {
+  "section": 17,
+  "name": "C10/C11 Scripts + keeper"
+ },
+ "scripts/build-registry.ts": {
+  "section": 17,
+  "name": "C10/C11 Scripts + keeper"
+ },
+ "scripts/build-restricted.ts": {
+  "section": 17,
+  "name": "C10/C11 Scripts + keeper"
+ },
+ "scripts/build-rounds.ts": {
+  "section": 17,
+  "name": "C10/C11 Scripts + keeper"
+ },
+ "scripts/check-arch-metrics.py": {
+  "section": 17,
+  "name": "C10/C11 Scripts + keeper"
+ },
+ "scripts/check-plan-metrics.py": {
+  "section": 17,
+  "name": "C10/C11 Scripts + keeper"
+ },
+ "scripts/export-abis.mjs": {
+  "section": 17,
+  "name": "C10/C11 Scripts + keeper"
+ },
+ "scripts/gen-architecture.py": {
+  "section": 17,
+  "name": "C10/C11 Scripts + keeper"
+ },
+ "scripts/gen-plan.py": {
+  "section": 17,
+  "name": "C10/C11 Scripts + keeper"
+ },
+ "scripts/keeper.ts": {
+  "section": 17,
+  "name": "C10/C11 Scripts + keeper"
+ },
+ "scripts/lib/env.ts": {
+  "section": 17,
+  "name": "C10/C11 Scripts + keeper"
+ },
+ "scripts/lib/files.ts": {
+  "section": 17,
+  "name": "C10/C11 Scripts + keeper"
+ },
+ "scripts/lib/quote.ts": {
+  "section": 17,
+  "name": "C10/C11 Scripts + keeper"
+ },
+ "scripts/lib/rpc.ts": {
+  "section": 17,
+  "name": "C10/C11 Scripts + keeper"
+ },
+ "scripts/proof.ts": {
+  "section": 17,
+  "name": "C10/C11 Scripts + keeper"
+ },
+ "scripts/seed-demo.ts": {
+  "section": 17,
+  "name": "C10/C11 Scripts + keeper"
+ },
+ "scripts/sync-deployments.mjs": {
+  "section": 17,
+  "name": "C10/C11 Scripts + keeper"
+ },
+ "scripts/test-hindsight.ts": {
+  "section": 17,
+  "name": "C10/C11 Scripts + keeper"
+ },
+ "scripts/tsconfig.json": {
+  "section": 17,
+  "name": "C10/C11 Scripts + keeper"
+ },
+ "scripts/verify-claims.ts": {
+  "section": 17,
+  "name": "C10/C11 Scripts + keeper"
+ },
+ "tsconfig.json": {
+  "section": 17,
+  "name": "C10/C11 Scripts + keeper"
+ }
+}

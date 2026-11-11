@@ -1,0 +1,27 @@
+{
+  "name": "terra-firma-scripts",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "registry": "tsx scripts/build-registry.ts",
+    "rounds": "tsx scripts/build-rounds.ts",
+    "rounds:update": "tsx scripts/build-rounds.ts --update",
+    "restricted": "tsx scripts/build-restricted.ts",
+    "sync-deployments": "node scripts/sync-deployments.mjs",
+    "keeper": "tsx scripts/keeper.ts",
+    "seed": "tsx scripts/seed-demo.ts",
+    "proof": "tsx scripts/proof.ts",
+    "verify-claims": "tsx scripts/verify-claims.ts",
+    "test-hindsight": "tsx scripts/test-hindsight.ts",
+    "typecheck": "tsc --noEmit -p scripts"
+  },
+  "dependencies": {
+    "viem": "^2.57.17"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "dotenv": "^16.4.7",
+    "tsx": "^4.19.2",
+    "typescript": "^5"
+  }
+}

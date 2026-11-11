@@ -1,0 +1,71 @@
+# File: .github/workflows/keeper.yml
+# Hourly FeePool.distribute (PRD C10) + optional daily Chainlink round-table refresh.
+# Secrets: RPC_URL, KEEPER_KEY (a dedicated low-balance gas wallet; distribute is permissionless, it holds no funds).
+name: keeper
+
+on:
+  schedule:
+    - cron: "7 * * * *"   # hourly distribute
+    - cron: "17 3 * * *"  # daily rounds refresh
+  workflow_dispatch:
+    inputs:
+      rounds:
+        description: "Also refresh web/data/rounds"
+        type: boolean
+        default: false
+
+concurrency:
+  group: keeper
+  cancel-in-progress: false
+
+jobs:
+  distribute:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '7 * * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: distribute
+        env:
+          RPC_URL: ${{ secrets.RPC_URL }}
+          KEEPER_KEY: ${{ secrets.KEEPER_KEY }}
+        run: pnpm exec tsx scripts/keeper.ts
+
+  rounds:
+    if: github.event.schedule == '17 3 * * *' || (github.event_name == 'workflow_dispatch' && inputs.rounds)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: refresh round tables (read-only RPC; no keys in this job)
+        env:
+          RPC_URL: ${{ secrets.RPC_URL }}
+        run: pnpm exec tsx scripts/build-rounds.ts --update
+      - name: commit web/data/rounds if changed
+        run: |
+          if git diff --quiet -- web/data/rounds; then echo "rounds unchanged"; exit 0; fi
+          git config user.name "terra-firma-keeper"
+          git config user.email "keeper@users.noreply.github.com"
+          git add web/data/rounds
+          git commit -m "data: refresh Chainlink round tables"
+          git push

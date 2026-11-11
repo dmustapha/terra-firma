@@ -1,0 +1,119 @@
+{
+ "producer_model": "claude-opus-5-5",
+ "reviews": [
+  {
+   "doc": "PRD.md",
+   "reviewer_model": "claude-sonnet-4-6",
+   "peer_available": true,
+   "findings_count": 10,
+   "findings": [
+    {
+     "severity": "BLOCKER",
+     "note": "SURVIVOR-2 (ARCH/PRD): boundary JIT",
+     "predicate": "cd contracts && forge test --match-test test_boundaryStakeEarnsNothing \u2192 PASS"
+    },
+    {
+     "severity": "BLOCKER",
+     "note": "SURVIVOR-7 (ARCH/PRD): card provenance",
+     "predicate": "test -f web/app/api/card-check/route.ts AND grep -c 'card-check' web/components/board-view.tsx >= 1"
+    },
+    {
+     "severity": "BLOCKER",
+     "note": "SURVIVOR-8 (PRD): freshness defined honestly",
+     "predicate": "grep -c 'heartbeat 24h + 1h' INVARIANTS.md >= 1"
+    },
+    {
+     "severity": "WARN",
+     "note": "SURVIVOR-9 (PRD): card honesty",
+     "predicate": "grep -c 'not P&amp;L' web/components/hindsight-card.tsx >= 1 AND grep -c 'Includes team demo transactions' web/app/page.tsx == 1"
+    }
+   ],
+   "survivors": [
+    "SURVIVOR-2 (ARCH/PRD): boundary JIT \u2014 a stake placed in epoch e activates at e+2 (test_boundaryStakeEarnsNothing).",
+    "SURVIVOR-7 (ARCH/PRD): card provenance \u2014 recompute proves pricing only; /board ranks minted cards only after /api/card-check re-derives them.",
+    "SURVIVOR-8 (PRD): freshness defined honestly \u2014 heartbeat 24h + 1h; max deviation per fill = 3% band.",
+    "SURVIVOR-9 (PRD): card honesty \u2014 gross buys of memes still held, not P&L; tracked-registry empty state; 'one confirmation after approvals'; team demo txs disclosed."
+   ]
+  },
+  {
+   "doc": "ARCHITECTURE.md",
+   "reviewer_model": "claude-sonnet-4-6",
+   "peer_available": true,
+   "findings_count": 11,
+   "findings": [
+    {
+     "severity": "BLOCKER",
+     "note": "SURVIVOR-1 (ARCH): cross-pool accrued drain",
+     "predicate": "cd contracts && forge test --match-test test_crossPoolAccruedNoDrain \u2192 PASS"
+    },
+    {
+     "severity": "BLOCKER",
+     "note": "SURVIVOR-2 (ARCH/PRD): boundary JIT",
+     "predicate": "cd contracts && forge test --match-test test_boundaryStakeEarnsNothing \u2192 PASS"
+    },
+    {
+     "severity": "BLOCKER",
+     "note": "SURVIVOR-3 (ARCH): distribute gas starvation",
+     "predicate": "cd contracts && forge test --match-test test_distributeGasStarvationReverts \u2192 PASS"
+    },
+    {
+     "severity": "WARN",
+     "note": "SURVIVOR-4 (ARCH): 50/50 split",
+     "predicate": "cd contracts && forge test --match-test test_splitCappedEqually \u2192 PASS"
+    },
+    {
+     "severity": "WARN",
+     "note": "SURVIVOR-5 (ARCH): Hindsight double-count",
+     "predicate": "grep -c 'one payment bought several memes' web/lib/hindsight.ts >= 1 AND grep -c 'routerMemeLeg' web/lib/hindsight.ts >= 2"
+    },
+    {
+     "severity": "WARN",
+     "note": "SURVIVOR-6 (ARCH): stale round tables",
+     "predicate": "grep -c 'export async function roundAtLive' web/lib/rounds.ts == 1 AND hindsight.ts uses roundAtLive (grep -c roundAtLive web/lib/hindsight.ts >= 2)"
+    },
+    {
+     "severity": "WARN",
+     "note": "SURVIVOR-7 (ARCH/PRD): card provenance",
+     "predicate": "test -f web/app/api/card-check/route.ts AND grep -c 'card-check' web/components/board-view.tsx >= 1"
+    },
+    {
+     "severity": "WARN",
+     "note": "SURVIVOR-11 (ARCH, accepted risk): SPY/QQQ weekend staleness",
+     "predicate": "grep -c 'oracle_stale' web/app/api/quote/route.ts >= 2"
+    },
+    {
+     "severity": "WARN",
+     "note": "SURVIVOR-12 (ARCH, accepted risk): uiMultiplier not in the oracle bound",
+     "predicate": "cd contracts && forge test --match-test test_curatedMultipliersNearOne \u2192 PASS"
+    }
+   ],
+   "survivors": [
+    "SURVIVOR-1 (ARCH): cross-pool accrued drain \u2014 stake() into a new pool pays old accrued rewards in the old stock first (test_crossPoolAccruedNoDrain).",
+    "SURVIVOR-2 (ARCH/PRD): boundary JIT \u2014 a stake placed in epoch e activates at e+2 (test_boundaryStakeEarnsNothing).",
+    "SURVIVOR-3 (ARCH): distribute gas starvation \u2014 gas floors + empty-reason revert (Yul) so a starved call reverts and never advances the epoch (test_distributeGasStarvationReverts).",
+    "SURVIVOR-4 (ARCH): 50/50 split \u2014 equal capped legs, excess carries (test_splitCappedEqually).",
+    "SURVIVOR-5 (ARCH): Hindsight double-count \u2014 one payment per tx; multi-meme payments unpriced; router fee+sweep excluded from paid.",
+    "SURVIVOR-6 (ARCH): stale round tables \u2014 rounds after the table are read live so recompute never reverts BadRound for recent buys.",
+    "SURVIVOR-7 (ARCH/PRD): card provenance \u2014 recompute proves pricing only; /board ranks minted cards only after /api/card-check re-derives them.",
+    "SURVIVOR-11 (ARCH, accepted risk): SPY/QQQ weekend staleness \u2014 quotes return 409 and FeePool skips + carries; documented, not hidden.",
+    "SURVIVOR-12 (ARCH, accepted risk): uiMultiplier not in the oracle bound \u2014 curated multipliers asserted within 2% of 1 (test_curatedMultipliersNearOne), inside the 3% band."
+   ]
+  },
+  {
+   "doc": "PLAN.md",
+   "reviewer_model": "claude-sonnet-4-6",
+   "peer_available": true,
+   "findings_count": 10,
+   "findings": [
+    {
+     "severity": "BLOCKER",
+     "note": "SURVIVOR-10 (PLAN): deploy-day safety",
+     "predicate": "test -f .gitignore AND grep -c 'vercel link --yes' PLAN.md >= 1 AND grep -c 'gh secret set RPC_URL --body' PLAN.md >= 1 AND grep -c '4663.fork.json' PLAN.md >= 1"
+    }
+   ],
+   "survivors": [
+    "SURVIVOR-10 (PLAN): deploy-day safety \u2014 .gitignore, non-interactive vercel/gh, fork deploy file separated, env vars defined, verify flags, interrogate contracts before mainnet."
+   ]
+  }
+ ]
+}

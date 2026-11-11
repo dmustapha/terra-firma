@@ -1,0 +1,13 @@
+.env*
+!.env.example
+node_modules/
+.next/
+out/
+cache/
+broadcast/
+contracts/out/
+contracts/cache/
+contracts/broadcast/
+contracts/deployments/4663.fork.json
+.vercel/
+*.log

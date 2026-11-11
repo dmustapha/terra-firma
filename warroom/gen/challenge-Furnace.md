@@ -1,0 +1,52 @@
+# CHALLENGE — Dividend Furnace (adversarial, fresh context) — 2026-11-10
+
+## 0. NEW EVIDENCE (onchain, this pass — overturns a "verified" input)
+Read-only probes against https://rpc.mainnet.chain.robinhood.com at head 111,125,159 (2026-11-10 19:26 UTC):
+
+| Probe | Result |
+|---|---|
+| COST token `0x4EA005168D7F09a7A0Ba9D1DEf21a479950E44C2`, `UIMultiplierUpdated` logs, last 20M blocks | **One step already landed: block 104,325,986 = 2026-11-02 15:35 UTC.** old 1.000612 → new 1.001622, step **+0.1009%**, activation 2026-11-02 15:45 UTC. `uiMultiplier()` = 1.001622 = post-step. No pending step (`pendingMultiplier: ""` in rhj-assets-now.json). |
+| AAPL `0xaF3D76f1834A1d425780943C99Ea8A608f8a93f9` | No step in the last 20M blocks (~24 days). `newUIMultiplier()` = current; `effectiveAt()` = 1786720366 (Aug 2026, past). **Nothing is pending.** |
+| research/raw/rhj-corp-actions.json | The "COST 11-13 / AAPL 11-16" dates are **`processDate`** (≈ pay date), not ex-date or step date. ASML: step 2026-10-27, processDate 11-04 (lag 8 d). COST: step 11-02, processDate 11-13 (lag 11 d). |
+
+**Consequence:** the brief's "next real dividends COST 2026-11-13" is a misread of the RH API. COST's step for this quarter **already happened**, so the "Ignition" mutation's climax (a COST step on Nov 13 that the keeper burns live in front of judges) **will not occur**. AAPL's step timing is unknown: it is operator-driven, lands 8–11 days before processDate and at irregular hours (COST stepped at 15:35 UTC, not midnight), so it may already be overdue or land anywhere Nov 10–16. The step is not schedulable. That breaks the premise of the demo-scripts "Ignition" re-verdict, which (warned in demo-scripts.md:170) depended on the step landing on the ex-date.
+
+## 1. STRONGEST CASE AGAINST
+1. **The only event the pitch sells cannot be witnessed on schedule.** The script is "hollow" as pitched (demo-scripts.md:162), and its only rescue, Ignition, is anchored to a COST step that onchain data shows landed Nov 2 (§0). The remaining candidate (AAPL) has no pending multiplier and an unpredictable operator-set step time. The video's WOW lands "nowhere live" (demo-scripts.md:160), and now the after-submission WOW is also unscheduled. U2 and U7 (TASTE.md) both fail on the hero beat.
+2. **It is a pipe, not a flywheel.** The inflow is a hook skim on a new pool that we seed with ~$6 and that has no organic flow (demo-scripts Scene 2; FORGE: "without creating a new venue is false"). Rational traders route to the existing ~$100K hooked WIF/ETH pool (fact-check TF2). Burning WIF does not raise the treasury's inflow, so no loop closes. That is criterion B, the panel's own words "a flywheel that holds up". LOOP scored B 4, FORGE scored B 3.
+3. **Scale refutes the name.** The real COST step of +0.1009% on a ~$5 COST basket is about **$0.005**. At ~1.57M WIF/ETH spot (TF2), that burns single-digit WIF. Even ASML's real step yields $0.78 per $1,000 (fact-check FU1). Judges see a "furnace" that burns less than one swap's hook fee.
+4. **Dominated inside our own pool.** Two of four R0 scorers call it "Keel's layer 3 shipped alone" (FORGE, TOKEN). Every Furnace beat is a strict subset of Keel's, and Furnace adds none of Keel's demand sources. TOKEN: "WIF is purely the burn target ... burn X% and call it utility with a better inflow."
+5. **Passive WIF role and passive voters.** WIF holders are beneficiaries with no Tuesday action (LOOP), and "passive holders don't burn WIF to vote" (WILD). With the community vote worth one judge seat and ~1.45K voter wallets (concerns snapshot), it has no mobilization engine.
+6. **Twin risk.** Underfoot (37 commits, "a floor of Stock Tokens under every $WIF", roster.csv:12) already owns "stock treasury behind WIF" in judges' heads (WILD, LOOP, TOKEN, and demo-scripts' "still a twin of Underfoot"). Pool-gates distinguishes redemption from yield-burn, but a judge with "a few minutes" (Vasily) will not.
+7. **Security surface for the whitehat.** `harvest()` is permissionless and buys WIF on v4 spot, so it can be sandwiched (FORGE). The Ignition "first caller gets a soulbound badge" also races our own keeper: if the keeper fires at the step, no human ever wins the badge, and if it doesn't, the burn may not happen during judging. The badge mechanic is internally contradictory.
+
+## 2. PREMORTEM — "It is 2026-11-17. We submitted Dividend Furnace and LOST. Why?"
+1. **The furnace never lit.** We timed the demo and README to "COST ex-div Nov 13". COST had stepped Nov 2, so Nov 13 came and went with `harvest()` reverting `NoYield()` on the live page every judge opened. AAPL stepped at an unannounced hour (or not before 11-16 17:30 UTC). The whitehat judge saw a countdown that pointed at nothing, and read it as the team not understanding ERC-8056. *Actionable:* a team that read processDate vs logs would have known on Nov 10 (this file).
+2. **"Where's the flywheel?"** The GetBlock/Quicknode judges scored B low. A $6-seeded hook pool with zero third-party swaps (all inflow txs from the deployer wallet) plus a $0.005 burn reads as a burn-% toy. Proof of Ship, with real paid bounties and 100 WIF burned, and Sherwood, with real buyback txs, beat it on "real reason to use $wif" (strategy-density HIGH / MED-HIGH).
+3. **Lost the vote and the lane.** Furnace had no action for holders, so it pulled almost no community votes. Underfoot (same stock-under-WIF lane) took the stock-token mindshare, and judges merged the two in memory.
+4. **The fork replay was called fabricated state.** To show any burn in the video we replayed ASML's Oct 27 step on a fork and labelled it. The judges' takeaway was "the only working burn is a simulation" (U7 last-resort became the plan).
+5. **A thin build for a "be extensive" ruling.** Furnace is the smallest build (FORGE). Against the Dami ruling of ≥4 load-bearing mechanisms (concerns snapshot [C]), locker-weighting had no yield to distribute (demo-scripts earned-state table: "no meaningful state"), so in practice only 3 mechanisms were live.
+
+## 3. RISK REGISTER
+| risk | severity | likelihood | impact | mitigation |
+|---|---|---|---|---|
+| No multiplier step on any held ticker during Nov 10–16. COST already stepped Nov 2, AAPL has nothing pending (§0). | CRITICAL | HIGH | The hero beat and Ignition both void, and U7 fails | Hold a **multi-ticker basket** chosen from rhj-corp-actions entries whose processDate is Nov 18–27 (SIMO 11-19, FIX 11-23, GEV 11-24, HWM/CTSH 11-25, CCL 11-27), so their steps likely fall around Nov 8–16 given the observed 8–11 d lag. Each still needs a dust fill and a pool. Run a log-watcher keeper on all of them. Still probabilistic. |
+| The flywheel does not close: own seeded pool, no organic inflow, burn doesn't feed inflow | HIGH | HIGH | Criterion B scored low | Reframe as a pipe plus per-$1M math, or merge into Keel's demand layers. No full fix within an $18 budget. |
+| Dust scale (≈$0.005 per step) makes "furnace" visually absurd | HIGH | CERTAIN | Pitch credibility | Show per-$ unit economics ("$1M treasury → X WIF/yr") on a recomputed view and never show the raw dollar burn as the headline. That is cosmetic, not a cure. |
+| Dominated by Keel (subset) | HIGH | HIGH | Warroom picks it only by mistake | Fold it into Keel as layer 3. |
+| Underfoot twin perception | MED | MED-HIGH | Novelty and memorability | A one-line differentiator ("yield, not redemption"). Weak in a 3-minute window. |
+| Passive holders mean no vote mobilization | MED | HIGH | Community seat lost | Badge race, but that conflicts with the keeper (below) |
+| Badge vs keeper contradiction | MED | CERTAIN if both ship | Design incoherence that a judge would spot | Keeper delay window (for example, humans get the first N minutes), which adds its own griefing surface |
+| `harvest()` spot buy is sandwichable | MED | MED (low value at dust) | Whitehat finds it in minutes | Burn yield-sold USDG via a Chainlink-banded min-out, or burn a WIF skim raw (FORGE's Keel condition) |
+| Stock dust fill for COST/basket names fails on thin pools | MED | MED (NVDA verified at +0.16% in TF3, COST and others unverified) | The treasury cannot be built at all | One real ~$0.50 fill per ticker before forge (demo-scripts:266) |
+| Geofence (rule 14) on a stock-treasury frontend | LOW | MED | Rule compliance | Frontend geofence |
+
+## 4. VETO CHECK
+**Veto: NO, but only narrowly. Furnace should be demoted or merged, not picked standalone.**
+The CRITICAL risk (no step in the window) is real and just got worse with §0, but it is partially mitigable: a basket of names with late-Nov processDates gives a probabilistic step in Nov 10–16, and the ASML Oct 27 fork replay keeps the math demonstrable. What is **unmitigable within budget** is structural: dust scale plus a non-closing inflow loop means criterion B (a flywheel that holds up) cannot be earned. That is a severe weakness, not a hard rule violation, so it is not a veto. Hard kill-trigger: if no held ticker shows a pending `newUIMultiplier` or a fresh `UIMultiplierUpdated` by the internal cutoff (Nov 12 morning WAT), drop the "live ignition" claim entirely.
+
+## 5. DELIBERATION FAILURE MODES DETECTED
+- **Research Neglect.** "Next real dividends COST 2026-11-13, AAPL 2026-11-16" was carried as *verified* into the brief and into the Ignition mutation. Nobody cross-checked processDate semantics against the onchain `UIMultiplierUpdated` logs, which were reachable in one `cast logs` call. The raw file that disproves it (rhj-corp-actions.json, ASML's 8-day lag) was already in research/raw.
+- **Premature Convergence (partial).** Pool-gates passed Furnace "pass-with-risk" on an explicitly *unverified* AAPL ex-date assumption (pool-gates.md:68), and the fact-check verified ASML's step history without verifying the *forward* step for any held ticker. The gauntlet drew blood on scale but missed the timing fault that kills the climax.
+- **Eloquence Over Evidence.** The case for Furnace rests on one sentence ("real-company dividends burn $WIF", L3). Its supporting evidence is a single past ASML step worth $0.78/$1k, and the mutation re-verdict upgraded it to "thin" on a future event that no source actually established.
+- **Not detected:** Sycophancy (R0 spread 1.3, scores stable), Echo Chamber (Furnace is #3, not unanimous), Conformity (WILD ranked it last-but-one with a twin attack), Scope Fantasy (smallest build; scope is not its problem).

@@ -1,0 +1,21 @@
+{"presented":[
+{"name":"Keel","pitch":"Every $WIF trade leaves you real stock, and every dividend that stock pays burns $WIF.","scores":{"ship":3,"demo":4,"sponsor":5,"novel":4,"memorable":5,"total":21},"origin":"hybrid H1: Silt(G3)+Dividend Furnace(G4/G2/G5)+Ironweek(G3/G1)"},
+{"name":"Rearview","pitch":"Your memes vs NVDA, proven onchain, then fixed in one tap.","scores":{"ship":4,"demo":5,"sponsor":3,"novel":4,"memorable":5,"total":21},"origin":"merge G1#6/G2#4/G3#5/G4#5"},
+{"name":"Dividend Furnace","pitch":"Real-company dividends burn $WIF.","scores":{"ship":4,"demo":3,"sponsor":5,"novel":4,"memorable":4,"total":20},"origin":"merge G2#2/G4#1/G5#2"},
+{"name":"Ex-Date Guard","pitch":"The stock-pool hook that can't be picked off at splits, dividends or weekends.","scores":{"ship":3,"demo":3,"sponsor":5,"novel":5,"memorable":2,"total":18},"origin":"merge G2#1/G5#3"},
+{"name":"Crew","pitch":"Own real stocks with your group chat; bring a friend in by betting $WIF they'll stay.","scores":{"ship":3,"demo":4,"sponsor":4,"novel":4,"memorable":4,"total":19},"origin":"hybrid H2: Cap Table(G2)+Vouch(G3)+Hold the Line(G1)"}],
+"killed":[
+{"name":"Equity Floor","origin":"G5#1","gate":"1","cause":"already_built (Underfoot)"},
+{"name":"Shareholders League","origin":"G5#5","gate":"1","cause":"saturated"},
+{"name":"Stock Envelope","origin":"G5#6","gate":"1","cause":"already_built (WIF Gift/FLAT RELAY)"},
+{"name":"Prize Jar","origin":"SEED","gate":"1","cause":"broken_dependency (randomness)"},
+{"name":"Family Stock Lock","origin":"SEED","gate":"1","cause":"zero_alignment"},
+{"name":"Shipshare","origin":"SEED","gate":"1","cause":"already_built (Proof of Ship)"},
+{"name":"Stock Backstop","origin":"HISTORY","gate":"1","cause":"already_built (Lastbell) + self_duplication"},
+{"name":"Paid in Shares","origin":"G2#6","gate":"1","cause":"C9 WIF not load-bearing"},
+{"name":"Closing Cross","origin":"G5#4","gate":"1","cause":"C13 no day-1 users"},
+{"name":"WIF Fair Mark","origin":"G1#4","gate":"1b","cause":"not_ecosystem_native (rescued as layer in Bellwether)"},
+{"name":"Rescue Raft","origin":"G1#7","gate":"2","cause":"demo_unearnable"},
+{"name":"Rearview Raft","origin":"H3","gate":"2","cause":"demo_unearnable"}],
+"stats":{"raw":34,"raw_by_generator":{"G1":7,"G2":7,"G3":7,"G4":7,"G5":6},"unique_after_merge":17,"hybrids":5,"late_entrants":5,"pool":27,"kills_per_gate":{"0":0,"1":9,"1b":1,"2":2,"3":0,"5":0},"survivors":15,"levers_mapped":43,"levers_total":47,"regen_rounds":0,"rescued":1,"presented":5,"injection":"lint pass","quota":"3/1/2/10"},
+"ceiling_ok":true,"levers_unmapped_pct":8.5}
