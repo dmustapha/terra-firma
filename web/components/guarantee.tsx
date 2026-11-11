@@ -11,13 +11,14 @@ export function recomputeHref(addr?: string, stock?: string) {
   return `/proof?${q.toString()}#recompute`;
 }
 
-export function Guarantee({ addr, stock, className }: { addr?: string; stock?: string; className?: string }) {
+/** The honesty line. `lead` sets it in body type directly under a headline; the default is the small foot line on a card. */
+export function Guarantee({ addr, stock, className, lead = false }: { addr?: string; stock?: string; className?: string; lead?: boolean }) {
   return (
-    <p className={cx("flex flex-col gap-2 text-sm text-muted sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3", className)}>
-      <span>{GUARANTEE}</span>
+    <p className={cx("border-t border-line pt-3 leading-relaxed", lead ? "text-[1.0625rem] text-fg" : "text-sm text-muted", className)}>
+      {GUARANTEE}{" "}
       <Link
         href={recomputeHref(addr, stock)}
-        className="inline-flex min-h-11 items-center font-semibold text-accent underline decoration-accent/40 underline-offset-4 hover:decoration-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-sm"
+        className="inline-flex min-h-11 items-center whitespace-nowrap rounded-sm font-semibold text-accent underline decoration-accent-32 decoration-1 underline-offset-4 transition-[text-decoration-color,text-decoration-thickness] duration-150 hover:text-accent-strong hover:decoration-accent hover:decoration-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fg"
       >
         Recompute this card<span aria-hidden>&nbsp;→</span>
       </Link>

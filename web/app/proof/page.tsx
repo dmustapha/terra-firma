@@ -9,7 +9,7 @@ export default function ProofPage() {
     <>
       <PageHeader
         title="Proof"
-        sub="Every number here is read from Robinhood Chain mainnet. Click anything to verify. Terra Firma never prices or sells $WIF: it only buys, burns and stakes it."
+        sub="Every number here is read from Robinhood Chain. Click anything to verify. Terra Firma never prices or sells $WIF: it only buys, burns and stakes it."
       />
       <ProofView />
     </>

@@ -14,7 +14,7 @@ import { GEO_BLOCKED, GeoLoadingNote, useStockGate } from "./geo-gate";
 import { useApproveStep, useMounted, useNow, useStockQuotes, useTfLogs, useTx } from "./hooks";
 import { StockSelect } from "./stock-select";
 import { TxStatus } from "./tx-status";
-import { AddrLink, Badge, Button, Notice, Panel, Skeleton, Stat, TxLink, cx, inputCls } from "./ui";
+import { AddrLink, Badge, Button, Notice, Panel, Skeleton, TxLink, cx, inputCls } from "./ui";
 
 const S = { address: TF.WifStaking, abi: wifStakingAbi, chainId: CHAIN_ID } as const;
 
@@ -48,25 +48,58 @@ export function StakeView() {
   const lastReward = (id: number) => [...rewards].reverse().find((l) => l.args.stockId === id);
   const market = useStockQuotes();
 
+  const act = activationText(epoch, nextAt, now);
+
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-        <Stat label="Next epoch in" value={!DEPLOYED ? "Not live yet" : nextAt ? duration(nextAt - now) : <Skeleton w="5rem" h="1.6rem" />} sub={epoch !== undefined ? `Epoch ${epoch.toString()} · hourly` : "Hourly epochs"} />
-        <Stat label="$WIF burned" value={!DEPLOYED ? "—" : burned !== undefined ? token(burned) : <Skeleton w="5rem" h="1.6rem" />} href={DEPLOYED ? addrUrl(TF.FeePool) : undefined} sub="FeePool.totalWifBurned" />
-      </div>
+    <div className="space-y-8">
+      <section aria-labelledby="wait-title" className="grid gap-x-10 gap-y-6 border-t-2 border-line-strong pt-5 lg:grid-cols-12">
+        <div className="lg:col-span-5 lg:border-r lg:border-line lg:pr-10">
+          <p className="mb-1 font-display text-[1.375rem] italic text-accent">The Pool</p>
+          <h2 id="wait-title" className="font-display text-deck">When a stake starts earning</h2>
+          <p className="mt-3 text-[0.96875rem] leading-relaxed">The fee pool buys $WIF and burns it, and streams Stock Tokens to everyone staking $WIF. You choose which stock you are paid in. Your $WIF is never sold.</p>
+          <table className="num mt-5 w-full border-collapse text-[0.96875rem]">
+            <tbody>
+              <tr className="border-y border-fg">
+                <th scope="row" className="py-2.5 text-left font-medium text-muted">Next epoch in</th>
+                <td className="py-2.5 text-right font-semibold">{!DEPLOYED ? "not live yet" : nextAt ? duration(nextAt - now) : <Skeleton w="5rem" />}</td>
+              </tr>
+              <tr className="border-b border-line">
+                <th scope="row" className="py-2.5 text-left font-medium text-muted">Current epoch</th>
+                <td className="py-2.5 text-right font-semibold">{!DEPLOYED ? DASH : epoch != null ? epoch.toString() : <Skeleton w="3rem" />}</td>
+              </tr>
+              <tr className="border-b border-line">
+                <th scope="row" className="py-2.5 text-left font-medium text-muted">$WIF bought with fees and burned</th>
+                <td className="py-2.5 text-right font-semibold">
+                  {!DEPLOYED ? DASH : burned !== undefined ? <a href={addrUrl(TF.FeePool)} target="_blank" rel="noopener noreferrer" className="rounded-sm underline decoration-fg/35 underline-offset-4 hover:decoration-accent hover:decoration-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fg">{token(burned)}</a> : <Skeleton w="4rem" />}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div className="min-w-0 lg:col-span-7">
+          <p className="max-w-[36ch] font-display text-[1.6rem] leading-snug">
+            Your stake starts earning after one full hour-long epoch.{" "}
+            <strong className="font-normal italic text-accent">
+              {act.staked !== undefined ? `Staked in epoch ${act.staked} → earning from epoch ${act.earning}` : "Staked now → earning from the second epoch after this one"}
+              {act.mins ? ` (about ${act.mins} min)` : ""}.
+            </strong>
+          </p>
+          <EpochRuler staked={act.staked} />
+        </div>
+      </section>
 
       <Panel aria-labelledby="pools-title">
-        <h2 id="pools-title" className="font-semibold">Reward pools</h2>
+        <h2 id="pools-title" className="font-display text-deck">Reward pools</h2>
         <p className="mt-1 text-sm text-muted">Half of every fee buys real stock for stakers, split by active stake per pool. Pick the stock you want to earn.</p>
-        <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="mt-4 grid border-t border-fg sm:grid-cols-2 lg:grid-cols-3">
           {STOCKS.map((s, i) => {
             const active = activeOf(i);
             const last = lastReward(s.id);
             const q = market.data?.[i];
             return (
-              <li key={s.symbol} className="rounded-xl border border-line p-4">
+              <li key={s.symbol} className="border-b border-line py-3 sm:pr-6">
                 <p className="flex items-center justify-between font-semibold">{s.symbol} <span className="text-xs font-normal text-muted">{s.hours}</span></p>
-                <p className="num mt-2 text-sm text-muted">Staked: <span className="text-fg">{!DEPLOYED ? "—" : active !== undefined ? `${token(active)} $WIF` : <Skeleton w="4rem" />}</span></p>
+                <p className="num mt-2 text-sm text-muted">Staked: <span className="text-fg">{!DEPLOYED ? "—" : active != null ? `${token(active)} $WIF` : <Skeleton w="4rem" />}</span></p>
                 <p className="num text-sm text-muted">
                   Last reward:{" "}
                   {last ? (
@@ -93,7 +126,7 @@ function YourStake({ epoch, nextAt, now }: { epoch?: bigint; nextAt?: number; no
   if (!address)
     return (
       <Panel className="flex flex-col items-start gap-4">
-        <p className="text-lg">Connect a wallet to stake $WIF.</p>
+        <p className="font-display text-deck">Connect a wallet to stake $WIF.</p>
         <ConnectButton />
       </Panel>
     );
@@ -160,13 +193,13 @@ function Staker({ user, epoch, nextAt, now }: { user: Address; epoch?: bigint; n
     return stockLeg ? gate.gate(go) : go();
   };
 
-  if (!DEPLOYED) return <Notice tone="warn">Staking opens when the Terra Firma contracts are live on mainnet.</Notice>;
+  if (!DEPLOYED) return <Notice tone="warn">Staking opens when the Terra Firma contracts are live on Robinhood Chain.</Notice>;
 
   return (
     <Panel aria-labelledby="mine-title" className="space-y-6">
       {gate.dialog}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 id="mine-title" className="font-semibold">Your stake</h2>
+        <h2 id="mine-title" className="font-display text-deck">Your stake</h2>
         {feeBps === STAKER_FEE_BPS ? (
           <Badge tone="accent">0.3% fee unlocked</Badge>
         ) : (
@@ -179,13 +212,13 @@ function Staker({ user, epoch, nextAt, now }: { user: Address; epoch?: bigint; n
       <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Fig k="Wallet $WIF" v={wifBal.data !== undefined ? token(wifBal.data) : undefined} href={`${EXPLORER}/address/${user}?tab=tokens`} />
         <Fig k="Active" v={activeOf !== undefined ? token(activeOf) : undefined} sub={hasStake ? `earning ${mySym}` : undefined} href={stakingUrl} />
-        <Fig k="Activating" v={st && activeOf !== undefined ? token(waiting) : undefined} sub={waiting > 0n ? `earns from epoch ${epoch !== undefined ? (epoch + 2n).toString() : "e+2"}` : undefined} href={stakingUrl} />
+        <Fig k="Activating" v={st && activeOf !== undefined ? token(waiting) : undefined} sub={waiting > 0n ? (epoch !== undefined ? `earns from epoch ${(epoch + 2n).toString()}` : "earns from the second epoch after staking") : undefined} href={stakingUrl} />
         <Fig k="Reward to claim" v={pend ? rewardText(reward, rq, STOCKS[pend[0]]?.symbol ?? "") : undefined} href={stakingUrl} accent />
       </dl>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section aria-labelledby="stake-h" className="space-y-4">
-          <h3 id="stake-h" className="font-semibold">Stake</h3>
+          <h3 id="stake-h" className="font-display text-xl">Stake</h3>
           {hasStake ? <p className="text-sm text-muted">Adding to your {mySym} stake. Use Switch to change stock.</p> : <StockSelect value={pick} onChange={setPick} label="Reward stock" name="stake-stock" />}
           <div className="flex flex-col gap-2 sm:flex-row">
             <label htmlFor="stake-amt" className="sr-only">$WIF to stake</label>
@@ -197,7 +230,7 @@ function Staker({ user, epoch, nextAt, now }: { user: Address; epoch?: bigint; n
         </section>
 
         <section aria-labelledby="manage-h" className="space-y-4">
-          <h3 id="manage-h" className="font-semibold">Manage</h3>
+          <h3 id="manage-h" className="font-display text-xl">Manage</h3>
           <Button className="w-full" disabled={reward === 0n || blocked || geoWait || tx.busy} onClick={() => call("Claim to Jar", "claim", [], "Claimed. The reward stock is in your Jar.", true)}>
             Claim to Jar
           </Button>
@@ -223,7 +256,7 @@ function Staker({ user, epoch, nextAt, now }: { user: Address; epoch?: bigint; n
             </div>
           )}
           {unstaking > 0n && (
-            <div className="rounded-xl border border-line p-4">
+            <div className="border-l-[3px] border-fg bg-surface-2/60 p-4">
               <p className="num text-sm">
                 {token(unstaking)} $WIF unstaking · {Number(unlockAt) > now ? `unlocks in ${duration(Number(unlockAt) - now)}` : "unlocked"}
               </p>
@@ -235,7 +268,7 @@ function Staker({ user, epoch, nextAt, now }: { user: Address; epoch?: bigint; n
         </section>
       </div>
       <TxStatus state={tx.state} onReset={tx.reset} success={msg ?? "Done."} />
-      <p className="text-xs text-muted">Contract: <AddrLink addr={TF.WifStaking}>WifStaking</AddrLink>. No projected yield is shown: rewards depend only on real routed fees.</p>
+      <p className="text-xs text-muted">Read from the <AddrLink addr={TF.WifStaking}>staking contract</AddrLink>. No projected yield is shown: rewards depend only on real routed fees.</p>
     </Panel>
   );
 }
@@ -244,7 +277,42 @@ function Staker({ user, epoch, nextAt, now }: { user: Address; epoch?: bigint; n
 export function activationText(epoch: bigint | undefined, nextAt: number | undefined, now: number) {
   const label = epoch !== undefined ? `activates at the start of epoch ${(epoch + 2n).toString()}` : "activates at the start of the second epoch from now";
   const mins = nextAt ? Math.max(1, Math.ceil((nextAt + 3600 - now) / 60)) : null;
-  return { label, mins };
+  /** Epoch a stake placed now lands in, and the first epoch it earns in (undefined until the chain is read). */
+  const staked = epoch?.toString();
+  const earning = epoch !== undefined ? (epoch + 2n).toString() : undefined;
+  return { label, mins, staked, earning };
+}
+
+/** Fig. 4: staked in N, one full waiting epoch N+1, earning from N+2. Each epoch is one hour on Robinhood Chain. */
+function EpochRuler({ staked }: { staked?: string }) {
+  const n = staked !== undefined ? BigInt(staked) : undefined;
+  const name = (k: bigint, fallback: string) => (n !== undefined ? `epoch ${(n + k).toString()}` : fallback);
+  const cells = [
+    { x: 20, w: 200, label: name(0n, "this epoch"), note: "staked now", cls: "fill-accent-soft" },
+    { x: 220, w: 200, label: name(1n, "next epoch"), note: "one full epoch", cls: "fill-surface-2" },
+    { x: 420, w: 280, label: name(2n, "the one after"), note: "earning from here", cls: "fill-accent" },
+  ];
+  return (
+    <figure className="mt-5">
+      <svg viewBox="0 0 720 110" role="img" aria-label={`Epoch ruler: staked in ${cells[0].label}, ${cells[1].label} is the full waiting epoch, earning starts in ${cells[2].label}.`} className="block h-auto w-full">
+        {cells.map((c, i) => (
+          <g key={c.x}>
+            <rect x={c.x} y="40" width={c.w} height="24" className={c.cls} />
+            <text x={c.x + c.w / 2} y="88" textAnchor="middle" fontSize="15" fontWeight={i === 1 ? 500 : 700} className={i === 2 ? "fill-accent" : "fill-fg"} style={{ fontFamily: "var(--font-public-sans), system-ui, sans-serif", fontVariantNumeric: "tabular-nums" }}>{c.label}</text>
+            <text x={c.x + 10} y="28" fontSize="18" fontStyle="italic" className={i === 2 ? "fill-accent" : "fill-fg"} style={{ fontFamily: "var(--font-instrument-serif), Georgia, serif" }}>{c.note}</text>
+          </g>
+        ))}
+        <rect x="20.5" y="40.5" width="679" height="23" fill="none" className="stroke-fg" />
+        <g className="stroke-fg">
+          <line x1="20" y1="34" x2="20" y2="70" />
+          <line x1="220" y1="34" x2="220" y2="70" />
+          <line x1="420" y1="30" x2="420" y2="74" strokeWidth="2.5" />
+          <line x1="700" y1="34" x2="700" y2="70" />
+        </g>
+      </svg>
+      <figcaption className="mt-1 text-[0.8125rem] text-muted"><i className="font-display text-base">Fig. 4.</i> Epoch ruler. Each epoch is one hour, counted on Robinhood Chain.</figcaption>
+    </figure>
+  );
 }
 
 /** Reward in displayed shares; "—" when the quote is unavailable (never the raw amount presented as shares). */
@@ -257,7 +325,7 @@ function rewardText(raw: bigint, q: StockQuote | undefined, sym: string) {
 function Fig({ k, v, sub, accent, href }: { k: string; v?: string; sub?: string; accent?: boolean; href?: string }) {
   const value = v ?? <Skeleton w="4rem" />;
   return (
-    <div className={cx("rounded-xl border p-3", accent ? "border-accent/40 bg-accent-soft" : "border-line")}>
+    <div className={cx("border-t-2 pt-2", accent ? "border-accent" : "border-line-strong")}>
       <dt className="text-xs text-muted">{k}</dt>
       <dd className="num mt-1 text-lg font-semibold">
         {href && v ? (

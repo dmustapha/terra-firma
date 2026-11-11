@@ -130,14 +130,14 @@ export function ConvertPanel({ card, initialStock = "NVDA", onDone, onBusy }: { 
       ) : (
         <fieldset>
           <legend className="mb-2 text-sm text-muted">Memes to sell</legend>
-          <ul className="space-y-2">
+          <ul className="border-t border-fg">
             {candidates.map((m, i) => {
               const q = quotes[i];
               const err = q.error as Error | null;
               const disabled = !!err || memeByToken(m.token)?.taxed;
               return (
                 <li key={m.token}>
-                  <label className={cx("flex min-h-11 items-center gap-3 rounded-xl border px-4 py-2.5", disabled ? "border-line opacity-60" : "cursor-pointer border-line hover:border-muted")}>
+                  <label className={cx("flex min-h-11 items-center gap-3 border-b border-line px-3 py-2.5 transition-colors duration-150 has-[:checked]:bg-accent-soft has-[:checked]:shadow-[inset_3px_0_0_var(--accent)] has-[:focus-visible]:outline-2 has-[:focus-visible]:-outline-offset-2 has-[:focus-visible]:outline-fg", disabled ? "opacity-60" : "cursor-pointer hover:bg-accent-06")}>
                     <input type="checkbox" className="size-5 accent-[var(--accent)]" disabled={disabled} checked={picked.has(m.token) && !disabled} onChange={() => toggle(m.token)} />
                     <span className="flex-1">
                       <span className="font-semibold">{m.symbol}</span>{" "}
@@ -168,7 +168,7 @@ export function ConvertPanel({ card, initialStock = "NVDA", onDone, onBusy }: { 
 
       {gate.status === "restricted" && <Notice tone="warn">{GEO_BLOCKED}</Notice>}
       <GeoLoadingNote status={gate.status} />
-      {!DEPLOYED && <Notice tone="warn">Convert opens when the Terra Firma contracts are live on mainnet.</Notice>}
+      {!DEPLOYED && <Notice tone="warn">Convert opens when the Terra Firma contracts are live on Robinhood Chain.</Notice>}
 
       <Button
         className="w-full"

@@ -22,7 +22,7 @@ const F = { address: TF.FriendJar, abi: friendJarAbi as unknown as Abi };
 export function FriendsView() {
   const mounted = useMounted();
   const { address } = useAccount();
-  if (!DEPLOYED) return <Notice tone="warn">Friend Jars open when the Terra Firma contracts are live on mainnet.</Notice>;
+  if (!DEPLOYED) return <Notice tone="warn">Friend Jars open when the Terra Firma contracts are live on Robinhood Chain.</Notice>;
   if (!mounted) return <Skeleton w="100%" h="10rem" className="block" />;
   if (!address)
     return (
@@ -55,7 +55,7 @@ function Create() {
   };
   return (
     <Panel aria-labelledby="create-h" className="space-y-4">
-      <h2 id="create-h" className="font-semibold">Start a Friend Jar</h2>
+      <h2 id="create-h" className="font-display text-deck">Start a Friend Jar</h2>
       <StockSelect value={stock} onChange={setStock} label="Jar stock" name="fj-stock" />
       <div>
         <label htmlFor="fj-invite" className="text-sm text-muted">Invite code (share it with friends; only its hash goes onchain)</label>
@@ -74,7 +74,7 @@ function Join() {
   const valid = /^\d+$/.test(id) && invite.length > 0;
   return (
     <Panel aria-labelledby="join-h" className="space-y-4">
-      <h2 id="join-h" className="font-semibold">Join with an invite</h2>
+      <h2 id="join-h" className="font-display text-deck">Join with an invite</h2>
       <div>
         <label htmlFor="fj-id" className="text-sm text-muted">Jar id</label>
         <input id="fj-id" inputMode="numeric" value={id} onChange={(e) => setId(e.target.value)} className={`${inputCls} num mt-2`} />

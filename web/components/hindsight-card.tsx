@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ADDR, EXPLORER, STOCKS } from "@/lib/config";
 import type { Card, CardBuy, CardMeme } from "@/lib/hindsight";
 import { REGISTRY } from "@/lib/registry";
 import { DASH, date, pct, pctChange, roundTail, shares18, token, usd8, usd8Label } from "@/lib/ui-format";
+import { PlateInProof, StrataPlate } from "./strata-plate";
 import { Guarantee } from "./guarantee";
-import { AddrLink, Badge, ExtLink, Notice, Panel, Skeleton, TxLink, cx } from "./ui";
+import { AddrLink, Badge, ExtLink, Notice, Panel, TxLink, cx } from "./ui";
 
 const payAsset = (b: CardBuy) =>
   b.payKind === 0
@@ -18,7 +19,7 @@ const payAsset = (b: CardBuy) =>
 function Receipt({ b, stock }: { b: CardBuy; stock: (typeof STOCKS)[number] }) {
   const p = payAsset(b);
   return (
-    <li className="rounded-lg bg-bg/60 px-3 py-2.5 text-sm leading-relaxed text-muted">
+    <li className="border-l-2 border-line bg-bg/60 px-3 py-2.5 text-sm leading-relaxed text-muted">
       Paid <span className="num text-fg">{token(b.amountPaid, p.dec)} {p.sym}</span> ({usd8(b.usdPaid8)}) on {date(b.ts)} (tx <TxLink hash={b.tx} />).{" "}
       {p.sym} was <span className="num text-fg">{usd8(b.payUsd8)}</span> (<AddrLink addr={p.feed}>Chainlink round {roundTail(b.payRoundId)}</AddrLink>
       <span className="sr-only"> full id {b.payRoundId}</span>). {stock.symbol} was <span className="num text-fg">{usd8(b.stockUsd8)}</span> (
@@ -33,13 +34,13 @@ function MemeRow({ m, stock, worst }: { m: CardMeme; stock: (typeof STOCKS)[numb
   const id = `receipts-${m.token}`;
   const change = pctChange(m.usdPaid8, m.usdToday8);
   return (
-    <li className={cx("rounded-xl border", worst ? "border-danger/50 bg-danger-soft" : "border-line")}>
+    <li className={cx("border-b border-line", worst && "bg-danger-soft shadow-[inset_3px_0_0_var(--danger)]")}>
       <button
         type="button"
         aria-expanded={open}
         aria-controls={id}
         onClick={() => setOpen((o) => !o)}
-        className="grid min-h-11 w-full grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 rounded-xl px-4 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:grid-cols-[1.2fr_1fr_1fr_1fr_auto]"
+        className="grid min-h-11 w-full grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 rounded-sm px-3 py-3 text-left transition-colors duration-150 hover:bg-accent-06 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-fg sm:grid-cols-[1.2fr_1fr_1fr_1fr_auto]"
       >
         <span className="flex items-center gap-2 font-semibold">
           {m.symbol}
@@ -74,7 +75,7 @@ function MemeRow({ m, stock, worst }: { m: CardMeme; stock: (typeof STOCKS)[numb
         <span aria-hidden className={cx("col-span-2 text-xs text-muted transition-transform sm:col-span-1", open && "rotate-180")}>▾</span>
       </button>
       {open && (
-        <div id={id} className="px-4 pb-4">
+        <div id={id} className="px-3 pb-4">
           <p className="mb-2 text-xs text-muted">
             {m.buys.length} priced buy{m.buys.length === 1 ? "" : "s"} · holding <span className="num">{token(m.holding)}</span> {m.symbol} ·{" "}
             <AddrLink addr={m.token}>token</AddrLink>
@@ -96,51 +97,51 @@ export function HindsightCard({ card, owner = true, stockControl, actions }: { c
   const who = owner ? "You" : "This wallet";
   return (
     <Panel aria-labelledby="card-title" className="space-y-6">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h2 id="card-title" className="text-sm font-medium uppercase tracking-wider text-muted">Hindsight card</h2>
-          <p className="mt-1 font-mono text-sm"><AddrLink addr={card.wallet} /></p>
+      <div className="flex flex-col gap-1 border-b border-line pb-3 sm:flex-row sm:items-baseline sm:justify-between">
+        <div className="flex flex-wrap items-baseline gap-x-3">
+          <h2 id="card-title" className="font-display text-deck">Hindsight card</h2>
+          <p className="font-mono text-sm"><AddrLink addr={card.wallet} /></p>
         </div>
         <p className="text-xs text-muted">
-          As of block <ExtLink href={`${EXPLORER}/block/${card.asOfBlock}`}><span className="num">{card.asOfBlock.toLocaleString("en-US")}</span></ExtLink>
+          Values re-read live · as of block <ExtLink href={`${EXPLORER}/block/${card.asOfBlock}`}><span className="num">{card.asOfBlock.toLocaleString("en-US")}</span></ExtLink>
         </p>
       </div>
 
       {card.partial && <PartialBanner card={card} />}
 
       {empty ? (
-        <div className="py-6 text-center">
-          <p className="text-2xl font-semibold">None of the {REGISTRY.memes.length} memes we track are in this wallet.</p>
-          {REGISTRY.memes.length === 0 && <p className="mt-2 text-sm text-muted">The meme registry is still being built, so no tokens were scanned yet.</p>}
+        <div className="py-6">
+          <p className="font-display text-deck">None of the {REGISTRY.memes.length} memes we track are in this wallet.</p>
+          {REGISTRY.memes.length === 0 && <p className="mt-2 text-sm text-muted">The list of tracked memes is still being built, so nothing was scanned yet.</p>}
         </div>
       ) : (
-        <>
-          <p className="text-xl font-semibold leading-snug sm:text-2xl">
-            {who} put <span className="num">{usd8(card.totals.usdPaid8)}</span> into memes still held. Today{card.unquoted.length > 0 ? " (priced memes only)" : ""}: <span className="num">{usd8(card.totals.usdToday8)}</span>. In {stock.symbol}:{" "}
-            <span className="num text-accent">{usd8(card.totals.usdCounterfactual8)}</span>.
-          </p>
-          <p className="text-xs text-muted">Gross buys of memes this wallet still holds, priced with the Chainlink round at each buy. Sells and transfers out are not netted; this is not P&amp;L.</p>
-          <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <Figure label="Paid" value={usd8(card.totals.usdPaid8)} aria={usd8Label(card.totals.usdPaid8)} />
-            <Figure label="Today" value={usd8(card.totals.usdToday8)} aria={usd8Label(card.totals.usdToday8)} sub={card.unquoted.length > 0 ? `${card.memes.filter((m) => m.usdToday8 !== null).length} of ${card.memes.length} memes priced; paid for those: ${usd8(card.totals.usdPaidQuoted8)}` : undefined} />
-            <Figure label={`In ${stock.symbol}`} value={usd8(card.totals.usdCounterfactual8)} aria={usd8Label(card.totals.usdCounterfactual8)} sub={`${shares18(card.totals.shares18)} shares`} accent />
-          </dl>
-          {card.worst && (
-            <p className="text-sm text-muted">
-              Worst trade: <strong className="text-fg">{card.worst.symbol}</strong> <span className="num text-danger">{pct(card.worst.pct)}</span>
+        <div className="grid gap-x-10 gap-y-6 lg:grid-cols-12">
+          <div className="space-y-4 lg:col-span-7 lg:border-r lg:border-line lg:pr-10">
+            <p className="font-display text-deck text-pretty">
+              {who} put <span className="num">{usd8(card.totals.usdPaid8)}</span> into memes still held. Today{card.unquoted.length > 0 ? " (priced memes only)" : ""}: <span className="num">{usd8(card.totals.usdToday8)}</span>. In {stock.symbol}:{" "}
+              <i className="num text-accent">{usd8(card.totals.usdCounterfactual8)}</i>.
             </p>
-          )}
-        </>
+            <p className="text-sm text-muted">Gross buys of memes this wallet still holds, priced with the Chainlink round at each buy. Sells and transfers out are not netted; this is not profit and loss.</p>
+            {card.worst && (
+              <p className="border-t border-line pt-3 text-sm text-muted">
+                Worst trade: <strong className="text-fg">{card.worst.symbol}</strong> <span className="num font-semibold text-danger">{pct(card.worst.pct)}</span>
+              </p>
+            )}
+            {stockControl && <div className="border-t border-line pt-4">{stockControl}</div>}
+          </div>
+          {card.memes.length > 0 && <StrataPlate card={card} className="lg:col-span-5" />}
+        </div>
       )}
 
-      {stockControl}
+      {empty && stockControl}
 
       {card.memes.length > 0 && (
         <div>
-          <div className="mb-2 hidden grid-cols-[1.2fr_1fr_1fr_1fr_auto] gap-x-3 px-4 text-xs uppercase tracking-wider text-muted sm:grid" aria-hidden>
+          <h3 className="mb-2 font-display text-xl">Receipts, meme by meme</h3>
+          <div className="hidden grid-cols-[1.2fr_1fr_1fr_1fr_auto] gap-x-3 border-y border-fg px-3 py-2 text-[0.8125rem] font-semibold text-muted sm:grid" aria-hidden>
             <span>Meme</span><span className="text-right">Paid</span><span className="text-right">Today</span><span className="text-right">In {stock.symbol}</span><span className="w-3" />
           </div>
-          <ul className="space-y-2" aria-label="Meme buys. Expand a row for receipts.">
+          <ul className="border-t border-fg sm:border-t-0" aria-label="Meme buys. Expand a row for receipts.">
             {card.memes.map((m) => (
               <MemeRow key={m.token} m={m} stock={stock} worst={card.worst?.symbol === m.symbol} />
             ))}
@@ -149,9 +150,12 @@ export function HindsightCard({ card, owner = true, stockControl, actions }: { c
       )}
 
       {card.unpriced.length > 0 && (
-        <div>
-          <h3 className="text-sm font-semibold">Not priced ({card.unpriced.length})</h3>
-          <p className="text-xs text-muted">Shown for honesty, excluded from totals. We never estimate these.</p>
+        <details className="group border-t border-line pt-3">
+          <summary className="flex min-h-11 cursor-pointer list-none items-baseline gap-3 rounded-sm transition-colors duration-150 hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fg">
+            <span className="font-display text-xl">Not priced ({card.unpriced.length})</span>
+            <span className="text-xs text-muted">Shown for honesty, excluded from totals. We never estimate these.</span>
+            <span aria-hidden className="ml-auto text-xs text-muted transition-transform duration-150 group-open:rotate-180">▾</span>
+          </summary>
           <ul className="mt-2 space-y-1 text-sm">
             {card.unpriced.map((u) => (
               <li key={`${u.tx}-${u.token}`} className="flex flex-wrap items-center gap-x-2 text-muted">
@@ -161,12 +165,12 @@ export function HindsightCard({ card, owner = true, stockControl, actions }: { c
               </li>
             ))}
           </ul>
-        </div>
+        </details>
       )}
 
       {actions}
 
-      <Guarantee addr={card.wallet} stock={card.stock} className="border-t border-line pt-4" />
+      <Guarantee addr={card.wallet} stock={card.stock} />
     </Panel>
   );
 }
@@ -190,38 +194,54 @@ function PartialBanner({ card }: { card: Card }) {
   );
 }
 
-function Figure({ label, value, aria, sub, accent }: { label: string; value: string; aria: string; sub?: string; accent?: boolean }) {
-  return (
-    <div className={cx("rounded-xl border p-4", accent ? "border-accent/40 bg-accent-soft" : "border-line bg-surface-2/50")}>
-      <dt className="text-sm text-muted">{label}</dt>
-      <dd className={cx("num mt-1 text-2xl font-bold tracking-tight sm:text-3xl", accent && "text-accent")} aria-label={`${label}: ${aria}`}>
-        {value}
-      </dd>
-      {sub && <dd className="num mt-0.5 text-xs text-muted">{sub}</dd>}
-    </div>
-  );
+/** Seconds since mount, for an honest elapsed counter. */
+function useElapsed() {
+  const [t, setT] = useState(0);
+  useEffect(() => {
+    const start = Date.now();
+    const id = setInterval(() => setT(Math.floor((Date.now() - start) / 1000)), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return t;
 }
 
+/** Cold load, "going to press". The API does not stream progress, so nothing here pretends to count tokens. */
 export function CardSkeleton() {
   const n = REGISTRY.memes.length;
+  const t = useElapsed();
+  const memes = `${n} meme${n === 1 ? "" : "s"}`;
+  const steps = [
+    { what: `Buys of ${memes}`, how: "Reading transfers into this wallet on Robinhood Chain" },
+    { what: "Prices at each buy", how: "Matching every buy to the Chainlink round in force" },
+    { what: "Today's value", how: "Reading live prices for the memes still held" },
+  ];
   return (
-    <Panel aria-busy="true" className="space-y-6">
-      <p role="status" className="text-sm text-muted">
-        Reading your meme buys from the chain… (scanning {n} meme{n === 1 ? "" : "s"})
-      </p>
-      <Skeleton w="85%" h="1.75rem" />
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        {[0, 1, 2].map((i) => (
-          <div key={i} className="rounded-xl border border-line p-4">
-            <Skeleton w="3rem" h="0.9rem" />
-            <div className="mt-2"><Skeleton w="7rem" h="2rem" /></div>
-          </div>
-        ))}
-      </div>
-      <div className="space-y-2">
-        {[0, 1, 2].map((i) => (
-          <Skeleton key={i} w="100%" h="3rem" className="block" />
-        ))}
+    <Panel aria-busy="true" aria-labelledby="press-title">
+      <div className="grid gap-x-10 gap-y-8 lg:grid-cols-12">
+        <div className="lg:col-span-6 lg:border-r lg:border-line lg:pr-10">
+          <p className="mb-1 font-display text-[1.375rem] italic text-accent">Hindsight card</p>
+          <h2 id="press-title" className="font-display text-title text-balance">
+            Going to press: <em className="text-accent">reading buys</em> from Robinhood Chain
+          </h2>
+          <p role="status" className="mt-4 text-[1.0625rem] font-semibold">Scanning {memes} for this wallet.</p>
+          <p className="num mt-1 text-sm text-muted">
+            <span aria-hidden>{t} s elapsed · </span>usually 5–15 seconds{t > 20 ? ". Taking longer than usual; still reading." : "."}
+          </p>
+          <p className="mt-3 max-w-[50ch] text-[0.9375rem] text-muted">Nothing is estimated: the card is set in type only after every buy and its Chainlink round are read.</p>
+          <ol className="mt-6 border-t border-fg">
+            {steps.map((s) => (
+              <li key={s.what} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-0.5 border-b border-line py-3 text-[0.9375rem]">
+                <span className="font-semibold">{s.what}</span>
+                <span className="inline-flex items-center gap-2 font-semibold text-accent">
+                  <span aria-hidden className="inking size-2.5 rounded-full border border-accent bg-accent-32" />
+                  On the press
+                </span>
+                <span className="col-span-2 text-sm text-muted">{s.how}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+        <PlateInProof className="lg:col-span-6" />
       </div>
     </Panel>
   );

@@ -1,0 +1,8 @@
+{
+ "money_shot": "Fig. 1 strata plate of a real long-history wallet, drawn to scale from /api/hindsight",
+ "entry_funnel": "Connect wallet (primary) \u2192 own card; Look up any wallet (secondary)",
+ "honesty_placement": "directly under the headline: recomputable-onchain guarantee + 'Recompute this card' link; masthead boxes 'Measured, not estimated' / 'Prices from Chainlink'",
+ "invariant_as_narrative": "every horizon caption cites its source (buy txs on Robinhood Chain, Chainlink round in force)",
+ "hero_surface": "web/app/page.tsx",
+ "plate_surface": "web/components/strata-plate.tsx"
+}

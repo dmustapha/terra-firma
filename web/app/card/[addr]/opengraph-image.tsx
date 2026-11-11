@@ -9,14 +9,16 @@ export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 export const revalidate = 600;
 
-const C = { bg: "#12100d", surface: "#1b1814", line: "#3b342b", fg: "#f3ede4", muted: "#b6aa98", accent: "#46d27a", danger: "#f7867c" };
+// Almanac palette: paper, ink, bedrock moss.
+const C = { bg: "#f1ebdd", surface: "#f7f3e9", line: "#1a1712", rule: "#bcb4a2", fg: "#1a1712", muted: "#554f47", accent: "#3f6b4a", danger: "#9b3b1f" };
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", background: C.bg, color: C.fg, padding: 64, fontFamily: "sans-serif" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 30, fontWeight: 700 }}>
-        <div style={{ width: 40, height: 8, borderRadius: 4, background: C.accent }} />
-        Terra Firma
+      <div style={{ display: "flex", alignItems: "baseline", gap: 10, fontSize: 40, paddingBottom: 12, borderBottom: `3px solid ${C.line}` }}>
+        <span style={{ fontWeight: 700 }}>Terra</span>
+        <span style={{ fontStyle: "italic", color: C.accent }}>Firma</span>
+        <span style={{ marginLeft: "auto", fontSize: 22, color: C.muted, fontStyle: "italic" }}>Robinhood Chain edition · read live</span>
       </div>
       {children}
     </div>
@@ -25,7 +27,7 @@ function Shell({ children }: { children: React.ReactNode }) {
 
 function Fig({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", flex: 1, padding: 28, borderRadius: 20, border: `2px solid ${accent ? C.accent : C.line}`, background: C.surface }}>
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, padding: 24, borderRadius: 4, borderTop: `4px solid ${accent ? C.accent : C.line}`, background: C.surface, boxShadow: `6px 6px 0 rgba(26,23,18,0.16)` }}>
       <div style={{ fontSize: 28, color: C.muted }}>{label}</div>
       <div style={{ fontSize: 64, fontWeight: 800, color: accent ? C.accent : C.fg, marginTop: 8 }}>{value}</div>
     </div>
@@ -55,7 +57,7 @@ export default async function Image({ params }: { params: Promise<{ addr: string
             </div>
           </div>
         )}
-        <div style={{ display: "flex", marginTop: "auto", fontSize: 24, color: C.muted }}>Every number from Robinhood Chain mainnet and Chainlink rounds.</div>
+        <div style={{ display: "flex", marginTop: "auto", fontSize: 24, color: C.muted }}>Every number from Robinhood Chain and Chainlink rounds.</div>
       </Shell>,
       size,
     );

@@ -37,8 +37,19 @@ export function ProofView() {
 
 // ---- Rubric map (critique E-2): the three judging criteria, each pointing at live evidence ----
 
-const PENDING = "live after mainnet deploy";
-const anchorCls = "inline-flex min-h-11 items-center underline decoration-line underline-offset-4 hover:decoration-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-sm";
+/** Plain names for the contracts (the explorer link carries the exact contract). */
+const CONTRACT_NAME: Record<string, string> = {
+  TerraRouter: "Router",
+  Jar: "Jar",
+  FeePool: "Fee pool",
+  WifStaking: "$WIF staking",
+  StockOracle: "Stock price guard",
+  HindsightLens: "Hindsight recompute",
+  FriendJar: "Friend Jars",
+};
+
+const PENDING = "live once the contracts are deployed";
+const anchorCls = "inline-flex min-h-11 items-center rounded-sm underline decoration-fg/35 underline-offset-4 transition-[text-decoration-color] duration-150 hover:decoration-accent hover:decoration-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fg";
 const bps = (b: number) => `${(b / 100).toFixed(1)}%`;
 
 function Jump({ to, children }: { to: string; children: ReactNode }) {
@@ -58,9 +69,9 @@ function Row({ k, children }: { k: ReactNode; children: ReactNode }) {
 function RubricCard({ id, title, claim, children }: { id: string; title: string; claim: string; children: ReactNode }) {
   return (
     <Panel aria-labelledby={id} className="flex flex-col">
-      <h3 id={id} className="text-lg font-semibold">{title}</h3>
+      <h3 id={id} className="font-display text-deck">{title}</h3>
       <p className="mt-1 text-sm text-muted">{claim}</p>
-      <ul className="mt-3 divide-y divide-line">{children}</ul>
+      <ul className="mt-3 divide-y divide-line border-t border-fg">{children}</ul>
     </Panel>
   );
 }
@@ -73,20 +84,20 @@ function RubricMap() {
   const failed = DEPLOYED && !!logs.error;
   /** Event-derived link: pending pre-deploy, explicit on RPC failure, skeleton while scanning. */
   const ev = (hash: string | undefined, none: string) =>
-    !DEPLOYED ? <span className="text-muted">{PENDING}</span> : failed ? <span className="text-danger">RPC unavailable</span> : !l ? <Skeleton w="6rem" /> : hash ? <TxLink hash={hash} /> : <span className="text-muted">{none}</span>;
+    !DEPLOYED ? <span className="text-muted">{PENDING}</span> : failed ? <span className="text-danger">couldn&apos;t read the chain</span> : !l ? <Skeleton w="6rem" /> : hash ? <TxLink hash={hash} /> : <span className="text-muted">{none}</span>;
   const total = (x: bigint | undefined, fmt: (n: bigint) => string, href: string) =>
-    !DEPLOYED ? <span className="text-muted">{PENDING}</span> : x === undefined ? <Skeleton w="5rem" /> : <ExtLink href={href}><span className="num">{fmt(x)}</span></ExtLink>;
+    !DEPLOYED ? <span className="text-muted">{PENDING}</span> : x == null ? <Skeleton w="5rem" /> : <ExtLink href={href}><span className="num">{fmt(x)}</span></ExtLink>;
   return (
     <section aria-labelledby="rubric-title" className="space-y-3">
-      <h2 id="rubric-title" className="text-sm font-medium uppercase tracking-wider text-muted">Judging criteria, mapped to evidence</h2>
+      <h2 id="rubric-title" className="font-display text-deck">Judging criteria, mapped to evidence</h2>
       <div className="grid gap-4 lg:grid-cols-3">
         <RubricCard id="rb-wif" title="A real reason to use $WIF" claim="Fees buy and burn $WIF, stakers earn real stock, and staking cuts your trade fee.">
           <Row k="First fee-funded $WIF burn">{ev(f?.[2].log?.transactionHash, "not yet")}</Row>
           <Row k="First staker claim">{ev(f?.[3].log?.transactionHash, "not yet")}</Row>
           <Row k={`Fee discount: ${token(DISCOUNT_STAKE)} $WIF staked → ${bps(STAKER_FEE_BPS)} instead of ${bps(FEE_BPS)}`}>
-            {DEPLOYED ? <AddrLink addr={TF.TerraRouter}>TerraRouter.feeBps</AddrLink> : <span className="text-muted">{PENDING}</span>}
+            {DEPLOYED ? <AddrLink addr={TF.TerraRouter}>Fee setting on the router</AddrLink> : <span className="text-muted">{PENDING}</span>}
           </Row>
-          <Row k="$WIF token (the router reverts any $WIF sell)"><AddrLink addr={ADDR.wif} /></Row>
+          <Row k="$WIF token (the router refuses any $WIF sell)"><AddrLink addr={ADDR.wif} /></Row>
         </RubricCard>
         <RubricCard id="rb-fly" title="A flywheel that holds up" claim="Routed volume pays fees; each epoch burns $WIF and streams stock to stakers. Live totals, no projections.">
           <Row k="Routed volume">{total(l ? volume : undefined, (n) => `${eth(n)} ETH`, addrUrl(TF.TerraRouter))}</Row>
@@ -95,11 +106,11 @@ function RubricMap() {
           <Row k="Latest distribute">{ev(lastDist?.transactionHash, "no distribute yet")}</Row>
           <Row k="Burn path: hooked WIF/ETH pool"><AddrLink addr={ADDR.wifHook} /></Row>
         </RubricCard>
-        <RubricCard id="rb-built" title="Works and built well" claim="Ownerless contracts, a mainnet-fork test suite, and every card recomputable by eth_call.">
+        <RubricCard id="rb-built" title="Works and built well" claim="Ownerless contracts, tests run against a copy of Robinhood Chain, and every card recomputable onchain.">
           <Row k={<OwnerlessClaim />}>
             {DEPLOYED ? <Jump to="contracts">Addresses</Jump> : <span className="text-muted">{PENDING}</span>}
           </Row>
-          <Row k={`${evidence.forkTests} fork tests passing`}><Jump to="fork-tests">Command and output</Jump></Row>
+          <Row k={`${evidence.forkTests} tests passing on a copy of Robinhood Chain`}><Jump to="fork-tests">Command and output</Jump></Row>
           <Row k="Recompute any card onchain"><Jump to="recompute">Recompute box</Jump></Row>
         </RubricCard>
       </div>
@@ -139,26 +150,26 @@ function OwnerlessClaim() {
   if (!DEPLOYED) return <>{n} contracts, no owner functions by design</>;
   if (!p.data) return p.error ? <>{n} contracts (owner check unavailable)</> : <Skeleton w="12rem" />;
   const ownerless = [...p.data.values()].filter((v) => v === "ownerless").length;
-  return <>{ownerless} of {n} contracts answer no owner(){verified > 0 ? `, ${verified} verified on Blockscout` : ""}</>;
+  return <>{ownerless} of {n} contracts confirmed to have no owner{verified > 0 ? `, ${verified} verified on Blockscout` : ""}</>;
 }
 
 function Contracts() {
   const probes = useOwnerProbes();
   return (
     <Panel id="contracts" aria-labelledby="c-title" className="scroll-mt-24">
-      <h2 id="c-title" className="font-semibold">Contracts</h2>
-      <p className="mt-1 text-sm text-muted">No owner, no pause, no upgrade, no admin withdraw (checked by the fork test <code className="font-mono">test_noOwnerFunctions</code>). The &ldquo;ownerless&rdquo; badge appears only after a live <code className="font-mono">owner()</code> call on mainnet reverts.</p>
+      <h2 id="c-title" className="font-display text-deck">Contracts</h2>
+      <p className="mt-1 text-sm text-muted">No owner, no pause, no upgrade, no admin withdraw (checked by a test run against a copy of Robinhood Chain). The &ldquo;ownerless&rdquo; badge appears only after a live check on Robinhood Chain confirms the contract has no owner.</p>
       <ul className="mt-4 divide-y divide-line">
         {SHOWN_CONTRACTS.map((c) => (
           <li key={c.key} className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="flex flex-wrap items-center gap-2 font-semibold">
-                {c.key}
+                {CONTRACT_NAME[c.key]}
                 {probes.data?.get(c.key) === "ownerless" && <Badge tone="accent">ownerless</Badge>}
-                {probes.data?.get(c.key) === "has-owner" && <Badge tone="danger">has owner()</Badge>}
+                {probes.data?.get(c.key) === "has-owner" && <Badge tone="danger">has an owner</Badge>}
                 {VERIFIED.has(c.address.toLowerCase()) && <Badge tone="accent">verified</Badge>}
               </p>
-              <p className="text-sm text-muted">{c.role}</p>
+              <p className="text-sm text-muted">{c.key === "StockOracle" ? "Reads Chainlink and refuses any stock fill more than 3% worse than its price." : c.role}</p>
             </div>
             {DEPLOYED ? <AddrLink addr={c.address} className="text-sm" /> : <span className="text-sm text-muted">deploying</span>}
           </li>
@@ -218,11 +229,11 @@ function FirstOfKind() {
   const t = useQuery({ queryKey: ["dist-time", lastDist?.blockNumber.toString()], enabled: !!lastDist, queryFn: () => blockTimes([lastDist!.blockNumber]) });
   return (
     <Panel aria-labelledby="f-title">
-      <h2 id="f-title" className="font-semibold">First-of-kind transactions</h2>
+      <h2 id="f-title" className="font-display text-deck">First-of-kind transactions</h2>
       {!DEPLOYED ? (
-        <p className="mt-3 text-sm text-muted">These appear from contract logs after deploy.</p>
+        <p className="mt-3 text-sm text-muted">These fill in once the contracts are live on Robinhood Chain.</p>
       ) : logs.error ? (
-        <Notice tone="danger" className="mt-3">Live data unavailable: couldn&apos;t read logs from the public RPC. Nothing is shown in its place.</Notice>
+        <Notice tone="danger" className="mt-3">Live data unavailable: couldn&apos;t read the chain right now. Nothing is shown in its place.</Notice>
       ) : (
         <ul className="mt-3 divide-y divide-line">
           {(l ? firsts(l) : [0, 1, 2, 3].map((i) => ({ k: String(i), log: undefined }))).map((f) => (
@@ -232,7 +243,7 @@ function FirstOfKind() {
             </li>
           ))}
           <li className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
-            <span>Keeper last run (latest Distributed)</span>
+            <span>Last scheduled payout (latest hourly distribute)</span>
             {!l ? <Skeleton w="7rem" /> : lastDist ? (
               <span className="flex items-center gap-3"><span className="num text-muted">{t.data ? dateTime(t.data.get(lastDist.blockNumber)!) : "…"}</span><TxLink hash={lastDist.transactionHash} /></span>
             ) : (
@@ -278,8 +289,8 @@ function RecomputeBox() {
   }, [prefill, mutate]);
   return (
     <Panel id="recompute" aria-labelledby="r-title" className="scroll-mt-24">
-      <h2 id="r-title" className="font-semibold">Recompute a card</h2>
-      <p className="mt-1 text-sm text-muted">Runs /api/hindsight, then HindsightLens.recompute on the same inputs via eth_call. Priced in {stock}.</p>
+      <h2 id="r-title" className="font-display text-deck">Recompute a card</h2>
+      <p className="mt-1 text-sm text-muted">Builds the card from Robinhood Chain, then has the Hindsight contract recompute it from the same buys. Priced in {stock}.</p>
       <form
         className="mt-4 flex flex-col gap-2 sm:flex-row"
         onSubmit={(e) => {
@@ -289,12 +300,12 @@ function RecomputeBox() {
         }}
       >
         <label htmlFor="rc-addr" className="sr-only">Wallet address</label>
-        <input id="rc-addr" value={v} onChange={(e) => { setV(e.target.value); setErr(false); }} placeholder="0x…" className={`${inputCls} font-mono text-sm sm:flex-1`} aria-invalid={err} spellCheck={false} />
+        <input id="rc-addr" value={v} onChange={(e) => { setV(e.target.value); setErr(false); }} placeholder="0x…" className={`${inputCls} font-mono sm:flex-1`} aria-invalid={err} spellCheck={false} />
         <Button type="submit" disabled={run.isPending}>{run.isPending ? "Running…" : "Recompute"}</Button>
       </form>
       {err && <p role="alert" className="mt-2 text-sm text-danger">Enter a 0x address.</p>}
       {run.error && <Notice tone="danger" className="mt-3">{(run.error as Error).message}</Notice>}
-      {run.data && (run.data.card.memes.length === 0 ? <p className="mt-3 text-sm text-muted">No priced meme buys for this wallet.</p> : !DEPLOYED ? <Notice className="mt-3">API card loaded. The onchain side runs once HindsightLens is deployed.</Notice> : <RecomputeResult card={run.data.card} data={run.data.chain} />)}
+      {run.data && (run.data.card.memes.length === 0 ? <p className="mt-3 text-sm text-muted">No priced meme buys for this wallet.</p> : !DEPLOYED ? <Notice className="mt-3">Card built. The onchain recompute runs once the Hindsight contract is live.</Notice> : <RecomputeResult card={run.data.card} data={run.data.chain} />)}
     </Panel>
   );
 }
@@ -313,11 +324,11 @@ function Distribute() {
   const ok = can.data?.[0]?.result === true;
   return (
     <Panel aria-labelledby="d-title">
-      <h2 id="d-title" className="font-semibold">Run distribute</h2>
-      <p className="mt-1 text-sm text-muted">Anyone can trigger the hourly epoch if the keeper hasn&apos;t: half buys and burns $WIF, half buys stakers&apos; stock.</p>
+      <h2 id="d-title" className="font-display text-deck">Run the hourly distribute</h2>
+      <p className="mt-1 text-sm text-muted">Anyone can trigger the hourly payout if the scheduled run hasn&apos;t: half buys and burns $WIF, half buys stakers&apos; stock.</p>
       <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
-        <div><dt className="text-muted">Fee pool balance</dt><dd className="num font-semibold">{!DEPLOYED ? "—" : bal.data !== undefined ? <ExtLink href={addrUrl(TF.FeePool)}>{eth(bal.data)} ETH</ExtLink> : bal.error ? <span className="text-danger">RPC unavailable</span> : <Skeleton w="4rem" />}</dd></div>
-        <div><dt className="text-muted">Current epoch</dt><dd className="num font-semibold">{!DEPLOYED ? "—" : can.data?.[1]?.result !== undefined ? String(can.data[1].result) : <Skeleton w="3rem" />}</dd></div>
+        <div><dt className="text-muted">Fee pool balance</dt><dd className="num font-semibold">{!DEPLOYED ? "—" : bal.data != null ? <ExtLink href={addrUrl(TF.FeePool)}>{eth(bal.data)} ETH</ExtLink> : bal.error ? <span className="text-danger">couldn&apos;t read the chain</span> : <Skeleton w="4rem" />}</dd></div>
+        <div><dt className="text-muted">Current epoch</dt><dd className="num font-semibold">{!DEPLOYED ? "—" : can.data?.[1]?.result != null ? String(can.data[1].result) : <Skeleton w="3rem" />}</dd></div>
       </dl>
       <Button
         className="mt-4 w-full"
@@ -329,7 +340,7 @@ function Distribute() {
       >
         {!DEPLOYED ? "Available after deploy" : !address ? "Connect a wallet to run it" : ok ? "Run distribute" : "Not due yet"}
       </Button>
-      <p className="mt-2 text-xs text-muted"><code className="font-mono">distribute()</code> takes no arguments. The $WIF buy is capped at 0.01 ETH per epoch, so price games can only shave dust.</p>
+      <p className="mt-2 text-xs text-muted">Distributing takes no inputs from you. The $WIF buy is capped at 0.01 ETH per epoch, so price games can only shave dust.</p>
       <TxStatus state={tx.state} onReset={tx.reset} success="Distributed. The burn and staker stream are onchain." />
     </Panel>
   );
@@ -339,14 +350,14 @@ function Evidence() {
   return (
     <Panel id="fork-tests" aria-labelledby="e-title" className="scroll-mt-24 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h2 id="e-title" className="font-semibold">Fork tests</h2>
+        <h2 id="e-title" className="font-display text-deck">Tests against a copy of Robinhood Chain</h2>
         <p className="mt-1 text-sm text-muted">
-          <span className="num text-fg">{evidence.forkTests}</span> passing against a Robinhood Chain mainnet fork. Run it yourself: <code className="font-mono text-fg">{evidence.command}</code>
+          <span className="num text-fg">{evidence.forkTests}</span> passing against a local copy of Robinhood Chain. Run them yourself: <code className="font-mono text-fg [overflow-wrap:anywhere]">{evidence.command}</code>
         </p>
       </div>
       <div className="flex flex-wrap gap-3 text-sm">
         {REPO_URL && <ExtLink href={`${REPO_URL}/blob/main/evidence/forge-test.txt`}>Test output</ExtLink>}
-        {REPO_URL && <ExtLink href={`${REPO_URL}/blob/main/SECURITY.md`}>SECURITY.md</ExtLink>}
+        {REPO_URL && <ExtLink href={`${REPO_URL}/blob/main/SECURITY.md`}>Security notes</ExtLink>}
       </div>
     </Panel>
   );

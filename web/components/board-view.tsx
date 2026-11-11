@@ -95,7 +95,7 @@ function Board({ title, desc, rows, loading, empty, note }: { title: string; des
   const id = title.replace(/\W+/g, "-").toLowerCase();
   return (
     <Panel aria-labelledby={id}>
-      <h2 id={id} className="font-semibold">{title}</h2>
+      <h2 id={id} className="font-display text-deck">{title}</h2>
       <p className="mt-1 text-sm text-muted">{desc}</p>
       {note && <p className="mt-2 text-xs text-warn">{note}</p>}
       {loading ? (
@@ -103,17 +103,17 @@ function Board({ title, desc, rows, loading, empty, note }: { title: string; des
       ) : rows.length === 0 ? (
         <p className="mt-4 text-sm text-muted">{empty}</p>
       ) : (
-        <ol className="mt-4 divide-y divide-line">
+        <ol className="mt-4 divide-y divide-line border-t border-fg">
           {rows.map((r, i) => (
             <li key={`${r.who}-${r.tx}`} className="flex items-center gap-3 py-3">
-              <span className="num w-6 text-sm text-muted">{i + 1}</span>
+              <span className="num w-6 font-display text-lg text-muted">{i + 1}</span>
               <div className="min-w-0 flex-1">
                 <p className="num font-semibold">{r.main}</p>
                 {r.sub && <p className="text-xs text-muted">{r.sub}</p>}
               </div>
               <div className="flex flex-col items-end text-sm">
                 <AddrLink addr={r.who} />
-                <TxLink hash={r.tx} className="inline-flex min-h-11 items-center text-xs text-muted">tx</TxLink>
+                <TxLink hash={r.tx} className="inline-flex min-h-11 items-center text-xs text-muted">receipt</TxLink>
               </div>
             </li>
           ))}
@@ -137,15 +137,15 @@ export function BoardView() {
   const verified = checks.data?.verified ?? new Set<string>();
   const failed = checks.data?.failed ?? 0;
   const pricesMissing = quotes.data?.some((q) => q.price8 === null || q.multiplier === null);
-  if (!DEPLOYED) return <Notice tone="warn">Leaderboards fill from contract events once Terra Firma is live on mainnet.</Notice>;
-  if (logs.error) return <Notice tone="danger">Couldn&apos;t read events from the chain. Retrying shortly.</Notice>;
+  if (!DEPLOYED) return <Notice tone="warn">Leaderboards fill in once Terra Firma is live on Robinhood Chain.</Notice>;
+  if (logs.error) return <Notice tone="danger">Couldn&apos;t read the chain right now. Retrying shortly.</Notice>;
   const l = logs.data;
   const loading = !l;
   return (
     <div className="grid gap-6 lg:grid-cols-3">
-      <Board title="Biggest regret" desc="Minted Hindsight cards, re-verified against chain logs: what was paid vs. what it would be in stock." rows={regret(cands, verified)} loading={loading || (cands.length > 0 && checks.isLoading)} empty="No verified minted cards yet (each mint is re-derived from chain logs before it is ranked)." note={failed > 0 ? `${failed} card check${failed === 1 ? "" : "s"} couldn't run right now; those cards are not ranked.` : undefined} />
-      <Board title="Biggest Jars" desc="Credited minus withdrawn, per wallet." note={pricesMissing ? "Some live stock prices are unavailable; wallets holding those stocks are left out until they read again." : undefined} rows={l && quotes.data ? jars(l, quotes.data) : []} loading={loading || !quotes.data} empty="No Jars yet." />
-      <Board title="Most fees paid" desc="Sum of Traded.fee per wallet (half buys and burns $WIF, half buys stakers' stock)." rows={l ? fees(l) : []} loading={loading} empty="No routed trades yet." />
+      <Board title="Biggest regret" desc="Minted Hindsight cards, each rebuilt from Robinhood Chain before it is ranked: what was paid vs. what it would be in stock." rows={regret(cands, verified)} loading={loading || (cands.length > 0 && checks.isLoading)} empty="No verified minted cards yet (each mint is rebuilt from Robinhood Chain before it is ranked)." note={failed > 0 ? `${failed} card check${failed === 1 ? "" : "s"} couldn't run right now; those cards are not ranked.` : undefined} />
+      <Board title="Biggest Jars" desc="Stock added minus stock withdrawn, per wallet." note={pricesMissing ? "Some live stock prices are unavailable; wallets holding those stocks are left out until they read again." : undefined} rows={l && quotes.data ? jars(l, quotes.data) : []} loading={loading || !quotes.data} empty="No Jars yet." />
+      <Board title="Most fees paid" desc="Trade fees paid per wallet (half buys and burns $WIF, half buys stakers' stock)." rows={l ? fees(l) : []} loading={loading} empty="No routed trades yet." />
     </div>
   );
 }

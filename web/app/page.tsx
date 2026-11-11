@@ -1,51 +1,69 @@
-import { AddressLookup, Counters, LiveTicker } from "@/components/landing-live";
+import Link from "next/link";
+import { AddressLookup } from "@/components/address-lookup";
 import { Guarantee } from "@/components/guarantee";
 import { LandingConnect } from "@/components/landing-connect";
-import { LinkButton } from "@/components/ui";
-import { DEMO_ADDR } from "@/lib/ui-chain";
+import { LandingDeck, LandingPlate } from "@/components/landing-figure";
+import { Dispatches, EditionFigures } from "@/components/landing-live";
+import { HISTORY_ADDR } from "@/lib/ui-chain";
 
-const STEPS = [
-  { n: "1", t: "Hindsight", d: "See what every meme you bought would be worth today in NVDA, priced from the Chainlink round at that block." },
-  { n: "2", t: "Convert", d: "Sell the memes you pick into a real Stock Token, straight into your Jar. Withdraw any time." },
-  { n: "3", t: "Every trade builds stock", d: "Trade memes here and a slice of each trade lands in your Jar as stock. Fees burn $WIF and pay stakers." },
-];
+const more =
+  "inline-flex min-h-11 items-center rounded-sm text-[0.9375rem] font-semibold text-accent underline decoration-accent-32 underline-offset-4 transition-[text-decoration-color] duration-150 hover:decoration-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fg";
+
+/** One department of the broadsheet: kicker, head, prose. Columns are separated by hairline rules, never boxed. */
+function Dept({ kicker, title, href, cta, className, children }: { kicker: string; title: string; href: string; cta: string; className: string; children: React.ReactNode }) {
+  return (
+    <article className={`border-line max-lg:border-t max-lg:pt-5 lg:border-l lg:pl-8 lg:first:border-l-0 lg:first:pl-0 ${className}`}>
+      <p className="mb-1 font-display text-[1.375rem] italic text-accent">{kicker}</p>
+      <h3 className="mb-3 font-display text-deck">{title}</h3>
+      {children}
+      <Link href={href} className={more}>{cta}</Link>
+    </article>
+  );
+}
 
 export default function Home() {
   return (
-    <div className="space-y-14 sm:space-y-20">
-      <section className="pt-2 sm:pt-8">
-        <p className="text-sm font-medium uppercase tracking-widest text-accent">The world is flat. Stand on solid ground.</p>
-        <h1 className="mt-4 max-w-3xl text-5xl font-bold leading-[1.05] tracking-tight sm:text-7xl">Stand on $WIF. Sweep the rest into stock.</h1>
-        <p className="mt-5 max-w-xl text-lg text-muted sm:text-xl">See what your memes would be in NVDA today. Move the dead ones into real stock with one confirmation.</p>
-        <Guarantee addr={DEMO_ADDR || undefined} className="mt-4 max-w-xl" />
-        <div className="mt-8 flex max-w-xl flex-col gap-3">
-          <div className="flex flex-col gap-3 sm:flex-row">
+    <div className="space-y-10 sm:space-y-12">
+      <div className="grid gap-x-10 gap-y-8 lg:grid-cols-12">
+        <article className="lg:col-span-7 lg:row-start-1">
+          <h1 className="max-w-[13ch] font-display text-headline text-balance">
+            Stand on $WIF. Sweep the rest <em className="text-accent">into stock.</em>
+          </h1>
+          <Guarantee lead addr={HISTORY_ADDR} className="mt-5 max-w-[46ch]" />
+          <div className="mt-7 flex flex-col gap-5 sm:flex-row sm:items-end sm:gap-7">
             <LandingConnect />
-            {DEMO_ADDR && <LinkButton href={`/card/${DEMO_ADDR}`} variant="secondary">See a real card</LinkButton>}
+            <div className="min-w-0 sm:max-w-[30rem] sm:flex-1">
+              <AddressLookup id="lookup" label="Look up any wallet" />
+            </div>
           </div>
-          <AddressLookup />
+        </article>
+        <div className="lg:col-span-5 lg:col-start-8 lg:row-span-2 lg:row-start-1 lg:border-l lg:border-line lg:pl-10">
+          <LandingPlate />
         </div>
+        <div className="lg:col-span-7 lg:row-start-2">
+          <LandingDeck />
+        </div>
+      </div>
+
+      <EditionFigures />
+
+      <section aria-label="Departments" className="grid gap-x-8 gap-y-6 lg:grid-cols-12">
+        <Dept kicker="The Jar" title="Dead memes, settled into bedrock" href="/jar" cta="Open your Jar" className="lg:col-span-5">
+          <div className="text-[0.9375rem] leading-relaxed sm:columns-2 sm:gap-x-8 sm:[column-rule:1px_solid_var(--line)]">
+            <p className="mb-3">Pick the memes that stopped moving. Terra Firma converts them into real Stock Tokens and keeps them in your Jar, where you can see where each one came from and withdraw it whenever you like.</p>
+            <p className="mb-3">Before you sign, you see what goes in and the least that comes out. Nothing is converted without your signature.</p>
+          </div>
+        </Dept>
+        <Dept kicker="The Sweep" title="A slice of every trade" href="/trade" cta="Trade with a sweep" className="lg:col-span-3">
+          <p className="mb-3 text-[0.9375rem] leading-relaxed">Trade memes as usual. You set the slice, and that part of every trade is swept into stock in the same transaction, instead of into the next coin.</p>
+        </Dept>
+        <Dept kicker="The Pool" title="Where the fees go" href="/stake" cta="Stake $WIF" className="lg:col-span-4">
+          <p className="my-1 mb-3 border-y border-fg py-2 font-display text-[1.6rem] italic leading-tight">The fee pool buys $WIF and burns it, and streams stock to $WIF stakers.</p>
+          <p className="mb-3 text-[0.9375rem] leading-relaxed">Every burn and every stream is a transaction you can open on the Proof page.</p>
+        </Dept>
       </section>
 
-      <section aria-labelledby="counters-title" className="space-y-4">
-        <h2 id="counters-title" className="sr-only">Protocol counters</h2>
-        <Counters />
-        <p className="text-sm text-muted">Every number here is read from Robinhood Chain mainnet. Includes team demo transactions (team wallets listed on /proof).</p>
-        <LiveTicker />
-      </section>
-
-      <section aria-labelledby="how-title">
-        <h2 id="how-title" className="text-2xl font-bold tracking-tight">How it works</h2>
-        <ol className="mt-6 grid gap-4 md:grid-cols-3">
-          {STEPS.map((s) => (
-            <li key={s.n} className="rounded-[var(--radius-card)] border border-line bg-surface p-6">
-              <span className="num flex size-9 items-center justify-center rounded-full bg-accent-soft font-semibold text-accent" aria-hidden>{s.n}</span>
-              <h3 className="mt-4 text-lg font-semibold">{s.t}</h3>
-              <p className="mt-2 text-muted">{s.d}</p>
-            </li>
-          ))}
-        </ol>
-      </section>
+      <Dispatches className="border-t-2 border-line-strong pt-4" />
     </div>
   );
 }

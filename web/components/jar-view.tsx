@@ -25,7 +25,7 @@ export function JarView() {
   if (!address)
     return (
       <Panel className="flex flex-col items-start gap-4">
-        <p className="text-lg">Connect a wallet to see your Jar.</p>
+        <p className="font-display text-deck">Connect a wallet to see your Jar.</p>
         <ConnectButton />
       </Panel>
     );
@@ -57,7 +57,7 @@ function useStreak(user: Address) {
 function QuicknodeBadge() {
   const q = useQuery({ queryKey: ["qn-jar"], queryFn: async () => (await fetch("/api/qn-jar")).json() as Promise<{ enabled: boolean; agreement?: boolean }>, enabled: DEPLOYED, staleTime: 120_000 });
   if (!q.data?.enabled || q.data.agreement === undefined) return null;
-  return q.data.agreement ? <Badge tone="accent">Verified by Quicknode Stock Token API</Badge> : <Badge tone="warn">Quicknode check disagrees with direct reads</Badge>;
+  return q.data.agreement ? <Badge tone="accent">Verified by Quicknode Stock Token API</Badge> : <Badge tone="warn">Quicknode&apos;s count differs from the direct chain read</Badge>;
 }
 
 function Jar({ user }: { user: Address }) {
@@ -78,16 +78,16 @@ function Jar({ user }: { user: Address }) {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-2">
         <QuicknodeBadge />
-        <Link href={`/jar/report/${user}`} className="inline-flex min-h-11 items-center text-sm underline underline-offset-4 hover:text-accent">Weekly report</Link>
+        <Link href={`/jar/report/${user}`} className="inline-flex min-h-11 items-center rounded-sm text-sm font-semibold text-accent underline decoration-accent-32 underline-offset-4 hover:decoration-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fg">Weekly report</Link>
       </div>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-        <Stat label="Jar value" value={!DEPLOYED ? "Not live yet" : loaded ? orDash(total, usd) : bals.error || market.error ? <span className="text-base font-normal text-danger">RPC unavailable</span> : <Skeleton w="6rem" h="1.6rem" />} sub={loaded && total === null ? "A live stock price is unavailable right now" : "Chainlink live prices"} href={DEPLOYED ? addrUrl(TF.Jar) : undefined} />
+        <Stat label="Jar value" value={!DEPLOYED ? "Not live yet" : loaded ? orDash(total, usd) : bals.error || market.error ? <span className="text-base font-normal text-danger">couldn&apos;t read the chain</span> : <Skeleton w="6rem" h="1.6rem" />} sub={loaded && total === null ? "A live stock price is unavailable right now" : "Chainlink live prices"} href={DEPLOYED ? addrUrl(TF.Jar) : undefined} />
         <Stat label="Saving streak" value={!DEPLOYED ? "—" : streak.data === undefined ? <Skeleton w="3rem" h="1.6rem" /> : `${streak.data} day${streak.data === 1 ? "" : "s"}`} sub="UTC days with a sweep or convert" />
       </div>
-      {!DEPLOYED && <Notice tone="warn">Your Jar opens when the Terra Firma contracts are live on mainnet.</Notice>}
+      {!DEPLOYED && <Notice tone="warn">Your Jar opens when the Terra Firma contracts are live on Robinhood Chain.</Notice>}
       {empty ? (
         <Panel className="flex flex-col items-start gap-4">
-          <p className="text-lg font-semibold">Your Jar is empty. Convert a meme or make a trade to start.</p>
+          <p className="font-display text-deck">Your Jar is empty. Convert a meme or make a trade to start.</p>
           <div className="flex flex-wrap gap-3">
             <LinkButton href="/app">See your Hindsight card</LinkButton>
             <LinkButton href="/trade" variant="secondary">Trade a meme</LinkButton>
@@ -96,8 +96,8 @@ function Jar({ user }: { user: Address }) {
       ) : (
         DEPLOYED && (
           <Panel aria-labelledby="bal-title">
-            <h2 id="bal-title" className="mb-4 font-semibold">Balances</h2>
-            <ul className="divide-y divide-line">
+            <h2 id="bal-title" className="mb-4 font-display text-deck">Balances</h2>
+            <ul className="divide-y divide-line border-t border-fg">
               {rows.filter((r) => !loaded || r.raw > 0n).map((r) => (
                 <BalanceRow key={r.s.symbol} stock={r.s} raw={r.raw} q={r.q} loaded={loaded} onDone={() => bals.refetch()} />
               ))}
@@ -184,11 +184,11 @@ function History({ user }: { user: Address }) {
   if (!DEPLOYED) return null;
   return (
     <Panel aria-labelledby="hist-title">
-      <h2 id="hist-title" className="font-semibold">Where your stock came from</h2>
+      <h2 id="hist-title" className="font-display text-deck">Where your stock came from</h2>
       {logs.isLoading ? (
         <Skeleton w="100%" h="4rem" className="mt-3 block" />
       ) : logs.error ? (
-        <Notice tone="danger" className="mt-3">Couldn&apos;t read Jar events from the chain. Retrying.</Notice>
+        <Notice tone="danger" className="mt-3">Couldn&apos;t read your Jar&apos;s history from the chain. Retrying.</Notice>
       ) : mine.length === 0 ? (
         <p className="mt-3 text-sm text-muted">No Jar activity yet.</p>
       ) : (

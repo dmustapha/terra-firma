@@ -1,0 +1,5 @@
+{ "variations": [
+ { "id": "v1", "proposal": "proposals/proposal-1.html", "palette": "survey-paper-vermilion", "palette_hex": "#C2410C", "font_pair": "IBM Plex Serif/IBM Plex Mono", "grid": "survey-drawing-sheet", "density": "dense" },
+ { "id": "v2", "proposal": "proposals/proposal-2.html", "palette": "basalt-ochre-dark", "palette_hex": "#C8901B", "font_pair": "Archivo/Martian Mono", "grid": "split-column-core", "density": "medium" },
+ { "id": "v3", "proposal": "proposals/proposal-3.html", "palette": "newsprint-moss", "palette_hex": "#3F6B4A", "font_pair": "Instrument Serif/Public Sans", "grid": "broadsheet-12col", "density": "airy" }
+] }

@@ -1,4 +1,5 @@
 // Primitives. Server-safe (no hooks) so both server and client components can use them.
+// Almanac language: ruled sheets, ink outlines, pixel-offset shadow on primary actions only.
 import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
 import { addrUrl, txUrl } from "@/lib/config";
@@ -7,39 +8,58 @@ import { short } from "@/lib/ui-format";
 const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(" ");
 export { cx };
 
-const base =
-  "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 text-base font-semibold transition-colors duration-150 " +
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg " +
-  "disabled:cursor-not-allowed disabled:opacity-50";
+const focus = "focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-fg";
 
+const base =
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-sm px-5 text-base font-semibold whitespace-nowrap " +
+  "transition-[transform,box-shadow,background-color,border-color,color] duration-150 ease-out " +
+  `${focus} disabled:cursor-not-allowed disabled:opacity-50`;
+
+/** Primary carries the registration offset; hover lifts it, press seats it. Disabled buttons never move. */
 const variants = {
-  primary: "bg-accent text-accent-fg hover:bg-accent-strong",
-  secondary: "border border-line bg-surface-2 text-fg hover:border-muted",
-  ghost: "text-fg hover:bg-surface-2",
-  danger: "border border-danger/50 bg-danger-soft text-danger hover:border-danger",
+  primary:
+    "border border-accent bg-accent text-accent-fg shadow-[var(--shadow-press)] " +
+    "enabled:hover:-translate-x-px enabled:hover:-translate-y-px enabled:hover:bg-accent-strong enabled:hover:shadow-[var(--shadow-press-up)] " +
+    "enabled:active:translate-x-0.5 enabled:active:translate-y-0.5 enabled:active:shadow-none",
+  secondary:
+    "border border-fg bg-transparent text-fg enabled:hover:-translate-y-px enabled:hover:bg-accent-soft enabled:hover:shadow-[var(--shadow-press)] enabled:active:translate-y-0 enabled:active:shadow-none",
+  ghost: "text-fg enabled:hover:-translate-y-px enabled:hover:bg-surface-2",
+  danger: "border border-danger bg-danger-soft text-danger enabled:hover:-translate-y-px enabled:hover:shadow-[var(--shadow-press)]",
 };
 type Variant = keyof typeof variants;
+
+/** Links have no :enabled state: same language, written out so Tailwind sees every class. */
+const linkVariants: Record<Variant, string> = {
+  primary:
+    "border border-accent bg-accent text-accent-fg shadow-[var(--shadow-press)] " +
+    "hover:-translate-x-px hover:-translate-y-px hover:bg-accent-strong hover:shadow-[var(--shadow-press-up)] " +
+    "active:translate-x-0.5 active:translate-y-0.5 active:shadow-none",
+  secondary: "border border-fg bg-transparent text-fg hover:-translate-y-px hover:bg-accent-soft hover:shadow-[var(--shadow-press)] active:translate-y-0 active:shadow-none",
+  ghost: "text-fg hover:-translate-y-px hover:bg-surface-2",
+  danger: "border border-danger bg-danger-soft text-danger hover:-translate-y-px hover:shadow-[var(--shadow-press)]",
+};
 
 export function Button({ variant = "primary", className, ...p }: ComponentProps<"button"> & { variant?: Variant }) {
   return <button type="button" className={cx(base, variants[variant], className)} {...p} />;
 }
 
 export function LinkButton({ variant = "primary", className, ...p }: ComponentProps<typeof Link> & { variant?: Variant }) {
-  return <Link className={cx(base, variants[variant], className)} {...p} />;
+  return <Link className={cx(base, linkVariants[variant], className)} {...p} />;
 }
 
+/** A ruled sheet: ink rule on top, a fresh-paper step up from the ground, hairline foot. */
 export function Panel({ className, ...p }: ComponentProps<"section">) {
-  return <section className={cx("rounded-[var(--radius-card)] border border-line bg-surface p-5 sm:p-6", className)} {...p} />;
+  return <section className={cx("border-t-2 border-line-strong border-b border-b-line bg-surface px-4 py-5 sm:px-6 sm:py-6", className)} {...p} />;
 }
 
 export function Badge({ tone = "neutral", children }: { tone?: "neutral" | "accent" | "warn" | "danger"; children: ReactNode }) {
   const t = {
     neutral: "border-line text-muted",
-    accent: "border-accent/40 bg-accent-soft text-accent",
-    warn: "border-warn/40 bg-warn-soft text-warn",
-    danger: "border-danger/40 bg-danger-soft text-danger",
+    accent: "border-accent-55 bg-accent-soft text-accent-strong",
+    warn: "border-warn/50 bg-warn-soft text-warn",
+    danger: "border-danger/50 bg-danger-soft text-danger",
   }[tone];
-  return <span className={cx("inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium", t)}>{children}</span>;
+  return <span className={cx("inline-flex items-center rounded-sm border px-2 py-0.5 text-xs font-semibold", t)}>{children}</span>;
 }
 
 /** Fixed-width skeleton so numbers never shift layout when they load. */
@@ -47,14 +67,14 @@ export function Skeleton({ w = "6rem", h = "1em", className }: { w?: string; h?:
   return (
     <span
       aria-hidden
-      className={cx("inline-block animate-pulse rounded-md bg-surface-2 align-middle motion-reduce:animate-none", className)}
+      className={cx("inline-block animate-pulse rounded-sm bg-surface-2 align-middle motion-reduce:animate-none", className)}
       style={{ width: w, height: h }}
     />
   );
 }
 
 const ext = { target: "_blank", rel: "noopener noreferrer" } as const;
-const linkCls = "underline decoration-line underline-offset-4 hover:decoration-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-sm";
+const linkCls = `rounded-sm underline decoration-fg/35 decoration-1 underline-offset-4 transition-[text-decoration-color,text-decoration-thickness] duration-150 hover:decoration-accent hover:decoration-2 ${focus}`;
 
 export function TxLink({ hash, children, className }: { hash: string; children?: ReactNode; className?: string }) {
   return (
@@ -69,7 +89,7 @@ const ZERO_ADDR = /0x0{40}(?![0-9a-f])/i;
 export const isZeroLink = (s: string | undefined) => !!s && ZERO_ADDR.test(s);
 
 export function AddrLink({ addr, children, className }: { addr: string; children?: ReactNode; className?: string }) {
-  if (isZeroLink(addr)) return <span className={className}>{children ?? "not deployed"}</span>;
+  if (isZeroLink(addr)) return <span className={className}>{children ?? "not live yet"}</span>;
   return (
     <a href={addrUrl(addr)} {...ext} className={cx(linkCls, !children && "font-mono", className)} aria-label={`View ${addr} on the explorer`}>
       {children ?? short(addr)}
@@ -85,29 +105,30 @@ export function ExtLink({ href, children, className }: { href: string; children:
   );
 }
 
+/** Editorial notice: a coloured rule down the left edge over a tinted ground. */
 export function Notice({ tone = "neutral", children, className }: { tone?: "neutral" | "warn" | "danger" | "accent"; children: ReactNode; className?: string }) {
   const t = {
-    neutral: "border-line bg-surface-2 text-fg",
-    warn: "border-warn/40 bg-warn-soft text-fg",
-    danger: "border-danger/40 bg-danger-soft text-fg",
-    accent: "border-accent/40 bg-accent-soft text-fg",
+    neutral: "border-fg/60 bg-surface-2/70",
+    warn: "border-warn bg-warn-soft",
+    danger: "border-danger bg-danger-soft",
+    accent: "border-accent bg-accent-soft",
   }[tone];
-  return <div className={cx("rounded-xl border px-4 py-3 text-sm leading-relaxed", t, className)}>{children}</div>;
+  return <div className={cx("border-l-[3px] px-4 py-3 text-sm leading-relaxed text-fg", t, className)}>{children}</div>;
 }
 
 export function PageHeader({ title, sub, children }: { title: string; sub?: ReactNode; children?: ReactNode }) {
   return (
-    <header className="mb-6 flex flex-col gap-3 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{title}</h1>
-        {sub && <p className="mt-2 max-w-2xl text-muted">{sub}</p>}
+    <header className="mb-8 flex flex-col gap-4 border-b border-line pb-6 sm:mb-10 sm:flex-row sm:items-end sm:justify-between">
+      <div className="min-w-0">
+        <h1 className="font-display text-title text-balance">{title}</h1>
+        {sub && <p className="mt-3 max-w-[62ch] text-[1.0625rem] leading-relaxed text-muted">{sub}</p>}
       </div>
       {children}
     </header>
   );
 }
 
-/** A labelled stat; `value` may be a Skeleton. */
+/** A labelled figure under an ink rule; `value` may be a Skeleton. Linked figures open the explorer page holding the number. */
 export function Stat({ label, value, sub, href }: { label: string; value: ReactNode; sub?: ReactNode; href?: string }) {
   const body = (
     <>
@@ -116,15 +137,18 @@ export function Stat({ label, value, sub, href }: { label: string; value: ReactN
       {sub && <span className="mt-1 block text-xs text-muted">{sub}</span>}
     </>
   );
+  const cls = "block min-w-0 border-t-2 border-line-strong pt-3 pb-1";
   return href && !isZeroLink(href) ? (
-    <a href={href} {...ext} className="block rounded-xl border border-line bg-surface p-4 transition-colors hover:border-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
+    <a href={href} {...ext} className={cx(cls, "group rounded-sm transition-[transform,background-color] duration-150 hover:-translate-y-px hover:bg-accent-06", focus)}>
       {body}
+      <span className="mt-1 block text-xs text-accent underline decoration-accent-32 underline-offset-4 group-hover:decoration-accent">View on the explorer</span>
     </a>
   ) : (
-    <div className="rounded-xl border border-line bg-surface p-4">{body}</div>
+    <div className={cls}>{body}</div>
   );
 }
 
 export const inputCls =
-  "min-h-11 w-full rounded-xl border border-line bg-bg px-4 text-base text-fg placeholder:text-muted/70 " +
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent aria-[invalid=true]:border-danger";
+  "min-h-11 w-full rounded-sm border border-fg/70 bg-surface px-4 text-base text-fg placeholder:text-muted " +
+  "transition-[border-color,box-shadow] duration-150 hover:border-fg focus-visible:border-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fg " +
+  "aria-[invalid=true]:border-danger aria-[invalid=true]:shadow-[inset_3px_0_0_var(--danger)]";

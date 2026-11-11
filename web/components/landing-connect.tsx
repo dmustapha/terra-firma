@@ -11,6 +11,6 @@ export function LandingConnect() {
   const router = useRouter();
   const { isConnected } = useAccount();
   const mounted = useMounted();
-  if (mounted && isConnected) return <LinkButton href="/app">Open your card</LinkButton>;
-  return <ConnectButton className="sm:min-w-44" onConnected={() => router.push("/app")} />;
+  if (mounted && isConnected) return <LinkButton href="/app" className="w-full sm:w-auto">Open your card</LinkButton>;
+  return <ConnectButton className="w-full sm:w-auto sm:min-w-44" onConnected={() => router.push("/app")} />;
 }

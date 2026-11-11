@@ -32,7 +32,7 @@ export default async function ReportPage({ params }: Props) {
       {!report ? (
         <Notice tone="danger">The chain is busy. Refresh in a few seconds.</Notice>
       ) : !report.deployed ? (
-        <Notice tone="warn">Weekly reports start once the Terra Firma contracts are live on mainnet.</Notice>
+        <Notice tone="warn">Weekly reports start once the Terra Firma contracts are live on Robinhood Chain.</Notice>
       ) : (
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
@@ -43,9 +43,9 @@ export default async function ReportPage({ params }: Props) {
             {report.rows.length === 0 ? (
               <p className="text-muted">No Jar activity for this wallet yet.</p>
             ) : (
-              <table className="w-full text-sm">
+              <table className="num w-full text-sm">
                 <caption className="sr-only">Jar growth per stock</caption>
-                <thead className="text-left text-xs uppercase tracking-wider text-muted">
+                <thead className="border-b border-fg text-left text-[0.8125rem] text-muted">
                   <tr><th className="py-2 font-medium">Stock</th><th className="py-2 text-right font-medium">Shares</th><th className="py-2 text-right font-medium">7-day</th><th className="py-2 text-right font-medium">Value</th></tr>
                 </thead>
                 <tbody>
@@ -60,7 +60,7 @@ export default async function ReportPage({ params }: Props) {
                 </tbody>
               </table>
             )}
-            <p className="mt-4 text-xs text-muted">As of block {report.asOfBlock}. Read from Jar events and Chainlink live feeds. &ldquo;—&rdquo; means that live price could not be read; it is never estimated.</p>
+            <p className="mt-4 text-xs text-muted">As of block {report.asOfBlock}. Read from your Jar&apos;s history on Robinhood Chain and Chainlink live prices. &ldquo;—&rdquo; means that live price could not be read; it is never estimated.</p>
           </Panel>
           {report.usdWeek !== null && <ReportShare addr={report.user} usdWeek={report.usdWeek} />}
         </div>

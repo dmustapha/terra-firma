@@ -59,7 +59,7 @@ export function TradeTerminal({ initialToken }: { initialToken?: string }) {
     <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
       <div className="space-y-6">
         <PasteCa current={tokenAddr} />
-        {tokenAddr ? <TradeBox token={tokenAddr} key={tokenAddr} /> : initialToken ? <Notice tone="danger">That isn&apos;t a valid token address.</Notice> : <Panel><p className="text-muted">Paste a meme contract address or pick one from the list to trade it.</p></Panel>}
+        {tokenAddr ? <TradeBox token={tokenAddr} key={tokenAddr} /> : initialToken ? <Notice tone="danger">That isn&apos;t a valid token address.</Notice> : <Panel><p className="font-display text-deck">Paste a meme&apos;s contract address, or pick one from the list.</p><p className="mt-2 text-muted">Buy or sell through Uniswap. A slice of every trade can land in your Jar as real stock.</p></Panel>}
       </div>
       <Trending current={tokenAddr} />
     </div>
@@ -88,7 +88,7 @@ function PasteCa({ current }: { current?: Address }) {
           setErr(false);
         }}
         placeholder="Paste a contract address: 0x…"
-        className={cx(inputCls, "font-mono text-sm sm:w-auto sm:flex-1")}
+        className={cx(inputCls, "font-mono sm:w-auto sm:flex-1")}
         aria-invalid={err}
         aria-describedby={err ? "ca-err" : undefined}
         autoComplete="off"
@@ -103,20 +103,20 @@ function PasteCa({ current }: { current?: Address }) {
 function Trending({ current }: { current?: Address }) {
   return (
     <Panel aria-labelledby="trending-title" className="h-fit">
-      <h2 id="trending-title" className="font-semibold">Trending by liquidity</h2>
+      <h2 id="trending-title" className="font-display text-deck">Trending by liquidity</h2>
       {TRENDING.length === 0 ? (
-        <p className="mt-3 text-sm text-muted">The meme registry hasn&apos;t been built yet. Paste any contract address above.</p>
+        <p className="mt-3 text-sm text-muted">The list of tracked memes isn&apos;t ready yet. Paste any contract address above.</p>
       ) : (
-        <ul className="mt-3 space-y-1">
+        <ul className="mt-3 border-t border-fg">
           {[{ token: WIF, symbol: "WIF", liq: null as number | null }, ...TRENDING.filter((m) => m.token.toLowerCase() !== WIF.toLowerCase()).map((m) => ({ token: m.token, symbol: m.symbol, liq: liq(m) }))].map((m) => (
             <li key={m.token}>
               <Link
                 href={`/trade/${m.token}`}
                 aria-current={current?.toLowerCase() === m.token.toLowerCase() ? "page" : undefined}
-                className={cx("flex min-h-11 items-center justify-between rounded-lg px-3 hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent", current?.toLowerCase() === m.token.toLowerCase() && "bg-surface-2")}
+                className={cx("flex min-h-11 items-center justify-between border-b border-line px-2 transition-[background-color,transform] duration-150 hover:translate-x-0.5 hover:bg-accent-06 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-fg", current?.toLowerCase() === m.token.toLowerCase() && "bg-accent-soft shadow-[inset_3px_0_0_var(--accent)]")}
               >
                 <span className="font-semibold">{m.symbol === "WIF" ? "$WIF" : m.symbol}</span>
-                <span className="num text-sm text-muted">{m.liq === null ? "buy only" : `$${Math.round(m.liq).toLocaleString("en-US")} liq.`}</span>
+                <span className="num text-sm text-muted">{m.liq === null ? "buy only" : `$${Math.round(m.liq).toLocaleString("en-US")} in pool`}</span>
               </Link>
             </li>
           ))}
@@ -135,7 +135,7 @@ function Tabs({ tab, setTab }: { tab: "buy" | "sell"; setTab: (t: "buy" | "sell"
     }
   };
   return (
-    <div role="tablist" aria-label="Trade side" className="grid grid-cols-2 gap-1 rounded-xl bg-bg p-1" onKeyDown={onKey}>
+    <div role="tablist" aria-label="Trade side" className="grid grid-cols-2 border-b border-fg" onKeyDown={onKey}>
       {(["buy", "sell"] as const).map((t) => (
         <button
           key={t}
@@ -146,7 +146,7 @@ function Tabs({ tab, setTab }: { tab: "buy" | "sell"; setTab: (t: "buy" | "sell"
           aria-controls={`panel-${t}`}
           tabIndex={tab === t ? 0 : -1}
           onClick={() => setTab(t)}
-          className={cx("min-h-11 rounded-lg font-semibold capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent", tab === t ? "bg-surface-2 text-fg" : "text-muted hover:text-fg")}
+          className={cx("-mb-px min-h-11 border-b-[3px] font-display text-xl capitalize transition-[color,border-color] duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-fg", tab === t ? "border-accent text-fg" : "border-transparent text-muted hover:border-fg hover:text-fg")}
         >
           {t}
         </button>
@@ -168,14 +168,14 @@ function TradeBox({ token }: { token: Address }) {
   return (
     <Panel className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-2xl font-bold">{info.isLoading ? <Skeleton w="6rem" h="1.6rem" /> : isWif ? "$WIF" : sym}</h2>
+        <h2 className="font-display text-title">{info.isLoading ? <Skeleton w="6rem" h="1.6rem" /> : isWif ? "$WIF" : sym}</h2>
         <div className="flex flex-wrap items-center gap-2 text-sm">
-          {meme ? <Badge tone="accent">in registry</Badge> : <Badge>not in registry</Badge>}
-          {meme?.taxed && <Badge tone="danger">taxed: not routed</Badge>}
+          {meme ? <Badge tone="accent">tracked meme</Badge> : <Badge>not on our list</Badge>}
+          {meme?.taxed && <Badge tone="danger">taxed token: can&apos;t trade here</Badge>}
           <AddrLink addr={token} />
         </div>
       </div>
-      {info.error && <Notice tone="danger">This address doesn&apos;t look like an ERC-20 token on Robinhood Chain.</Notice>}
+      {info.error && <Notice tone="danger">This address doesn&apos;t look like a token on Robinhood Chain.</Notice>}
       {feeBps === STAKER_FEE_BPS && <Notice tone="accent">0.3% fee unlocked by your $WIF stake.</Notice>}
       <Tabs tab={tab} setTab={setTab} />
       <div id={`panel-${tab}`} role="tabpanel" aria-labelledby={`tab-${tab}`}>
@@ -201,7 +201,7 @@ function SweepControls({ sweep, setSweep, stock, setStock, restricted }: { sweep
           <span className="text-muted">Slice to your Jar</span>
           <span className="num font-semibold">{(sweep / 100).toFixed(1)}%</span>
         </label>
-        <input id="sweep" type="range" min={0} max={1000} step={50} value={sweep} onChange={(e) => setSweep(Number(e.target.value))} className="mt-2 h-11 w-full accent-[var(--accent)]" aria-valuetext={`${(sweep / 100).toFixed(1)} percent`} />
+        <input id="sweep" type="range" min={0} max={1000} step={50} value={sweep} onChange={(e) => setSweep(Number(e.target.value))} className="mt-2 h-11 w-full cursor-pointer accent-[var(--accent)]" aria-valuetext={`${(sweep / 100).toFixed(1)} percent`} />
       </div>
       <StockSelect value={stock} onChange={setStock} label="Jar stock" name="sweep-stock" />
     </div>

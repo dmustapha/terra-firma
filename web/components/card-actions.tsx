@@ -75,10 +75,10 @@ export function RecomputeResult({ card, data, error }: { card: Card; data?: { us
     { k: `In ${card.stock} now`, api: usd8(card.totals.usdCounterfactual8), chain: usd8(data.usdNow8), ok: null },
   ];
   return (
-    <div className="mt-3 overflow-hidden rounded-xl border border-line" role="status">
+    <div className="mt-3 overflow-x-auto border-t-2 border-line-strong bg-surface" role="status">
       <table className="w-full text-sm">
-        <thead className="bg-surface-2 text-left text-xs uppercase tracking-wider text-muted">
-          <tr><th className="px-3 py-2 font-medium">Figure</th><th className="px-3 py-2 text-right font-medium">API</th><th className="px-3 py-2 text-right font-medium">Onchain</th></tr>
+        <thead className="border-b border-fg text-left text-[0.8125rem] text-muted">
+          <tr><th className="px-3 py-2 font-medium">Figure</th><th className="px-3 py-2 text-right font-medium">This card</th><th className="px-3 py-2 text-right font-medium">Onchain</th></tr>
         </thead>
         <tbody>
           {rows.map((r) => (
@@ -93,7 +93,7 @@ export function RecomputeResult({ card, data, error }: { card: Card; data?: { us
         </tbody>
       </table>
       <p className="border-t border-line px-3 py-2 text-xs text-muted">
-        Onchain = <AddrLink addr={TF.HindsightLens}>HindsightLens</AddrLink>.recompute() on the same buys. &ldquo;Now&rdquo; values use each side&apos;s latest feed read, so they can differ by a few cents.
+        Onchain = the <AddrLink addr={TF.HindsightLens}>Hindsight contract</AddrLink> recomputing the same buys. &ldquo;Now&rdquo; values use each side&apos;s latest feed read, so they can differ by a few cents.
       </p>
     </div>
   );

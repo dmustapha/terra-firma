@@ -16,7 +16,7 @@ export function ConnectButton({ className, label = "Connect wallet", onConnected
   const { switchChain, isPending: switching } = useSwitchChain();
   const [open, setOpen] = useState(false);
 
-  if (!mounted) return <Button className={cx("w-40", className)} disabled>{label}</Button>;
+  if (!mounted) return <Button className={cx("min-w-36", className)} disabled>{label}</Button>;
   if (isConnected && address) {
     if (chainId !== CHAIN_ID)
       return (
@@ -65,16 +65,16 @@ function AccountMenu({ address, className, onDisconnect }: { address: string; cl
       setCopied(false);
     }
   };
-  const item = "flex min-h-11 w-full items-center rounded-lg px-3 text-left text-sm hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent";
+  const item = "flex min-h-11 w-full items-center rounded-sm px-3 text-left text-sm transition-colors duration-150 hover:bg-accent-soft focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-fg";
   return (
     <div ref={wrap} className={cx("relative", className)}>
-      <Button ref={btn} variant="secondary" className="w-full font-mono" aria-expanded={open} aria-controls={menuId} aria-label={`Connected as ${address}. Account options`} onClick={() => setOpen((o) => !o)}>
+      <Button ref={btn} variant="secondary" className="w-full px-3 font-mono text-sm sm:px-4" aria-expanded={open} aria-controls={menuId} aria-label={`Connected as ${address}. Account options`} onClick={() => setOpen((o) => !o)}>
         <span aria-hidden className="size-2 rounded-full bg-accent" />
         {short(address)}
         <span aria-hidden className="text-xs text-muted">▾</span>
       </Button>
       {open && (
-        <div id={menuId} className="absolute right-0 z-40 mt-2 w-60 rounded-xl border border-line bg-surface p-1.5 shadow-lg">
+        <div id={menuId} className="absolute right-0 z-40 mt-2 w-60 rounded-sm border border-fg bg-surface p-1.5 shadow-lg">
           <button type="button" className={item} onClick={copy}>{copied ? "Copied" : "Copy address"}</button>
           <a className={item} href={addrUrl(address)} target="_blank" rel="noopener noreferrer">View on explorer</a>
           <button type="button" className={cx(item, "text-danger")} onClick={() => { setOpen(false); onDisconnect(); }}>Disconnect</button>
@@ -105,9 +105,9 @@ function WalletDialog({ open, onClose, onConnected }: { open: boolean; onClose: 
   });
 
   return (
-    <dialog ref={ref} onClose={onClose} aria-labelledby="wallet-title" className="m-auto w-[min(26rem,calc(100vw-2rem))] rounded-2xl border border-line bg-surface p-6 text-fg">
-      <h2 id="wallet-title" className="text-xl font-semibold">Connect a wallet</h2>
-      <p className="mt-2 text-sm text-muted">Terra Firma runs on Robinhood Chain mainnet (chain 4663). Your wallet will be asked to switch.</p>
+    <dialog ref={ref} onClose={onClose} aria-labelledby="wallet-title" className="m-auto w-[min(26rem,calc(100vw-2rem))] rounded-sm border border-fg bg-surface p-6 text-fg shadow-lg">
+      <h2 id="wallet-title" className="font-display text-deck">Connect a wallet</h2>
+      <p className="mt-2 text-sm text-muted">Terra Firma runs on Robinhood Chain. Your wallet will be asked to switch to it, or to add it.</p>
       <ul className="mt-5 space-y-2">
         {list.length === 0 && <li className="text-sm text-muted">No wallet found. Install a browser wallet{HAS_WALLETCONNECT ? " or use WalletConnect" : ""}.</li>}
         {list.map((c) => (

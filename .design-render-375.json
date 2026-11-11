@@ -1,0 +1,68 @@
+{
+ "width": 375,
+ "method": "Chrome DevTools protocol, mobile emulation 375x812, scrollWidth + elements past right edge",
+ "pages": [
+  {
+   "page": "/",
+   "scrollWidth": 375,
+   "pass": true,
+   "wide": []
+  },
+  {
+   "page": "/app",
+   "scrollWidth": 375,
+   "pass": true,
+   "wide": []
+  },
+  {
+   "page": "/app/convert",
+   "scrollWidth": 375,
+   "pass": true,
+   "wide": []
+  },
+  {
+   "page": "/trade",
+   "scrollWidth": 375,
+   "pass": true,
+   "wide": []
+  },
+  {
+   "page": "/jar",
+   "scrollWidth": 375,
+   "pass": true,
+   "wide": []
+  },
+  {
+   "page": "/stake",
+   "scrollWidth": 375,
+   "pass": true,
+   "wide": []
+  },
+  {
+   "page": "/board",
+   "scrollWidth": 375,
+   "pass": true,
+   "wide": []
+  },
+  {
+   "page": "/proof",
+   "scrollWidth": 375,
+   "pass": true,
+   "wide": []
+  },
+  {
+   "page": "/card/0x3fDBeB0FC14cca8fDd238Dd21725F0b8585Ab09E",
+   "scrollWidth": 375,
+   "pass": true,
+   "wide": []
+  },
+  {
+   "page": "/jar/report/0x3fDBeB0FC14cca8fDd238Dd21725F0b8585Ab09E",
+   "scrollWidth": 375,
+   "pass": true,
+   "wide": []
+  }
+ ],
+ "all_pass": true,
+ "ts": "2026-11-11T16:20:00Z"
+}

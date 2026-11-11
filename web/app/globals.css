@@ -1,41 +1,66 @@
 @import "tailwindcss";
 
-/* Terra Firma tokens. Dark (bedrock) is the default; light (sandstone) via data-theme="light".
-   A later design pass refines values here only; components use the semantic names below. */
+/* Terra Firma — "Almanac" tokens. Cream newsprint (light) is the default; ink basalt via data-theme="dark".
+   Components use the semantic names below (bg-bg, text-fg, text-muted, accent…), never raw hex.
+   Shadow philosophy (one per project): PIXEL-OFFSET. Crisp ink offsets with no blur, like print registration,
+   for plates and primary actions. Sheets/panels get elevation from a paper delta plus ink rules, not shadow. */
 :root {
-  --bg: #12100d;
-  --surface: #1b1814;
-  --surface-2: #26211b;
-  --line: #3b342b;
-  --fg: #f3ede4;
-  --muted: #b6aa98;
-  --accent: #46d27a;
-  --accent-strong: #5ee08d;
-  --accent-fg: #07160d;
-  --accent-soft: #46d27a1f;
-  --danger: #f7867c;
-  --danger-soft: #f7867c1f;
-  --warn: #f2bd57;
-  --warn-soft: #f2bd571f;
-  color-scheme: dark;
+  --bg: #f1ebdd; /* paper */
+  --surface: #f7f3e9; /* fresh sheet, one step up */
+  --surface-2: #e8e0cd; /* paper-deep, one step down (rows, wells) */
+  --line: #bcb4a2; /* hairline rule (ink 26% on paper) */
+  --line-strong: #1a1712; /* ink rule */
+  --fg: #1a1712; /* ink */
+  --muted: #554f47; /* ink 74%: 7.1:1 on paper */
+  --accent: #3f6b4a; /* bedrock moss: 5.2:1 on paper */
+  --accent-strong: #2f5239;
+  --accent-fg: #f1ebdd;
+  --accent-55: rgb(63 107 74 / 0.55);
+  --accent-32: rgb(63 107 74 / 0.32);
+  --accent-soft: rgb(63 107 74 / 0.12);
+  --accent-06: rgb(63 107 74 / 0.06);
+  --danger: #9b3b1f; /* brick: 6.1:1 on paper */
+  --danger-soft: rgb(155 59 31 / 0.1);
+  --warn: #7a5512; /* ochre ink: 5.6:1 on paper */
+  --warn-soft: rgb(200 144 27 / 0.14);
+  --ink-shadow: rgb(26 23 18 / 0.85);
+  --shadow-press: 2px 2px 0 var(--ink-shadow);
+  --shadow-press-up: 3px 3px 0 var(--ink-shadow);
+  --shadow-plate: 4px 4px 0 rgb(26 23 18 / 0.16);
+  --shadow-overlay: 6px 6px 0 rgb(26 23 18 / 0.22);
+  --grain: rgb(26 23 18 / 0.05);
+  --grain-2: rgb(63 107 74 / 0.04);
+  --backdrop: rgb(26 23 18 / 0.45);
+  color-scheme: light;
 }
 
-:root[data-theme="light"] {
-  --bg: #f5efe6;
-  --surface: #fffcf7;
-  --surface-2: #ede5d8;
-  --line: #d6cab8;
-  --fg: #1e1a15;
-  --muted: #5b5144;
-  --accent: #157a3c;
-  --accent-strong: #0f6a32;
-  --accent-fg: #ffffff;
-  --accent-soft: #157a3c1a;
-  --danger: #b42318;
-  --danger-soft: #b423181a;
-  --warn: #8a5a00;
-  --warn-soft: #8a5a001a;
-  color-scheme: light;
+/* Dark: ink-paper inversion of the same palette. Moss lifted to pass AA on basalt; never neon. */
+:root[data-theme="dark"] {
+  --bg: #17140f;
+  --surface: #1f1b15;
+  --surface-2: #2a251d;
+  --line: #4b4438;
+  --line-strong: #ece4d2;
+  --fg: #ece4d2;
+  --muted: #b3aa98; /* 7.9:1 on basalt */
+  --accent: #86b391; /* 7.6:1 on basalt */
+  --accent-strong: #a0c6aa;
+  --accent-fg: #17140f;
+  --accent-55: rgb(134 179 145 / 0.55);
+  --accent-32: rgb(134 179 145 / 0.32);
+  --accent-soft: rgb(134 179 145 / 0.14);
+  --accent-06: rgb(134 179 145 / 0.06);
+  --danger: #e39477;
+  --danger-soft: rgb(227 148 119 / 0.12);
+  --warn: #dcb062;
+  --warn-soft: rgb(220 176 98 / 0.12);
+  --ink-shadow: rgb(236 228 210 / 0.32);
+  --shadow-plate: 4px 4px 0 rgb(0 0 0 / 0.45);
+  --shadow-overlay: 6px 6px 0 rgb(0 0 0 / 0.55);
+  --grain: rgb(236 228 210 / 0.035);
+  --grain-2: rgb(134 179 145 / 0.03);
+  --backdrop: rgb(0 0 0 / 0.6);
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -43,19 +68,52 @@
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
   --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
   --color-fg: var(--fg);
   --color-muted: var(--muted);
   --color-accent: var(--accent);
   --color-accent-strong: var(--accent-strong);
   --color-accent-fg: var(--accent-fg);
   --color-accent-soft: var(--accent-soft);
+  --color-accent-55: var(--accent-55);
+  --color-accent-32: var(--accent-32);
+  --color-accent-06: var(--accent-06);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
   --color-warn: var(--warn);
   --color-warn-soft: var(--warn-soft);
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
-  --radius-card: 1rem;
+
+  --font-sans: var(--font-public-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-instrument-serif), "Iowan Old Style", Georgia, serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* Radius scale: near-square print geometry. Tailwind's own steps collapse onto it. */
+  --radius-xs: 2px;
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 4px;
+  --radius-xl: 4px;
+  --radius-2xl: 4px;
+  --radius-card: 4px;
+
+  /* Pixel-offset ladder (the only shadows in the project). */
+  --shadow-sm: var(--shadow-press);
+  --shadow-md: var(--shadow-plate);
+  --shadow-lg: var(--shadow-overlay);
+
+  /* Type scale. Display sizes are fluid and tightened. */
+  --text-headline: clamp(2.6rem, 1.4rem + 4.6vw, 5.5rem);
+  --text-headline--line-height: 0.96;
+  --text-headline--letter-spacing: -0.022em;
+  --text-title: clamp(2.1rem, 1.5rem + 2.2vw, 3.5rem);
+  --text-title--line-height: 1.02;
+  --text-title--letter-spacing: -0.018em;
+  --text-deck: clamp(1.5rem, 1.25rem + 0.9vw, 2rem);
+  --text-deck--line-height: 1.1;
+  --text-deck--letter-spacing: -0.01em;
+  --text-nameplate: clamp(2rem, 1rem + 4vw, 4.5rem);
+  --text-nameplate--line-height: 0.9;
+  --text-nameplate--letter-spacing: -0.025em;
 }
 
 html {
@@ -63,18 +121,86 @@ html {
 }
 
 body {
-  background: var(--bg);
+  background-color: var(--bg);
+  /* Newsprint grain: two offset dot screens, barely there. */
+  background-image:
+    radial-gradient(var(--grain) 0.7px, transparent 0.9px),
+    radial-gradient(var(--grain-2) 0.7px, transparent 0.9px);
+  background-size: 5px 5px, 5px 5px;
+  background-position: 0 0, 2.5px 2.5px;
   color: var(--fg);
   font-family: var(--font-sans);
   overflow-x: hidden;
 }
 
 .num {
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
+
+/* Keyboard focus everywhere, even where a component forgot: an ink outline, like a proof mark. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 3px;
 }
 
 dialog::backdrop {
-  background: rgb(0 0 0 / 0.6);
+  background: var(--backdrop);
+}
+
+/* Double rule under the masthead (2px over 1px). */
+.dblrule {
+  height: 5px;
+  border-top: 2px solid var(--line-strong);
+  border-bottom: 1px solid var(--line-strong);
+}
+
+/* ---- Halftone ground band: an authored layer, never a flat fill ----
+   Each <i> is a moss dot screen (repeating-radial-gradient) clipped by a wave mask; dots grow with depth. */
+.ground-band {
+  position: relative;
+  overflow: hidden;
+  height: 9rem;
+  border-top: 1px solid var(--line-strong);
+  background-color: var(--bg);
+  --wave: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 720 40' preserveAspectRatio='none'%3E%3Cpath d='M0 16 C90 6 200 28 360 15 S600 4 720 16 V40 H0Z'/%3E%3C/svg%3E");
+}
+.ground-band > i {
+  position: absolute;
+  inset: var(--top, 0) 0 0 0;
+  background-image: repeating-radial-gradient(circle at 50% 50%, var(--accent) 0 var(--dot, 0.75px), transparent calc(var(--dot, 0.75px) + 0.35px) 6px);
+  background-size: 6px 6px;
+  -webkit-mask: var(--wave) var(--shift, 0) 0 / 720px 40px repeat-x, linear-gradient(#000, #000) 0 39px / 100% 100% no-repeat;
+  mask: var(--wave) var(--shift, 0) 0 / 720px 40px repeat-x, linear-gradient(#000, #000) 0 39px / 100% 100% no-repeat;
+}
+.ground-band > i:nth-child(1) { --top: 0; --dot: 0.7px; --shift: 0; }
+.ground-band > i:nth-child(2) { --top: 20%; --dot: 1.05px; --shift: -210px; }
+.ground-band > i:nth-child(3) { --top: 40%; --dot: 1.4px; --shift: -420px; }
+.ground-band > i:nth-child(4) { --top: 60%; --dot: 1.8px; --shift: -130px; }
+.ground-band > i:nth-child(5) { --top: 78%; --dot: 2.2px; --shift: -560px; }
+.ground-band--short { height: 4.5rem; }
+@media (max-width: 640px) {
+  .ground-band { height: 6rem; }
+  .ground-band--short { height: 3.5rem; }
+}
+
+/* ---- Going-to-press: horizons engrave in sequence (state-driven; off under reduced motion) ---- */
+@media (prefers-reduced-motion: no-preference) {
+  .engrave {
+    animation: engrave 1.6s ease-in-out infinite alternate;
+    animation-delay: calc(var(--i, 0) * 0.4s);
+  }
+  .inking {
+    animation: inking 1.4s ease-in-out infinite alternate;
+  }
+}
+@keyframes engrave {
+  from { opacity: 0.2; }
+  to { opacity: 1; }
+}
+@keyframes inking {
+  from { background-color: var(--accent-soft); }
+  to { background-color: var(--accent); }
 }
 
 @media (prefers-reduced-motion: reduce) {

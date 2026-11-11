@@ -43,7 +43,7 @@ export function AppHome() {
   if (card.error || !card.data)
     return (
       <Panel>
-        <p role="alert" className="text-lg font-semibold">{(card.error as Error)?.message ?? "The chain is busy. Try again in a few seconds."}</p>
+        <p role="alert" className="font-display text-deck">{(card.error as Error)?.message ?? "The chain is busy. Try again in a few seconds."}</p>
         <Button className="mt-4" onClick={() => card.refetch()}>Try again</Button>
       </Panel>
     );
@@ -74,7 +74,7 @@ export function AppHome() {
         }
       />
       <Panel aria-labelledby="lookup-title" className="mt-6 space-y-3">
-        <h2 id="lookup-title" className="font-semibold">Look up any wallet</h2>
+        <h2 id="lookup-title" className="font-display text-deck">Look up any wallet</h2>
         <p className="text-sm text-muted">Every card is read live from chain. Try a wallet with years of real meme buys, or paste any address.</p>
         <LinkButton href={`/card/${HISTORY_ADDR}`} variant="secondary">See a wallet with real history</LinkButton>
         <AddressLookup id="app-lookup" />
@@ -101,10 +101,10 @@ function ConvertSheet({ open, locked, onClose, children }: { open: boolean; lock
       onCancel={(e) => locked && e.preventDefault()}
       onClose={() => (locked ? ref.current?.showModal() : onClose())}
       aria-labelledby="convert-title"
-      className="mb-0 ml-auto mr-0 mt-0 h-dvh max-h-none w-[min(34rem,100vw)] max-w-none overflow-y-auto border-l border-line bg-surface p-6 text-fg"
+      className="mb-0 ml-auto mr-0 mt-0 h-dvh max-h-none w-[min(34rem,100vw)] max-w-none overflow-y-auto border-l-2 border-line-strong bg-surface p-6 text-fg shadow-lg"
     >
       <div className="mb-6 flex items-center justify-between">
-        <h2 id="convert-title" className="text-xl font-semibold">Convert memes to real stock</h2>
+        <h2 id="convert-title" className="font-display text-deck">Convert memes to real stock</h2>
         <Button variant="ghost" aria-label={locked ? "Close (disabled while the transaction confirms)" : "Close"} onClick={onClose} disabled={locked} className="size-11 px-0">✕</Button>
       </div>
       {locked && <p className="mb-4 text-sm text-muted" role="status">Keep this open until the transaction confirms.</p>}

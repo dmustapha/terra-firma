@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="dna" content="DNA-CORE-BASALT-ARCHIVO-SPLITCOLUMN-MEDIUM">
+<title>Terra Firma · Core Sample</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..900&family=Martian+Mono:wdth,wght@75..112.5,300..700&display=swap" rel="stylesheet">
+<style>
+/* Proposal 2 — "Core Sample". Font pair: Archivo (display + text, width axis) / Martian Mono (measured numbers). Grid: Split-Column (pinned drill-core left, content right). */
+:root{
+  --basalt:#110F0C; --basalt-2:#1A1612; --basalt-3:#241E18;
+  --bone:#EDE6D6; --bone-2:rgba(237,230,214,.72); --bone-3:rgba(237,230,214,.56);
+  --ochre:#C8901B; --ochre-55:rgba(200,144,27,.55); --ochre-32:rgba(200,144,27,.32);
+  --ochre-12:rgba(200,144,27,.12); --ochre-6:rgba(200,144,27,.06);
+  --line:rgba(237,230,214,.14); --line-2:rgba(237,230,214,.26);
+  --display:"Archivo",system-ui,sans-serif; --mono:"Martian Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--basalt)}
+body{
+  font-family:var(--display); font-variation-settings:"wdth" 100; color:var(--bone);
+  background-color:var(--basalt);
+  /* authored mineral world: warm intrusions + strata bedding + cross-bedding */
+  background-image:
+    radial-gradient(1200px 700px at 12% 8%, rgba(200,144,27,.085), transparent 62%),
+    radial-gradient(900px 900px at 92% 40%, rgba(120,84,48,.16), transparent 60%),
+    radial-gradient(700px 500px at 40% 95%, rgba(64,50,38,.55), transparent 70%),
+    repeating-linear-gradient(176deg, rgba(237,230,214,.045) 0 1px, transparent 1px 7px, rgba(0,0,0,.22) 7px 9px, transparent 9px 23px),
+    repeating-linear-gradient(183deg, transparent 0 41px, rgba(200,144,27,.04) 41px 43px, transparent 43px 97px),
+    linear-gradient(180deg,#14110D 0%,#110F0C 40%,#0D0B09 100%);
+  line-height:1.5; -webkit-font-smoothing:antialiased;
+}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;font-variation-settings:"wdth" 87.5;letter-spacing:-.01em}
+a{color:var(--ochre);text-underline-offset:3px;text-decoration-thickness:1px}
+a:hover{color:#E0A93A}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--ochre);outline-offset:3px;border-radius:2px}
+
+/* proposal document chrome */
+.doc{max-width:1520px;margin:0 auto;padding:56px 40px 120px}
+.doc-head{display:flex;justify-content:space-between;align-items:baseline;gap:24px;border-bottom:1px solid var(--line);padding-bottom:20px;margin-bottom:56px}
+.doc-head h1{font-size:1.5rem;font-variation-settings:"wdth" 75;font-weight:700;letter-spacing:-.01em}
+.doc-head p{color:var(--bone-3);font-size:.875rem;max-width:56ch}
+.board{margin-bottom:96px}
+.board-label{display:flex;gap:16px;align-items:baseline;margin-bottom:16px;color:var(--bone-2);font-size:.9375rem}
+.board-label b{font-family:var(--mono);font-weight:500;color:var(--ochre);font-size:.8125rem}
+.frame{border:1px solid var(--line-2);border-radius:6px;overflow:hidden;position:relative;background:transparent}
+.frame-1440{width:1440px;max-width:100%;margin:0 auto}
+.frame-375{width:375px;margin:0}
+.scroll-x{overflow-x:auto}
+
+/* app header */
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:20px 48px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:12px;font-weight:800;font-variation-settings:"wdth" 112;letter-spacing:.005em;font-size:1.0625rem;color:var(--bone);text-decoration:none}
+.brand svg{flex:none}
+.nav{display:flex;gap:28px;font-size:.9375rem}
+.nav a{color:var(--bone-2);text-decoration:none;padding:10px 2px}
+.nav a:hover{color:var(--bone)}
+.nav a[aria-current]{color:var(--bone);box-shadow:inset 0 -2px 0 var(--ochre)}
+
+/* buttons */
+.btn{font:inherit;font-weight:650;font-variation-settings:"wdth" 104;font-size:1rem;cursor:pointer;min-height:48px;padding:0 24px;border-radius:4px;border:1px solid transparent;transition:background-color .15s,border-color .15s,color .15s;display:inline-flex;align-items:center;gap:10px;white-space:nowrap}
+.btn-primary{background:var(--ochre);color:#16110A}
+.btn-primary:hover{background:#DDA332}
+.btn-primary:active{background:#B07C12}
+.btn-ghost{background:transparent;color:var(--bone);border-color:var(--line-2)}
+.btn-ghost:hover{border-color:var(--ochre-55);background:var(--ochre-6)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+
+/* split column layout */
+.split{display:grid;grid-template-columns:400px 1fr;min-height:820px}
+.core-col{border-right:1px solid var(--line);padding:40px 32px 40px 48px;position:relative;background:linear-gradient(90deg,rgba(0,0,0,.28),rgba(0,0,0,.08))}
+.content-col{padding:72px 88px 56px 80px;display:flex;flex-direction:column}
+.headline{font-weight:800;font-size:clamp(2.75rem,1.4rem + 3.6vw,5.25rem);line-height:.96;letter-spacing:-.025em;font-variation-settings:"wdth" 68;max-width:none}
+.headline em{font-style:normal;font-variation-settings:"wdth" 118;letter-spacing:-.035em;color:var(--ochre)}
+.honesty{margin-top:24px;font-size:1.125rem;color:var(--bone-2);max-width:52ch;border-left:2px solid var(--ochre);padding-left:16px}
+.honesty a{white-space:nowrap}
+.actions{display:flex;gap:16px;margin-top:40px;align-items:stretch;flex-wrap:wrap}
+.lookup{display:flex;flex:1;max-width:460px;min-width:280px;border:1px solid var(--line-2);border-radius:4px;background:rgba(17,15,12,.6)}
+.lookup:focus-within{border-color:var(--ochre-55)}
+.lookup label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.lookup input{flex:1;min-width:0;background:transparent;border:0;color:var(--bone);font-family:var(--mono);font-size:.875rem;padding:0 16px;min-height:48px}
+.lookup input::placeholder{color:var(--bone-3)}
+.lookup input:focus-visible{outline:none}
+.lookup .btn{border-radius:0 3px 3px 0;border-left:1px solid var(--line-2)}
+
+/* readout ledger beside core */
+.ledger{margin-top:auto;padding-top:56px;display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--line)}
+.ledger div{padding:20px 24px 0 0}
+.ledger dt{font-size:.875rem;color:var(--bone-3);margin-bottom:6px}
+.ledger dd{font-size:1.5rem;font-weight:500}
+.ledger dd.ochre{color:var(--ochre)}
+.ledger small{display:block;font-family:var(--mono);font-size:.6875rem;color:var(--bone-3);margin-top:6px;letter-spacing:0}
+.foot-note{margin-top:28px;font-size:.875rem;color:var(--bone-3);max-width:70ch}
+
+/* core labels */
+.core-cap{font-size:.875rem;color:var(--bone-2);margin-bottom:16px;display:flex;justify-content:space-between;gap:8px}
+.core-cap .num{font-size:.75rem;color:var(--bone-3)}
+.core svg{display:block;width:100%;height:auto;overflow:visible}
+.tag{font-family:var(--mono);font-size:10.5px;fill:var(--bone-2)}
+.tag-ochre{fill:var(--ochre)}
+.tag-big{font-family:var(--mono);font-size:15px;font-weight:600;fill:var(--bone)}
+
+@media (prefers-reduced-motion:no-preference){
+  .settle{animation:settle .9s cubic-bezier(.2,.7,.2,1) both}
+  .drill-head{animation:bob 1.6s ease-in-out infinite}
+  .reading{animation:pulse 1.4s ease-in-out infinite}
+}
+@keyframes settle{from{transform:translateY(-6px);opacity:.4}to{transform:none;opacity:1}}
+@keyframes bob{50%{transform:translateY(3px)}}
+@keyframes pulse{50%{opacity:.45}}
+/* mobile artboard */
+.m .m-hdr{padding:12px 16px}
+.m .m-menu{min-height:44px;min-width:44px;padding:0;justify-content:center}
+.m-body{padding:28px 16px 32px}
+.m-headline{font-size:2.625rem;max-width:none;line-height:.95}
+.m-honesty{font-size:1rem;margin-top:16px}
+.m-core{margin-top:28px;padding:16px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.m-core svg{display:block;width:100%;height:auto}
+.m-ledger{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;margin-top:12px}
+.m-ledger div:last-child{grid-column:1/-1;border-top:1px solid var(--line);padding-top:10px}
+.m-ledger dt{font-size:.8125rem;color:var(--bone-3)}
+.m-ledger dd{font-size:1.125rem}
+.m-ledger dd.ochre{color:var(--ochre);font-size:1.375rem}
+.m-ledger small{font-size:.6875rem;color:var(--bone-3)}
+.m-actions{display:flex;flex-direction:column;gap:12px;margin-top:24px}
+.m-actions .btn-primary{width:100%;justify-content:center}
+.m-actions .lookup{min-width:0;max-width:none}
+.m-actions .lookup input{font-family:var(--mono);font-size:.8125rem}
+/* loading artboard */
+.load-title{font-size:2.25rem;font-weight:750;font-variation-settings:"wdth" 74;letter-spacing:-.015em;line-height:1.08;max-width:22ch}
+.load-title .num{display:block;font-size:1.125rem;font-weight:500;color:var(--ochre);margin-top:12px;letter-spacing:0}
+.load-sub{margin-top:16px;color:var(--bone-2);max-width:58ch}
+.tokens{list-style:none;margin-top:32px;border-top:1px solid var(--line);max-width:760px}
+.tokens li{display:grid;grid-template-columns:40px 140px 1fr 96px;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);color:var(--bone-3);font-size:.9375rem}
+.tokens li .num{font-size:.75rem}
+.tokens .i{color:var(--bone-3)}
+.tokens .st{font-family:var(--mono);font-size:.75rem;text-align:right}
+.tokens li.done{color:var(--bone)}
+.tokens li.done .st{color:var(--bone-2)}
+.tokens li.done .st::before{content:"";display:inline-block;width:8px;height:8px;background:var(--ochre);margin-right:8px;vertical-align:1px}
+.tokens li.now{color:var(--bone);background:var(--ochre-6);box-shadow:inset 2px 0 0 var(--ochre)}
+.tokens li.now .i{padding-left:10px}
+.tokens li.now .st{color:var(--ochre)}
+.skel{display:block;height:24px;width:70%;border-radius:2px;background:repeating-linear-gradient(176deg,rgba(237,230,214,.10) 0 2px,rgba(237,230,214,.05) 2px 6px)}
+/* stake artboard */
+.stake-frame{max-width:1120px}
+.stake{display:grid;grid-template-columns:1fr 400px}
+.stake-main{padding:48px}
+.stake-side{padding:48px 40px;border-left:1px solid var(--line);background:linear-gradient(180deg,rgba(0,0,0,.25),rgba(0,0,0,.1))}
+.pool{border:0;margin-top:32px;display:flex;gap:12px;flex-wrap:wrap}
+.pool legend{font-size:.875rem;color:var(--bone-3);margin-bottom:10px}
+.pool label{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 16px;border:1px solid var(--line-2);border-radius:4px;cursor:pointer;font-size:.9375rem}
+.pool label:has(input:checked){border-color:var(--ochre);background:var(--ochre-12)}
+.pool label:hover{border-color:var(--ochre-55)}
+.pool input{accent-color:var(--ochre)}
+.stake-row{display:flex;gap:12px;margin-top:24px}
+.stake-row .lookup{flex:1}
+.avail{margin-top:10px;font-size:.75rem;color:var(--bone-3)}
+.side-h{font-size:1.125rem;font-weight:700;font-variation-settings:"wdth" 110}
+.wait{margin-top:14px;font-size:1.0625rem;line-height:1.5}
+.epochs{list-style:none;display:grid;grid-template-columns:1fr 1fr 1fr;margin:24px 0 28px}
+.epochs li{padding:12px 10px;border-top:3px solid var(--line-2);display:flex;flex-direction:column;gap:4px}
+.epochs li .num{font-size:1.125rem}
+.epochs small{font-size:.75rem;color:var(--bone-3)}
+.epochs .e-now{border-top-color:var(--bone-2)}
+.epochs .e-wait{border-top-style:dashed;border-top-color:var(--ochre-55);background:repeating-linear-gradient(176deg,var(--ochre-6) 0 3px,transparent 3px 8px)}
+.epochs .e-earn{border-top-color:var(--ochre);background:var(--ochre-12)}
+.epochs .e-earn .num{color:var(--ochre)}
+.claim{display:grid;gap:14px;margin-bottom:24px;border-top:1px solid var(--line);padding-top:18px}
+.claim dt{font-size:.8125rem;color:var(--bone-3)}
+.claim dd{font-size:1rem;color:var(--bone-2)}
+.side-note{margin-top:14px;font-size:.8125rem;color:var(--bone-3)}
+</style>
+</head>
+<body>
+<main class="doc">
+<header class="doc-head">
+  <h1>Terra Firma — Proposal 2: Core Sample</h1>
+  <p>A basalt survey world. The left column is a drilled core of a real wallet: the meme layer crumbles at the top, the NVDA layer holds below, and the paid datum is marked on the depth scale. Four artboards follow.</p>
+</header>
+<section class="board" aria-labelledby="ab-a">
+  <div class="board-label"><b>A</b><h2 id="ab-a" style="font:inherit">Landing, first viewport · desktop 1440</h2></div>
+  <div class="scroll-x"><div class="frame frame-1440">
+    <header class="hdr">
+      <a class="brand" href="#"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><rect x="1" y="2" width="20" height="4" fill="#8A7F6E"/><rect x="1" y="8" width="20" height="12" fill="#C8901B"/><path d="M1 13h20M1 16.5h20" stroke="#110F0C" stroke-width="1"/></svg>Terra Firma</a>
+      <nav class="nav" aria-label="Main"><a href="#" aria-current="page">Card</a><a href="#">Trade</a><a href="#">Jar</a><a href="#">Stake</a><a href="#">Board</a><a href="#">Proof</a></nav>
+    </header>
+    <div class="split">
+      <aside class="core-col" aria-label="Core sample of wallet 0x3fDB…b09E">
+        <div class="core-cap"><span>Core sample · AI meme</span><span class="num">0x3fDB…b09E</span></div>
+        <figure class="core">
+          <svg viewBox="0 0 340 700" role="img" aria-labelledby="coreA-t coreA-d">
+            <title id="coreA-t">Strata readout for wallet 0x3fDB…b09E</title>
+            <desc id="coreA-d">Paid $15,380.80 over 83 buys. The meme layer is worth $18.52 today. Had the same buys been NVDA, the layer would hold $15,016.29, or 86.89 shares.</desc>
+            <defs>
+              <pattern id="strataA" width="140" height="19" patternUnits="userSpaceOnUse" x="56">
+                <rect width="140" height="19" fill="#5A4220"/>
+                <rect y="2" width="140" height="2" fill="#C8901B" opacity=".55"/>
+                <rect y="8" width="140" height="1" fill="#EDE6D6" opacity=".12"/>
+                <rect y="12" width="140" height="4" fill="#7A5A24" opacity=".9"/>
+                <rect y="17" width="140" height="1" fill="#110F0C" opacity=".5"/>
+              </pattern>
+              <linearGradient id="roundA" x1="0" x2="1">
+                <stop offset="0" stop-color="#000" stop-opacity=".55"/><stop offset=".35" stop-color="#fff" stop-opacity=".07"/>
+                <stop offset=".55" stop-color="#fff" stop-opacity=".02"/><stop offset="1" stop-color="#000" stop-opacity=".6"/>
+              </linearGradient>
+              <clipPath id="bodyA"><path d="M56 60 V637 A70 12 0 0 0 196 637 V60 A70 12 0 0 0 56 60Z"/></clipPath>
+            </defs>
+            <!-- depth scale -->
+            <g class="tag" text-anchor="end">
+              <path d="M44 60V637" stroke="rgba(237,230,214,.3)"/>
+              <g stroke="rgba(237,230,214,.4)"><path d="M38 60h6M38 210h6M38 360h6M38 510h6"/></g>
+              <g stroke="rgba(237,230,214,.2)"><path d="M41 135h3M41 285h3M41 435h3M41 585h3"/></g>
+              <text x="34" y="64">$0</text><text x="34" y="214">4k</text><text x="34" y="364">8k</text><text x="34" y="514">12k</text>
+            </g>
+            <!-- core body -->
+            <g clip-path="url(#bodyA)" class="settle">
+              <rect x="56" y="40" width="140" height="620" fill="#1C1814"/>
+              <rect x="56" y="76" width="140" height="547" fill="url(#strataA)"/>
+              <path d="M56 623 V660 H196 V623" fill="rgba(237,230,214,.03)"/>
+              <rect x="56" y="40" width="140" height="620" fill="url(#roundA)"/>
+            </g>
+            <path d="M56 637 A70 12 0 0 0 196 637" fill="none" stroke="rgba(237,230,214,.35)" stroke-dasharray="3 3"/>
+            <path d="M56 623 V637 M196 623 V637" stroke="rgba(237,230,214,.35)" stroke-dasharray="3 3"/>
+            <path d="M56 623 A70 12 0 0 0 196 623" fill="none" stroke="#C8901B" stroke-width="1.5"/>
+            <!-- meme layer: thin, crumbling -->
+            <path d="M56 60 V71 l8 3 l7 -4 l9 5 l6 -3 l10 4 l8 -5 l9 3 l7 -2 l10 5 l8 -4 l9 2 l8 -3 l10 4 l8 -3 l9 2 l14 -1 V60Z" fill="#8A7F6E"/>
+            <ellipse cx="126" cy="60" rx="70" ry="12" fill="#A39886" stroke="rgba(17,15,12,.6)"/>
+            <g fill="#8A7F6E"><path d="M74 80l5 1-2 4-4-1z"/><path d="M118 82l4 2-3 3z"/><path d="M160 79l6 1-3 4z"/><path d="M98 88l3 1-1 3z"/></g>
+            <!-- datum: paid -->
+            <path d="M8 637H330" stroke="#C8901B" stroke-dasharray="6 4" stroke-width="1"/>
+            <text x="8" y="656" class="tag tag-ochre">PAID DATUM</text>
+            <text x="8" y="674" class="tag-big" style="fill:#C8901B">$15,380.80</text>
+            <text x="8" y="691" class="tag">83 buys · each a tx on Robinhood Chain</text>
+            <!-- leader lines + lab labels -->
+            <path d="M196 66h14" stroke="rgba(237,230,214,.5)"/>
+            <g>
+              <rect x="210" y="48" width="126" height="64" fill="#1A1612" stroke="rgba(237,230,214,.26)"/>
+              <text x="218" y="64" class="tag">MEME · today</text>
+              <text x="218" y="84" class="tag-big">$18.52</text>
+              <text x="218" y="102" class="tag">src: 83 tx</text>
+            </g>
+            <path d="M196 340h14" stroke="#C8901B"/>
+            <g>
+              <rect x="210" y="300" width="126" height="98" fill="#1A1612" stroke="#C8901B" stroke-opacity=".55"/>
+              <text x="218" y="316" class="tag tag-ochre">NVDA · had it been</text>
+              <text x="218" y="336" class="tag-big">$15,016.29</text>
+              <text x="218" y="354" class="tag">86.89 shares</text>
+              <text x="218" y="372" class="tag">src: Chainlink</text>
+              <text x="218" y="388" class="tag">round per buy</text>
+            </g>
+            <path d="M196 623h14" stroke="rgba(237,230,214,.5)"/>
+            <text x="214" y="616" class="tag">gap to datum</text>
+            <text x="214" y="630" class="tag">dashed</text>
+          </svg>
+          <figcaption class="num" style="font-size:.6875rem;color:var(--bone-3);margin-top:20px;line-height:1.6">Meme layer drawn at minimum visible thickness; true scale is under 1 px. Sample buy priced at Chainlink ETH/USD round 18446744073709554879, $2,059.26.</figcaption>
+        </figure>
+      </aside>
+      <div class="content-col">
+        <h2 class="headline">Stand on $WIF.<br> <em>Sweep the rest</em><br> into stock.</h2>
+        <p class="honesty">$WIF is never sold. Every number is read from Robinhood Chain and Chainlink. <a href="#proof">See the Proof</a></p>
+        <div class="actions">
+          <button class="btn btn-primary" type="button">Connect wallet</button>
+          <form class="lookup" role="search" onsubmit="return false">
+            <label for="lookA">Look up any wallet</label>
+            <input id="lookA" class="num" placeholder="Look up any wallet · 0x…" autocomplete="off" spellcheck="false">
+            <button class="btn btn-ghost" type="submit">Look up</button>
+          </form>
+        </div>
+        <p style="margin-top:64px;font-size:1.25rem;max-width:44ch;line-height:1.45;font-variation-settings:'wdth' 92">This wallet put <span class="num">$15,380.80</span> into one meme over 83 buys. It is worth <span class="num">$18.52</span> today. The same buys in NVDA would hold <span class="num" style="color:var(--ochre)">$15,016.29</span>.</p>
+        <p style="margin-top:16px;color:var(--bone-2);max-width:56ch">Turn dead memes into Stock Tokens held in your Jar. Every meme trade sweeps a slice into stock. Fees buy and burn $WIF and stream stock to $WIF stakers.</p>
+        <dl class="ledger">
+          <div><dt>Paid, 83 buys</dt><dd class="num">$15,380.80</dd><small>tx · Robinhood Chain</small></div>
+          <div><dt>Worth today</dt><dd class="num">$18.52</dd><small>balance · read live</small></div>
+          <div><dt>Had it been NVDA</dt><dd class="num ochre">$15,016.29</dd><small>86.89 sh · Chainlink rounds</small></div>
+        </dl>
+      </div>
+    </div>
+  </div></div>
+</section>
+<section class="board" aria-labelledby="ab-b">
+  <div class="board-label"><b>B</b><h2 id="ab-b" style="font:inherit">Landing · mobile 375. The core lies on its side: a horizontal band read left to right, depth in dollars.</h2></div>
+  <div class="frame frame-375 m">
+    <header class="hdr m-hdr">
+      <a class="brand" href="#"><svg width="20" height="20" viewBox="0 0 22 22" aria-hidden="true"><rect x="1" y="2" width="20" height="4" fill="#8A7F6E"/><rect x="1" y="8" width="20" height="12" fill="#C8901B"/></svg>Terra Firma</a>
+      <button class="btn btn-ghost m-menu" type="button" aria-label="Open menu" aria-expanded="false"><svg width="18" height="12" viewBox="0 0 18 12" aria-hidden="true"><path d="M0 1h18M0 6h18M0 11h18" stroke="currentColor" stroke-width="1.5"/></svg></button>
+    </header>
+    <div class="m-body">
+      <h2 class="headline m-headline">Stand on $WIF. <em>Sweep the rest</em> into stock.</h2>
+      <p class="honesty m-honesty">$WIF is never sold. Every number is read from Robinhood Chain and Chainlink. <a href="#proof">See the Proof</a></p>
+      <figure class="m-core">
+        <div class="core-cap"><span>Core sample · AI meme</span><span class="num">0x3fDB…b09E</span></div>
+        <svg viewBox="0 0 343 150" role="img" aria-label="Horizontal core: meme layer $18.52, NVDA layer $15,016.29, paid datum $15,380.80">
+          <defs>
+            <pattern id="strataB" width="12" height="70" patternUnits="userSpaceOnUse">
+              <rect width="12" height="70" fill="#5A4220"/><rect x="1" width="2" height="70" fill="#C8901B" opacity=".55"/>
+              <rect x="6" width="3" height="70" fill="#7A5A24"/><rect x="10" width="1" height="70" fill="#110F0C" opacity=".5"/>
+            </pattern>
+            <linearGradient id="roundB" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#000" stop-opacity=".5"/><stop offset=".35" stop-color="#fff" stop-opacity=".07"/><stop offset="1" stop-color="#000" stop-opacity=".6"/>
+            </linearGradient>
+          </defs>
+          <rect x="16" y="40" width="294" height="56" fill="url(#strataB)"/>
+          <rect x="310" y="40" width="8" height="56" fill="rgba(237,230,214,.04)" stroke="rgba(237,230,214,.35)" stroke-dasharray="2 2"/>
+          <path d="M8 40 h8 v56 h-8 l2 -6 -3 -5 3 -7 -2 -6 3 -8 -3 -6 2 -7 -3 -6z" fill="#8A7F6E"/>
+          <ellipse cx="8" cy="68" rx="6" ry="28" fill="#A39886"/>
+          <rect x="8" y="40" width="310" height="56" fill="url(#roundB)"/>
+          <path d="M318 26V112" stroke="#C8901B" stroke-dasharray="4 3"/>
+          <g stroke="rgba(237,230,214,.35)"><path d="M8 104v6M89 104v4M170 104v6M251 104v4"/></g>
+          <g class="tag"><text x="8" y="124">$0</text><text x="170" y="124" text-anchor="middle">8k</text></g>
+          <text x="8" y="22" class="tag">MEME $18.52 · tx</text>
+          <text x="314" y="22" class="tag tag-ochre" text-anchor="end">PAID $15,380.80</text>
+          <text x="164" y="142" class="tag" text-anchor="middle">NVDA layer · Chainlink rounds</text>
+        </svg>
+        <dl class="m-ledger">
+          <div><dt>Paid, 83 buys</dt><dd class="num">$15,380.80</dd></div>
+          <div><dt>Worth today</dt><dd class="num">$18.52</dd></div>
+          <div><dt>Had it been NVDA</dt><dd class="num ochre">$15,016.29</dd><small class="num">86.89 shares</small></div>
+        </dl>
+      </figure>
+      <div class="m-actions">
+        <button class="btn btn-primary" type="button">Connect wallet</button>
+        <form class="lookup" role="search" onsubmit="return false">
+          <label for="lookB">Look up any wallet</label>
+          <input id="lookB" placeholder="Any wallet · 0x…" autocomplete="off" spellcheck="false">
+          <button class="btn btn-ghost" type="submit">Look up</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="board" aria-labelledby="ab-c">
+  <div class="board-label"><b>C</b><h2 id="ab-c" style="font:inherit">Connected card · cold loading (about 12 s). The core fills from the top as each token is read. No percentage: only counted tokens.</h2></div>
+  <div class="scroll-x"><div class="frame frame-1440">
+    <header class="hdr">
+      <a class="brand" href="#"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><rect x="1" y="2" width="20" height="4" fill="#8A7F6E"/><rect x="1" y="8" width="20" height="12" fill="#C8901B"/></svg>Terra Firma</a>
+      <nav class="nav" aria-label="Main"><a href="#" aria-current="page">Card</a><a href="#">Trade</a><a href="#">Jar</a><a href="#">Stake</a><a href="#">Board</a><a href="#">Proof</a></nav>
+      <span class="num" style="font-size:.8125rem;color:var(--bone-2);border:1px solid var(--line-2);padding:10px 14px;border-radius:4px">Your wallet · connected</span>
+    </header>
+    <div class="split" style="min-height:720px">
+      <aside class="core-col" aria-label="Core sample, drilling in progress">
+        <div class="core-cap"><span>Your core · drilling</span><span class="num">3 / 7</span></div>
+        <svg viewBox="0 0 340 600" role="img" aria-label="Core sample with three of seven layers read" style="width:100%;height:auto;display:block">
+          <defs>
+            <pattern id="strataC" width="140" height="14" patternUnits="userSpaceOnUse" x="56">
+              <rect width="140" height="14" fill="#4A371C"/><rect y="2" width="140" height="2" fill="#C8901B" opacity=".45"/><rect y="9" width="140" height="3" fill="#6A4E22"/>
+            </pattern>
+            <linearGradient id="roundC" x1="0" x2="1"><stop offset="0" stop-color="#000" stop-opacity=".55"/><stop offset=".35" stop-color="#fff" stop-opacity=".06"/><stop offset="1" stop-color="#000" stop-opacity=".6"/></linearGradient>
+          </defs>
+          <!-- unread casing -->
+          <path d="M56 60 V560 A70 12 0 0 0 196 560 V60" fill="rgba(237,230,214,.02)" stroke="rgba(237,230,214,.3)" stroke-dasharray="4 4"/>
+          <g class="tag" fill="rgba(237,230,214,.4)"><text x="126" y="380" text-anchor="middle">not yet drilled</text><text x="126" y="396" text-anchor="middle">4 tokens to read</text></g>
+          <!-- three read layers -->
+          <rect x="56" y="60" width="140" height="44" fill="url(#strataC)"/>
+          <rect x="56" y="104" width="140" height="1" fill="#110F0C"/>
+          <rect x="56" y="105" width="140" height="58" fill="#5A4220"/>
+          <rect x="56" y="110" width="140" height="2" fill="#C8901B" opacity=".5"/>
+          <rect x="56" y="163" width="140" height="1" fill="#110F0C"/>
+          <rect x="56" y="164" width="140" height="36" fill="url(#strataC)" class="settle"/>
+          <rect x="56" y="60" width="140" height="140" fill="url(#roundC)"/>
+          <ellipse cx="126" cy="60" rx="70" ry="12" fill="#6A5432" stroke="rgba(17,15,12,.6)"/>
+          <!-- drill head at current depth -->
+          <g class="drill-head">
+            <path d="M40 204H212" stroke="#C8901B" stroke-width="2"/>
+            <path d="M112 206 l14 18 l14 -18z" fill="#C8901B"/>
+          </g>
+          <g>
+            <path d="M196 82h14M196 134h14M196 182h14" stroke="rgba(237,230,214,.45)"/>
+            <text x="214" y="86" class="tag">token 1 · tx read</text>
+            <text x="214" y="138" class="tag">token 2 · tx read</text>
+            <text x="214" y="186" class="tag">token 3 · tx read</text>
+            <text x="214" y="224" class="tag tag-ochre reading">token 4 · reading</text>
+          </g>
+        </svg>
+      </aside>
+      <div class="content-col" style="padding-top:64px">
+        <h2 class="load-title">Drilling your history on Robinhood Chain <span class="num">· 3 of 7 tokens read</span></h2>
+        <p class="load-sub">Each meme buy is a transaction. We read every one, then price it against the Chainlink round live at that block. A first read takes about 12 seconds; after that your card opens instantly.</p>
+        <ol class="tokens" aria-live="polite" aria-label="Tokens read so far">
+          <li class="done"><span class="i num">1</span><span>Token 1</span><span class="num">buys and Chainlink rounds read</span><span class="st">read</span></li>
+          <li class="done"><span class="i num">2</span><span>Token 2</span><span class="num">buys and Chainlink rounds read</span><span class="st">read</span></li>
+          <li class="done"><span class="i num">3</span><span>Token 3</span><span class="num">buys and Chainlink rounds read</span><span class="st">read</span></li>
+          <li class="now"><span class="i num">4</span><span>Token 4</span><span class="num">reading transactions</span><span class="st reading">reading</span></li>
+          <li><span class="i num">5</span><span>Token 5</span><span class="num">waiting</span><span class="st">queued</span></li>
+          <li><span class="i num">6</span><span>Token 6</span><span class="num">waiting</span><span class="st">queued</span></li>
+          <li><span class="i num">7</span><span>Token 7</span><span class="num">waiting</span><span class="st">queued</span></li>
+        </ol>
+        <dl class="ledger" aria-busy="true">
+          <div><dt>Paid</dt><dd><span class="skel"></span></dd><small>totals once all 7 are read</small></div>
+          <div><dt>Worth today</dt><dd><span class="skel"></span></dd><small>read live</small></div>
+          <div><dt>Had it been NVDA</dt><dd><span class="skel"></span></dd><small>Chainlink rounds</small></div>
+        </dl>
+      </div>
+    </div>
+  </div></div>
+</section>
+<section class="board" aria-labelledby="ab-d">
+  <div class="board-label"><b>D</b><h2 id="ab-d" style="font:inherit">Stake panel · activation wait in plain words, Claim to Jar</h2></div>
+  <div class="frame stake-frame">
+    <div class="stake">
+      <div class="stake-main">
+        <h2 class="load-title" style="font-size:2rem">Stake $WIF, earn NVDA Stock Tokens</h2>
+        <p class="load-sub">Fees from every sweep buy and burn $WIF, and the rest streams as Stock Tokens to stakers. Your $WIF stays yours and is never sold.</p>
+        <fieldset class="pool">
+          <legend>Stock pool</legend>
+          <label><input type="radio" name="pool" checked> NVDA</label>
+          <label><input type="radio" name="pool"> Other Stock Token pools · read live</label>
+        </fieldset>
+        <div class="stake-row">
+          <div class="lookup" style="max-width:none">
+            <label for="amtD">Amount of $WIF to stake</label>
+            <input id="amtD" class="num" inputmode="decimal" placeholder="Amount of $WIF">
+            <button class="btn btn-ghost" type="button">Max</button>
+          </div>
+          <button class="btn btn-primary" type="button">Stake $WIF</button>
+        </div>
+        <p class="avail num">Wallet $WIF: read live</p>
+      </div>
+      <div class="stake-side">
+        <h3 class="side-h">Your stake</h3>
+        <p class="wait" role="status">Your stake starts earning after one full hour-long epoch. Staked now (epoch 41) → earning from epoch 43.</p>
+        <ol class="epochs" aria-label="Epoch timeline">
+          <li class="e-now"><span class="num">41</span><small>staked now</small></li>
+          <li class="e-wait"><span class="num">42</span><small>one full epoch</small></li>
+          <li class="e-earn"><span class="num">43</span><small>earning</small></li>
+        </ol>
+        <dl class="claim">
+          <div><dt>Staked</dt><dd class="num">read live</dd></div>
+          <div><dt>Claimable NVDA Stock Tokens</dt><dd class="num">read live</dd></div>
+        </dl>
+        <button class="btn btn-primary" type="button" style="width:100%;justify-content:center">Claim to Jar</button>
+        <p class="side-note">Claims land in your Jar as NVDA Stock Tokens. <a href="#proof">Distribution on Proof</a></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+</body>
+</html>

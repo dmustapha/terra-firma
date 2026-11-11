@@ -94,13 +94,13 @@ function AttestDialog({ open, country, onClose, onConfirm }: { open: boolean; co
       ref={ref}
       onClose={onClose}
       aria-labelledby="attest-title"
-      className="m-auto w-[min(32rem,calc(100vw-2rem))] rounded-2xl border border-line bg-surface p-6 text-fg"
+      className="m-auto w-[min(32rem,calc(100vw-2rem))] rounded-sm border border-fg bg-surface p-6 text-fg shadow-lg"
     >
-      <h2 id="attest-title" className="text-xl font-semibold">One quick check</h2>
+      <h2 id="attest-title" className="font-display text-deck">One quick check</h2>
       <p className="mt-3 text-muted">
         Stock Tokens aren&apos;t available in some regions. We detected{" "}
-        <strong className="text-fg">{country && country !== "UNKNOWN" ? country : "an unknown region"}</strong>. This check is a
-        frontend control, not enforced onchain.
+        <strong className="text-fg">{country && country !== "UNKNOWN" ? country : "an unknown region"}</strong>. This check happens
+        on this website only; the contracts do not enforce it.
       </p>
       <p className="mt-2 text-sm text-muted">
         Restricted list:{" "}

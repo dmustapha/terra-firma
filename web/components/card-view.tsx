@@ -22,7 +22,7 @@ export function CardView({ card, error }: { card: Card | null; error: string | n
   if (!card)
     return (
       <Panel>
-        <p role="alert" className="text-lg font-semibold">{error}</p>
+        <p role="alert" className="font-display text-deck">{error}</p>
         <Button className="mt-4" onClick={() => start(() => router.refresh())} disabled={pending}>{pending ? "Retrying…" : "Try again"}</Button>
       </Panel>
     );
@@ -46,11 +46,11 @@ export function CardView({ card, error }: { card: Card | null; error: string | n
       />
       {pending && <Notice>Repricing against the selected stock…</Notice>}
       <Panel className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-lg font-semibold">{own ? "This is your wallet." : "Connect to fix yours."}</p>
+        <p className="font-display text-deck">{own ? "This is your wallet." : "Connect to fix yours."}</p>
         {isConnected ? <LinkButton href="/app">Open your card</LinkButton> : <ConnectButton label="Connect to fix yours" onConnected={() => router.push("/app")} />}
       </Panel>
       <Panel aria-labelledby="card-lookup-title" className="space-y-3">
-        <h2 id="card-lookup-title" className="font-semibold">Look up another wallet</h2>
+        <h2 id="card-lookup-title" className="font-display text-deck">Look up another wallet</h2>
         {card.wallet.toLowerCase() !== HISTORY_ADDR.toLowerCase() && <LinkButton href={`/card/${HISTORY_ADDR}`} variant="secondary">See a wallet with real history</LinkButton>}
         <AddressLookup id="card-lookup" placeholder="Wallet address: 0x…" />
       </Panel>
