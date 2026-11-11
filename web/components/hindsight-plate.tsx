@@ -109,7 +109,7 @@ export function HindsightReceipts({ initial }: { initial: Card | null }) {
           </p>
           <TextLink href={`/card/${HISTORY_ADDR}`} className="mt-4">All {buys.length.toLocaleString("en-US")} receipts<span aria-hidden>&nbsp;→</span></TextLink>
         </div>
-        <div className="plate px-1 pt-2 pb-1 sm:px-2">
+        <div className="plate min-w-0 px-1 pt-2 pb-1 sm:px-2">
           <div className="overflow-x-auto max-sm:[mask-image:linear-gradient(90deg,#000_92%,transparent)]">
           <table className="num w-full text-[0.875rem] sm:min-w-[34rem] sm:text-[0.9375rem]">
             <caption className="px-4 pt-3 pb-1 text-left text-xs font-semibold text-muted">The {top.length} biggest of {buys.length.toLocaleString("en-US")} buys, all into {memesLine(c)}</caption>
