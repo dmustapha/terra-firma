@@ -1,0 +1,8 @@
+FORK | user WIF=0 (staked all in drill)
+FORK | mintCard → 0xe0a37d3eca12755603ed514147d70b69902724f4587f20c4cd93095b3df99def status=0x1 logs=2; WIF supply delta = 1.0
+FORK | mintCard without approval (account 2) → execution reverted: custom error 0xfb8f41b2: 0000000000000000000000002402898497b0532bcbdee6339987f1d7056d442200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000de0b6b3a7640000
+FORK | Jar withdraw all NVDA (2638187500320606) → 0xd85e9520acaf39655f3dd62a1c74a450b809ecf013366e22039fb650381f21d9 status=0x1; wallet NVDA delta = 2638187500320606; Jar now 0
+FORK | Scene 4 at demo size: FeePool before=2500000000001 canDistribute=false
+FORK | trade 0.002 ETH sweep 2% → 0x93773f3ed1f6383e00fbcf739c43fd9e08f7855cd374b89f19384603a82955ec; FeePool=12500000000001 canDistribute=true
+FORK | Run distribute → 0x2d2b59d136026d6f72416dbc7a14c8d6afc7954cdc2a2f72243d09f9f998ea29 status=0x1
+FORK | WIF burned by the demo-size distribute = 9.826979010410923

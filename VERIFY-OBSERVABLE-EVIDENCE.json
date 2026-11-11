@@ -1,0 +1,81 @@
+{
+ "p0_features": [
+  {
+   "feature": "F-001 Hindsight card",
+   "command": "curl /api/hindsight (mainnet heavy wallet) + scripts/wire-card-fork.ts",
+   "exit_code": 0,
+   "sentinel": "memes:[] or usdPaid8 0 on a wallet with buys",
+   "observed": "mainnet: 1 meme, $15,380.80 paid; FORK: 4 router buys $118.6341 == independent recompute"
+  },
+  {
+   "feature": "F-002 Recompute parity",
+   "command": "scripts/drill-fork.sh recompute + /api/card-check",
+   "exit_code": 0,
+   "sentinel": "values differ",
+   "observed": "usdPaid8 165768649010 == expected; card-check derived == card total"
+  },
+  {
+   "feature": "F-003 One-tap convert",
+   "command": "scripts/drill-fork.sh convert",
+   "exit_code": 0,
+   "sentinel": "browser wallet-signing UI path never executed (DEV-001): untested fallback evidence = contract call via cast instead of the UI",
+   "observed": "contract convert passed on FORK; browser wallet-signing UI path never executed (DEV-001): untested fallback evidence = contract call via cast instead of the UI"
+  },
+  {
+   "feature": "F-004 Meme buy with sweep",
+   "command": "scripts/drill-fork.sh buy",
+   "exit_code": 0,
+   "sentinel": "browser wallet-signing UI path never executed (DEV-001): untested fallback evidence = contract call via cast instead of the UI",
+   "observed": "FeePool fee == 0.5% exactly, Jar NVDA credited on FORK; browser wallet-signing UI path never executed (DEV-001): untested fallback evidence = contract call via cast instead of the UI"
+  },
+  {
+   "feature": "F-005 Meme sell with sweep",
+   "command": "forge test test_sellV3_sweep test_sellV4_plain",
+   "exit_code": 0,
+   "sentinel": "ethOut 0",
+   "observed": "62/62 fork tests pass incl. sell tests"
+  },
+  {
+   "feature": "F-006 Distribute buy+burn",
+   "command": "FeePool.distribute at demo size (FORK)",
+   "exit_code": 0,
+   "sentinel": "wifBurned 0",
+   "observed": "9.83 WIF burned after a single 0.002 ETH trade; 204.41 WIF via keeper"
+  },
+  {
+   "feature": "F-007 Staker stream",
+   "command": "scripts/drill-fork.sh stake/claim",
+   "exit_code": 0,
+   "sentinel": "browser wallet-signing UI path never executed (DEV-001): untested fallback evidence = contract call via cast instead of the UI",
+   "observed": "pending NVDA > 0, claim credited Jar on FORK; browser wallet-signing UI path never executed (DEV-001): untested fallback evidence = contract call via cast instead of the UI"
+  },
+  {
+   "feature": "F-008 Anti-JIT activation",
+   "command": "forge test debug-p2-staking-invariant + JIT tests",
+   "exit_code": 0,
+   "sentinel": "JIT stake earns",
+   "observed": "fork tests pass (e+2 activation)"
+  },
+  {
+   "feature": "F-009 WIF never sold",
+   "command": "forge test test_sellWifReverts test_convertWifReverts",
+   "exit_code": 0,
+   "sentinel": "WIF input accepted",
+   "observed": "reverts as required"
+  },
+  {
+   "feature": "F-010 Chainlink-bounded fills",
+   "command": "forge test stale-oracle / band tests",
+   "exit_code": 0,
+   "sentinel": "fill outside band",
+   "observed": "fork tests pass"
+  },
+  {
+   "feature": "F-011 Jar withdraw",
+   "command": "cast send Jar.withdraw (FORK)",
+   "exit_code": 0,
+   "sentinel": "browser wallet-signing UI path never executed (DEV-001): untested fallback evidence = contract call via cast instead of the UI",
+   "observed": "full NVDA balance returned to wallet on FORK; browser wallet-signing UI path never executed (DEV-001): untested fallback evidence = contract call via cast instead of the UI"
+  }
+ ]
+}
