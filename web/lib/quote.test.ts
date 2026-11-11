@@ -1,0 +1,70 @@
+import { describe, expect, it } from "vitest";
+import type { Address } from "viem";
+import { ADDR } from "./config";
+import type { PoolEntry } from "./registry";
+import { bestQuote, quoteStock, routeFor, v3Path } from "./quote";
+
+const TOKEN = "0x39dBED3a2bd333467115dE45665cC57F813C4571" as Address;
+const NVDA = "0xd0601CE157Db5bdC3162BbaC2a2C8aF5320D9EEC" as Address;
+const ZERO = "0x0000000000000000000000000000000000000000" as Address;
+const hexOf = (a: string) => a.slice(2).toLowerCase();
+
+const v2: PoolEntry = { kind: 1, version: "v2", pool: ZERO, quote: "WETH", liquidityUsd: 1 };
+const v3: PoolEntry = { kind: 2, version: "v3", pool: ZERO, fee: 3000, quote: "WETH", liquidityUsd: 1 };
+const v4Key = { currency0: ZERO, currency1: TOKEN, fee: 8388608, tickSpacing: 60, hooks: ADDR.wifHook };
+const v4: PoolEntry = { kind: 3, version: "v4", id: "0x01", key: v4Key, liquidityUsd: 1 };
+
+describe("v3Path", () => {
+  it("packs address(20) + uint24 fee(3) + address(20)", () => {
+    const p = v3Path(ADDR.weth, 500, NVDA);
+    expect(p).toBe(`0x${hexOf(ADDR.weth)}0001f4${hexOf(NVDA)}`);
+    expect((p.length - 2) / 2).toBe(43);
+  });
+
+  it("encodes the 1% tier and the zero fee at the edges of uint24", () => {
+    expect(v3Path(ADDR.weth, 10000, NVDA).slice(42, 48)).toBe("002710");
+    expect(v3Path(ADDR.weth, 0, NVDA).slice(42, 48)).toBe("000000");
+  });
+
+  it("rejects a fee that does not fit uint24", () => {
+    expect(() => v3Path(ADDR.weth, 2 ** 24, NVDA)).toThrow();
+  });
+});
+
+describe("routeFor", () => {
+  it("builds v2 and v3 routes with WETH on the input side for buys and the output side for sells", () => {
+    expect(routeFor(v2, TOKEN, "buy").v2Path).toEqual([ADDR.weth, TOKEN]);
+    expect(routeFor(v2, TOKEN, "sell").v2Path).toEqual([TOKEN, ADDR.weth]);
+    expect(routeFor(v3, TOKEN, "buy")).toMatchObject({ kind: 2, v2Path: [], v3Path: v3Path(ADDR.weth, 3000, TOKEN) });
+    expect(routeFor(v3, TOKEN, "sell").v3Path).toBe(v3Path(TOKEN, 3000, ADDR.weth));
+  });
+
+  it("passes a hooked, dynamic-fee v4 key through verbatim (fee 8388608 kept)", () => {
+    const r = routeFor(v4, TOKEN, "buy");
+    expect(r).toEqual({ kind: 3, v2Path: [], v3Path: "0x", key: v4Key });
+  });
+
+  it("never returns a v2/v3 route whose endpoints differ from the declared token (TerraRouter._validate would revert BadRoute)", () => {
+    for (const side of ["buy", "sell"] as const) {
+      const r2 = routeFor(v2, TOKEN, side);
+      expect(r2.v2Path).toContain(TOKEN);
+      expect(r2.v2Path).toContain(ADDR.weth);
+      expect(routeFor(v3, TOKEN, side).v3Path.toLowerCase()).toContain(hexOf(TOKEN));
+    }
+  });
+});
+
+describe("bestQuote / quoteStock guards (no RPC reached)", () => {
+  it("refuses to quote a $WIF sell (INVARIANT 1)", async () => {
+    await expect(bestQuote(ADDR.wif, "sell", 10n ** 18n)).resolves.toBeNull();
+  });
+
+  it("returns null for a zero amount and for a token outside the registry", async () => {
+    await expect(bestQuote(ADDR.wif, "buy", 0n)).resolves.toBeNull();
+    await expect(bestQuote("0x000000000000000000000000000000000000dEaD", "buy", 1n)).resolves.toBeNull();
+  });
+
+  it("quotes zero ETH into stock as zero without a call", async () => {
+    await expect(quoteStock(0, 0n)).resolves.toBe(0n);
+  });
+});

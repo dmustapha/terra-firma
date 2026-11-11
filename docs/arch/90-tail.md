@@ -12,7 +12,7 @@ Build generates `DOMAIN-GUIDE.md` from this spec (non-agent project).
 | Activation | stake earns from the epoch after it was placed | `pendingEpoch`, `_rollPool` | OD3 |
 | Sub-pool | stakers who chose the same reward stock | `pools[stockId]` | AMEND-4 |
 | Chainlink round | (phase << 64) \| n; phase 1 for all used feeds | `PHASE_BASE` | spike-indexing §4 |
-| NVDA early rounds | n <= 24 report 1e16-scaled values; divide by 1e8 for 8dp | `NVDA_SCALED_LAST_ROUND`, `normalize8` | spike-indexing §4 |
+| Early-round scaling | early rounds of every stock history feed report 1e16-scaled values; an answer > 1e15 is divided by 1e8 | `SCALED_THRESHOLD`, `historicalAnswer8`, `normalize8` | spike-indexing §4, build-rounds.ts |
 | Heartbeat | Chainlink directory heartbeat 86400s; we allow 25h | `MAX_AGE` | cl-feeds-rh.json |
 | Band | stock fills must be >= Chainlink price − 3% | `BAND_BPS` | PRD 4.15 |
 | UR 2.1 layout | V2/V3 inputs end with `uint256[] maxHopSlippage` | `URCodec.v2/v3` | URProbe.t.sol |

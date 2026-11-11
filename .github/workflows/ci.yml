@@ -1,0 +1,70 @@
+# File: .github/workflows/ci.yml
+# Offline gate on every push / PR. No secrets are used or needed here.
+# Live tier (contract fork tests + scripts/hindsight.live.ts) needs an RPC and runs locally via `pnpm test:live`:
+# every contract test forks Robinhood Chain mainnet (vm.createSelectFork(RPC_URL)), so CI compiles contracts only.
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - name: unit + integration tests (offline)
+        run: pnpm test
+      - run: pnpm build
+
+  scripts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            web/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile
+        working-directory: web
+      - run: pnpm typecheck
+      - name: verify CLAIMS.md (deployment rows stay PENDING until deploy)
+        run: pnpm verify-claims
+
+  contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.4.4
+      - name: forge build (600 s guard; solc via-IR has hung here before)
+        run: scripts/forge.sh build
+      - name: ABI drift (web/lib/abi.ts must match the compiled contracts)
+        run: node scripts/export-abis.mjs && git diff --exit-code web/lib/abi.ts

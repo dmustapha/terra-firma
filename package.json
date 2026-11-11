@@ -13,7 +13,13 @@
     "proof": "tsx scripts/proof.ts",
     "verify-claims": "tsx scripts/verify-claims.ts",
     "test-hindsight": "tsx scripts/test-hindsight.ts",
-    "typecheck": "tsc --noEmit -p scripts"
+    "typecheck": "tsc --noEmit -p scripts",
+    "typecheck:web": "pnpm --dir web typecheck",
+    "forge:build": "scripts/forge.sh build",
+    "test": "pnpm --dir web test",
+    "test:live": "tsx --conditions=react-server scripts/hindsight.live.ts && scripts/fork-tests.sh",
+    "check": "pnpm typecheck && pnpm typecheck:web && pnpm forge:build && pnpm test && pnpm verify-claims",
+    "clean-room": "scripts/clean-room.sh"
   },
   "dependencies": {
     "viem": "^2.57.17"

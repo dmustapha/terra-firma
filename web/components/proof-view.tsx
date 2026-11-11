@@ -150,11 +150,11 @@ function Totals() {
   const v = (ok: boolean, f: () => string) => (!DEPLOYED ? "—" : ok ? f() : <Skeleton w="4rem" h="1.6rem" />);
   return (
     <div id="totals" className="grid scroll-mt-24 grid-cols-2 gap-3 lg:grid-cols-5">
-      <Stat label="$WIF burned" href={addrUrl(TF.FeePool)} value={v(burned !== undefined, () => token(burned!))} />
-      <Stat label="ETH to staker stock" href={addrUrl(TF.FeePool)} value={v(toStock !== undefined, () => eth(toStock!))} />
-      <Stat label="Routed trades" href={addrUrl(TF.TerraRouter)} value={v(!!l, () => traded.length.toLocaleString("en-US"))} />
-      <Stat label="Routed volume" href={addrUrl(TF.TerraRouter)} value={v(!!l, () => `${eth(volume)} ETH`)} sub={l ? `${eth(fees)} ETH in fees` : undefined} />
-      <Stat label="Cards minted" href={addrUrl(TF.HindsightLens)} value={v(!!l, () => only(l!.lens, "CardMinted").length.toString())} />
+      <Stat label="$WIF burned" href={DEPLOYED ? addrUrl(TF.FeePool) : undefined} value={v(burned !== undefined, () => token(burned!))} />
+      <Stat label="ETH to staker stock" href={DEPLOYED ? addrUrl(TF.FeePool) : undefined} value={v(toStock !== undefined, () => eth(toStock!))} />
+      <Stat label="Routed trades" href={DEPLOYED ? addrUrl(TF.TerraRouter) : undefined} value={v(!!l, () => traded.length.toLocaleString("en-US"))} />
+      <Stat label="Routed volume" href={DEPLOYED ? addrUrl(TF.TerraRouter) : undefined} value={v(!!l, () => `${eth(volume)} ETH`)} sub={l ? `${eth(fees)} ETH in fees` : undefined} />
+      <Stat label="Cards minted" href={DEPLOYED ? addrUrl(TF.HindsightLens) : undefined} value={v(!!l, () => only(l!.lens, "CardMinted").length.toString())} />
     </div>
   );
 }

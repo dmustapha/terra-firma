@@ -243,6 +243,10 @@
   "section": 16,
   "name": "C9 Frontend"
  },
+ "web/components/guarantee.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
  "web/components/hindsight-card.tsx": {
   "section": 16,
   "name": "C9 Frontend"
@@ -303,6 +307,22 @@
   "section": 16,
   "name": "C9 Frontend"
  },
+ "web/lib/quote.test.ts": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/lib/rounds.integration.ts": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/lib/rounds.test.ts": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/lib/stock-paths.integration.ts": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
  "web/lib/ui-chain.ts": {
   "section": 16,
   "name": "C9 Frontend"
@@ -326,6 +346,10 @@
  "web/lib/wagmi.ts": {
   "section": 16,
   "name": "C9 Frontend"
+ },
+ ".github/workflows/ci.yml": {
+  "section": 17,
+  "name": "C10/C11 Scripts + keeper"
  },
  ".github/workflows/keeper.yml": {
   "section": 17,
@@ -364,6 +388,10 @@
   "name": "C10/C11 Scripts + keeper"
  },
  "scripts/gen-plan.py": {
+  "section": 17,
+  "name": "C10/C11 Scripts + keeper"
+ },
+ "scripts/hindsight.live.ts": {
   "section": 17,
   "name": "C10/C11 Scripts + keeper"
  },

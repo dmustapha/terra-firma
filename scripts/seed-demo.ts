@@ -1,11 +1,14 @@
 // File: scripts/seed-demo.ts
-// Earns the PRD §6 demo state with REAL mainnet transactions from the demo wallet (never fabricated). Idempotent: every
-// step reads chain state first and skips when already satisfied.
-//   a) buy 3 memes (top liquidity, tested) ~0.0005 ETH each via TerraRouter.buy, sweep 0
+// Earns the PRD §6 demo state with REAL mainnet transactions (never fabricated). Idempotent: every step reads chain
+// state first and skips when already satisfied. Minimal-spend plan: Dami runs the trades himself from his own wallet in
+// the UI; `--dry` prints the exact per-step amounts (live quotes) plus a "run these in the UI" checklist. The real-send
+// path (DEMO_KEY) is kept for completeness and uses the same small sizes.
+//   a) buy 3 memes (top liquidity, tested) 0.0003 ETH each via TerraRouter.buy, sweep 0
 //   b) one convert of one meme into NVDA         c) two buys with sweep 2% (NVDA)
 //   d) hold >= 500 WIF (buy ~600 via TerraRouter.buy on the WIF key if short) and stake 500 to NVDA (approve exact)
 //   e) print what remains (epoch wait, keeper)
 // Env: RPC_URL (optional), DEMO_KEY (0x private key; not needed with --dry, DEMO_ADDR then picks the wallet to inspect).
+//   For --dry with DEMO_KEY use a throwaway `cast wallet new` key that is never funded.
 // Run: pnpm tsx scripts/seed-demo.ts [--dry]
 import { createWalletClient, encodeEventTopics, formatEther, formatUnits, parseEther, type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
@@ -18,7 +21,7 @@ import { loadDeployments, loadRegistry, type Deployments } from "./lib/files";
 import { bestQuote, type BestQuote, type Route } from "./lib/quote";
 import { client, getLogsMany, headBlock, transports } from "./lib/rpc";
 
-const BUY_ETH = parseEther("0.0005");
+const BUY_ETH = parseEther("0.0003");
 const MEME_SLIPPAGE_BPS = 150n;
 const STAKE_WIF = 500n * 10n ** 18n;
 const WIF_TARGET = 600n * 10n ** 18n;
@@ -31,10 +34,16 @@ const WIF_POOL: PoolEntry = {
   liquidityUsd: 0,
 };
 
+interface PlanStep {
+  ui: string;
+  eth: bigint;
+}
+
 interface Ctx {
   user: Address | null;
   d: Deployments | null;
   send: ((label: string, req: () => Promise<Hex>) => Promise<void>) | null;
+  plan: PlanStep[];
 }
 
 const minOut = (q: BestQuote) => (q.amountOut * (10_000n - MEME_SLIPPAGE_BPS)) / 10_000n;
@@ -70,6 +79,8 @@ async function buy(ctx: Ctx, m: Pick<Meme, "token" | "symbol" | "pools">, eth: b
   const q = await bestQuote(m.token, m.pools, "buy", await tradeLeg(ctx, eth, sweepBps));
   if (!q) throw new Error(`no live quote for ${m.symbol}`);
   console.log(`  plan buy ${formatEther(eth)} ETH -> ${m.symbol} via ${q.pool.version}: quote ${formatUnits(q.amountOut, 18)} min ${formatUnits(minOut(q), 18)} sweep ${sweepBps}bps`);
+  const sweep = sweepBps > 0 ? `sweep ${sweepBps / 100}% into NVDA` : "sweep 0%";
+  ctx.plan.push({ ui: `/trade: buy ${m.symbol} for exactly ${formatEther(eth)} ETH, ${sweep} (expect ~${formatUnits(q.amountOut, 18)} ${m.symbol})`, eth });
   if (!ctx.send || !ctx.d) return;
   const d = ctx.d;
   const args = [routeArg(q.route), m.token, sweepBps, NVDA, minOut(q), 0n] as const;
@@ -97,10 +108,14 @@ async function seedConvert(ctx: Ctx, m: Meme) {
   if ((await routerEvents(ctx, "Converted")) > 0) return console.log("  skip: Converted event exists");
   const bal = await balanceOf(m.token, ctx.user);
   const amount = bal / 2n;
-  if (amount === 0n) return console.log(`  pending: needs a ${m.symbol} balance from step (a) first`);
+  if (amount === 0n) {
+    ctx.plan.push({ ui: `/app/convert: convert half the ${m.symbol} bought in step 1 into NVDA (approve exact, then convert)`, eth: 0n });
+    return console.log(`  pending: needs a ${m.symbol} balance from step (a) first`);
+  }
   const q = await bestQuote(m.token, m.pools, "sell", amount);
   if (!q) throw new Error(`no sell quote for ${m.symbol}`);
   console.log(`  plan convert ${formatUnits(amount, m.decimals)} ${m.symbol} -> ~${formatEther(q.amountOut)} ETH -> NVDA (oracle band min)`);
+  ctx.plan.push({ ui: `/app/convert: convert half your ${m.symbol} (${formatUnits(amount, m.decimals)}) into NVDA (approve exact, then convert)`, eth: 0n });
   if (!ctx.d) return;
   const d = ctx.d;
   await approveExact(ctx, m.token, d.TerraRouter, amount, `${m.symbol}->TerraRouter`);
@@ -121,6 +136,7 @@ async function seedStake(ctx: Ctx) {
   if (staked && staked[1] + staked[2] >= STAKE_WIF) return console.log(`  skip: active ${formatEther(staked[1])} pending ${formatEther(staked[2])} WIF`);
   const wif = await balanceOf(ADDR.wif, ctx.user);
   if (wif < STAKE_WIF) await buy(ctx, { token: ADDR.wif, symbol: "WIF", pools: [WIF_POOL] }, await ethFor(WIF_TARGET - wif), 0);
+  ctx.plan.push({ ui: `/stake: approve exactly ${formatEther(STAKE_WIF)} WIF, stake it to NVDA`, eth: 0n });
   if (!ctx.d) return console.log("  plan approve exact 500 WIF + stake(500e18, 0) after deployment");
   const d = ctx.d;
   await approveExact(ctx, ADDR.wif, d.WifStaking, STAKE_WIF, "WIF->WifStaking");
@@ -144,6 +160,14 @@ async function remaining(ctx: Ctx) {
   if (pend === 0n) console.log("  wait for the next epoch (stake activates next hour), then run `pnpm tsx scripts/keeper.ts` twice across epochs");
 }
 
+function printChecklist(ctx: Ctx) {
+  const total = ctx.plan.reduce((s, p) => s + p.eth, 0n);
+  console.log("\nRun these in the UI from your own wallet (Robinhood Chain mainnet 4663), in order:");
+  ctx.plan.forEach((p, i) => console.log(`  [ ] ${i + 1}. ${p.ui}`));
+  console.log(`  [ ] ${ctx.plan.length + 1}. after the stake activates (2 epochs), /proof: Run distribute (or wait for the keeper), then /stake: claim`);
+  console.log(`ETH sent by these steps: ${formatEther(total)} ETH (+ gas). Amounts come from live quotes at this block; rerun --dry right before trading.`);
+}
+
 let acct: ReturnType<typeof privateKeyToAccount> | null = null;
 const account = () => {
   if (!acct) throw new Error("DEMO_KEY is not set");
@@ -165,7 +189,7 @@ async function main() {
   const d = loadDeployments();
   if (!dry && !d) throw new Error("no live deployment in web/data/deployments.json; run sync-deployments first");
   const user = acct?.address ?? ((process.env.DEMO_ADDR as Address | undefined) ?? null);
-  const ctx: Ctx = { user, d, send: dry ? null : sendAndWait };
+  const ctx: Ctx = { user, d, send: dry ? null : sendAndWait, plan: [] };
   console.log(`seed-demo ${dry ? "DRY RUN (nothing is sent)" : "LIVE"} wallet ${user ?? "(none)"} deployment ${d ? d.TerraRouter : "none"}`);
   if (user) console.log(`  ETH balance ${formatEther(await client.getBalance({ address: user }))}`);
   const memes = pickMemes();
@@ -174,6 +198,7 @@ async function main() {
   await seedSweeps(ctx, memes[1] ?? memes[0]);
   await seedStake(ctx);
   await remaining(ctx);
+  if (dry) printChecklist(ctx);
 }
 
 main().catch((e) => {

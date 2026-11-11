@@ -73,6 +73,7 @@ Turn Robinhood Chain memecoin activity into real stock ownership and make $WIF t
 [VERIFIED] — generated from the source tree (not code)
 ```
 terra-firma/
+  .github/workflows/ci.yml
   .github/workflows/keeper.yml
   contracts/foundry.toml
   contracts/script/Deploy.s.sol
@@ -98,6 +99,7 @@ terra-firma/
   scripts/export-abis.mjs
   scripts/gen-architecture.py
   scripts/gen-plan.py
+  scripts/hindsight.live.ts
   scripts/keeper.ts
   scripts/lib/env.ts
   scripts/lib/files.ts
@@ -145,6 +147,7 @@ terra-firma/
   web/components/convert-panel.tsx
   web/components/friends-view.tsx
   web/components/geo-gate.tsx
+  web/components/guarantee.tsx
   web/components/hindsight-card.tsx
   web/components/hooks.ts
   web/components/jar-view.tsx
@@ -163,10 +166,14 @@ terra-firma/
   web/lib/config.ts
   web/lib/hindsight.ts
   web/lib/hypersync.ts
+  web/lib/quote.test.ts
   web/lib/quote.ts
   web/lib/registry.ts
+  web/lib/rounds.integration.ts
+  web/lib/rounds.test.ts
   web/lib/rounds.ts
   web/lib/rpc.ts
+  web/lib/stock-paths.integration.ts
   web/lib/ui-chain.ts
   web/lib/ui-errors.ts
   web/lib/ui-format.ts
@@ -2567,7 +2574,9 @@ export default nextConfig;
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.107.1",
@@ -2587,7 +2596,8 @@ export default nextConfig;
     "eslint": "^9",
     "eslint-config-next": "15.5.29",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^5.1.0"
   }
 }
 ```
@@ -3801,6 +3811,7 @@ All pages, OG images and components.
 - `web/components/convert-panel.tsx`
 - `web/components/friends-view.tsx`
 - `web/components/geo-gate.tsx`
+- `web/components/guarantee.tsx`
 - `web/components/hindsight-card.tsx`
 - `web/components/hooks.ts`
 - `web/components/jar-view.tsx`
@@ -3816,6 +3827,10 @@ All pages, OG images and components.
 - `web/components/trade-terminal.tsx`
 - `web/components/tx-status.tsx`
 - `web/components/ui.tsx`
+- `web/lib/quote.test.ts`
+- `web/lib/rounds.integration.ts`
+- `web/lib/rounds.test.ts`
+- `web/lib/stock-paths.integration.ts`
 - `web/lib/ui-chain.ts`
 - `web/lib/ui-errors.ts`
 - `web/lib/ui-format.ts`
@@ -4471,6 +4486,7 @@ export default function NotFound() {
 ```tsx
 // File: web/app/page.tsx
 import { AddressLookup, Counters, LiveTicker } from "@/components/landing-live";
+import { Guarantee } from "@/components/guarantee";
 import { LandingConnect } from "@/components/landing-connect";
 import { LinkButton } from "@/components/ui";
 import { DEMO_ADDR } from "@/lib/ui-chain";
@@ -4488,6 +4504,7 @@ export default function Home() {
         <p className="text-sm font-medium uppercase tracking-widest text-accent">The world is flat. Stand on solid ground.</p>
         <h1 className="mt-4 max-w-3xl text-5xl font-bold leading-[1.05] tracking-tight sm:text-7xl">Stand on $WIF. Sweep the rest into stock.</h1>
         <p className="mt-5 max-w-xl text-lg text-muted sm:text-xl">See what your memes would be in NVDA today. Move the dead ones into real stock with one confirmation.</p>
+        <Guarantee addr={DEMO_ADDR || undefined} className="mt-4 max-w-xl" />
         <div className="mt-8 flex max-w-xl flex-col gap-3">
           <div className="flex flex-col gap-3 sm:flex-row">
             <LandingConnect />
@@ -5631,6 +5648,38 @@ function AttestDialog({ open, country, onClose, onConfirm }: { open: boolean; co
 }
 ```
 
+#### File: web/components/guarantee.tsx
+[ASSUMED] — Source: see header comment
+```tsx
+// File: web/components/guarantee.tsx
+import Link from "next/link";
+import { cx } from "./ui";
+
+/** PRD §4.13 "Landing guarantee" (critique E-1). Copy is fixed; do not paraphrase. */
+export const GUARANTEE = "Every number here is recomputable onchain. Terra Firma never sells or prices $WIF. Every stock fill is bounded by Chainlink.";
+
+/** Deep link into the /proof recompute box, prefilled when a wallet is known. */
+export function recomputeHref(addr?: string, stock?: string) {
+  if (!addr) return "/proof#recompute";
+  const q = new URLSearchParams({ addr, ...(stock ? { stock } : {}) });
+  return `/proof?${q.toString()}#recompute`;
+}
+
+export function Guarantee({ addr, stock, className }: { addr?: string; stock?: string; className?: string }) {
+  return (
+    <p className={cx("flex flex-col gap-2 text-sm text-muted sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3", className)}>
+      <span>{GUARANTEE}</span>
+      <Link
+        href={recomputeHref(addr, stock)}
+        className="inline-flex min-h-11 items-center font-semibold text-accent underline decoration-accent/40 underline-offset-4 hover:decoration-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-sm"
+      >
+        Recompute this card<span aria-hidden>&nbsp;→</span>
+      </Link>
+    </p>
+  );
+}
+```
+
 #### File: web/components/hindsight-card.tsx
 [ASSUMED] — Source: see header comment
 ```tsx
@@ -5642,6 +5691,7 @@ import { ADDR, EXPLORER, STOCKS } from "@/lib/config";
 import type { Card, CardBuy, CardMeme } from "@/lib/hindsight";
 import { REGISTRY } from "@/lib/registry";
 import { date, pct, pctChange, roundTail, shares18, token, usd8, usd8Label } from "@/lib/ui-format";
+import { Guarantee } from "./guarantee";
 import { AddrLink, Badge, ExtLink, Panel, Skeleton, TxLink, cx } from "./ui";
 
 const payAsset = (b: CardBuy) =>
@@ -5783,6 +5833,8 @@ export function HindsightCard({ card, owner = true, stockControl, actions }: { c
       )}
 
       {actions}
+
+      <Guarantee addr={card.wallet} stock={card.stock} className="border-t border-line pt-4" />
     </Panel>
   );
 }
@@ -6397,12 +6449,12 @@ export function AddressLookup() {
 "use client";
 
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { isAddress, type Abi } from "viem";
 import { useAccount, useReadContracts } from "wagmi";
 import evidence from "@/data/evidence.json";
 import { feePoolAbi, hindsightLensAbi } from "@/lib/abi";
-import { CHAIN_ID, TF, addrUrl } from "@/lib/config";
+import { ADDR, CHAIN_ID, FEE_BPS, STAKER_FEE_BPS, DISCOUNT_STAKE, TF, addrUrl, stockBySymbol } from "@/lib/config";
 import type { Card } from "@/lib/hindsight";
 import { CONTRACTS, DEPLOYED, REPO_URL, publicClient } from "@/lib/ui-chain";
 import { dateTime, eth, token } from "@/lib/ui-format";
@@ -6416,6 +6468,7 @@ import { AddrLink, Badge, Button, ExtLink, Notice, Panel, Skeleton, Stat, TxLink
 export function ProofView() {
   return (
     <div className="space-y-6">
+      <RubricMap />
       <Contracts />
       <Totals />
       <FirstOfKind />
@@ -6429,9 +6482,81 @@ export function ProofView() {
   );
 }
 
+// ---- Rubric map (critique E-2): the three judging criteria, each pointing at live evidence ----
+
+const PENDING = "live after mainnet deploy";
+const anchorCls = "inline-flex min-h-11 items-center underline decoration-line underline-offset-4 hover:decoration-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-sm";
+const bps = (b: number) => `${(b / 100).toFixed(1)}%`;
+
+function Jump({ to, children }: { to: string; children: ReactNode }) {
+  return <a href={`#${to}`} className={anchorCls}>{children}</a>;
+}
+
+/** One evidence line: what it proves, then the link (or an honest pending/loading state). */
+function Row({ k, children }: { k: ReactNode; children: ReactNode }) {
+  return (
+    <li className="flex min-h-11 flex-wrap items-center justify-between gap-x-3 gap-y-1 py-1.5 text-sm">
+      <span className="text-muted">{k}</span>
+      <span className="text-right">{children}</span>
+    </li>
+  );
+}
+
+function RubricCard({ id, title, claim, children }: { id: string; title: string; claim: string; children: ReactNode }) {
+  return (
+    <Panel aria-labelledby={id} className="flex flex-col">
+      <h3 id={id} className="text-lg font-semibold">{title}</h3>
+      <p className="mt-1 text-sm text-muted">{claim}</p>
+      <ul className="mt-3 divide-y divide-line">{children}</ul>
+    </Panel>
+  );
+}
+
+function RubricMap() {
+  const { logs, l, volume, burned, toStock } = useProofTotals();
+  const f = l ? firsts(l) : undefined;
+  const dist = l ? only(l.feePool, "Distributed") : [];
+  const lastDist = dist[dist.length - 1];
+  const failed = DEPLOYED && !!logs.error;
+  /** Event-derived link: pending pre-deploy, explicit on RPC failure, skeleton while scanning. */
+  const ev = (hash: string | undefined, none: string) =>
+    !DEPLOYED ? <span className="text-muted">{PENDING}</span> : failed ? <span className="text-danger">RPC unavailable</span> : !l ? <Skeleton w="6rem" /> : hash ? <TxLink hash={hash} /> : <span className="text-muted">{none}</span>;
+  const total = (x: bigint | undefined, fmt: (n: bigint) => string, href: string) =>
+    !DEPLOYED ? <span className="text-muted">{PENDING}</span> : x === undefined ? <Skeleton w="5rem" /> : <ExtLink href={href}><span className="num">{fmt(x)}</span></ExtLink>;
+  return (
+    <section aria-labelledby="rubric-title" className="space-y-3">
+      <h2 id="rubric-title" className="text-sm font-medium uppercase tracking-wider text-muted">Judging criteria, mapped to evidence</h2>
+      <div className="grid gap-4 lg:grid-cols-3">
+        <RubricCard id="rb-wif" title="A real reason to use $WIF" claim="Fees buy and burn $WIF, stakers earn real stock, and staking cuts your trade fee.">
+          <Row k="First fee-funded $WIF burn">{ev(f?.[2].log?.transactionHash, "not yet")}</Row>
+          <Row k="First staker claim">{ev(f?.[3].log?.transactionHash, "not yet")}</Row>
+          <Row k={`Fee discount: ${token(DISCOUNT_STAKE)} $WIF staked → ${bps(STAKER_FEE_BPS)} instead of ${bps(FEE_BPS)}`}>
+            {DEPLOYED ? <AddrLink addr={TF.TerraRouter}>TerraRouter.feeBps</AddrLink> : <span className="text-muted">{PENDING}</span>}
+          </Row>
+          <Row k="$WIF token (the router reverts any $WIF sell)"><AddrLink addr={ADDR.wif} /></Row>
+        </RubricCard>
+        <RubricCard id="rb-fly" title="A flywheel that holds up" claim="Routed volume pays fees; each epoch burns $WIF and streams stock to stakers. Live totals, no projections.">
+          <Row k="Routed volume">{total(l ? volume : undefined, (n) => `${eth(n)} ETH`, addrUrl(TF.TerraRouter))}</Row>
+          <Row k="$WIF burned">{total(burned, (n) => token(n), addrUrl(TF.FeePool))}</Row>
+          <Row k="ETH streamed to staker stock">{total(toStock, (n) => `${eth(n)} ETH`, addrUrl(TF.FeePool))}</Row>
+          <Row k="Latest distribute">{ev(lastDist?.transactionHash, "no distribute yet")}</Row>
+          <Row k="Burn path: hooked WIF/ETH pool"><AddrLink addr={ADDR.wifHook} /></Row>
+        </RubricCard>
+        <RubricCard id="rb-built" title="Works and built well" claim="Ownerless contracts, a mainnet-fork test suite, and every card recomputable by eth_call.">
+          <Row k={`${CONTRACTS.length} ownerless contracts${DEPLOYED ? ", verified" : ""}`}>
+            {DEPLOYED ? <Jump to="contracts">Addresses</Jump> : <span className="text-muted">{PENDING}</span>}
+          </Row>
+          <Row k={`${evidence.forkTests} fork tests passing`}><Jump to="fork-tests">Command and output</Jump></Row>
+          <Row k="Recompute any card onchain"><Jump to="recompute">Recompute box</Jump></Row>
+        </RubricCard>
+      </div>
+    </section>
+  );
+}
+
 function Contracts() {
   return (
-    <Panel aria-labelledby="c-title">
+    <Panel id="contracts" aria-labelledby="c-title" className="scroll-mt-24">
       <h2 id="c-title" className="font-semibold">Contracts</h2>
       <p className="mt-1 text-sm text-muted">No owner, no pause, no upgrade, no admin withdraw (checked by the fork test <code className="font-mono">test_noOwnerFunctions</code>).</p>
       <ul className="mt-4 divide-y divide-line">
@@ -6449,7 +6574,8 @@ function Contracts() {
   );
 }
 
-function Totals() {
+/** FeePool totals + router volume, shared by the rubric map and the totals row (one read, one log scan). */
+function useProofTotals() {
   const reads = useReadContracts({
     contracts: [
       { address: TF.FeePool, abi: feePoolAbi, functionName: "totalWifBurned", chainId: CHAIN_ID },
@@ -6462,14 +6588,21 @@ function Totals() {
   const traded = l ? only(l.router, "Traded") : [];
   const volume = traded.reduce((a, t) => a + t.args.ethAmount, 0n);
   const fees = traded.reduce((a, t) => a + t.args.fee, 0n);
+  const burned = reads.data?.[0]?.result as bigint | undefined;
+  const toStock = reads.data?.[1]?.result as bigint | undefined;
+  return { logs, l, traded, volume, fees, burned, toStock };
+}
+
+function Totals() {
+  const { l, traded, volume, fees, burned, toStock } = useProofTotals();
   const v = (ok: boolean, f: () => string) => (!DEPLOYED ? "—" : ok ? f() : <Skeleton w="4rem" h="1.6rem" />);
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-      <Stat label="$WIF burned" href={addrUrl(TF.FeePool)} value={v(!!reads.data?.[0]?.result, () => token(reads.data![0].result as bigint))} />
-      <Stat label="ETH to staker stock" href={addrUrl(TF.FeePool)} value={v(!!reads.data, () => eth((reads.data![1].result as bigint) ?? 0n))} />
-      <Stat label="Routed trades" href={addrUrl(TF.TerraRouter)} value={v(!!l, () => traded.length.toLocaleString("en-US"))} />
-      <Stat label="Routed volume" href={addrUrl(TF.TerraRouter)} value={v(!!l, () => `${eth(volume)} ETH`)} sub={l ? `${eth(fees)} ETH in fees` : undefined} />
-      <Stat label="Cards minted" href={addrUrl(TF.HindsightLens)} value={v(!!l, () => only(l!.lens, "CardMinted").length.toString())} />
+    <div id="totals" className="grid scroll-mt-24 grid-cols-2 gap-3 lg:grid-cols-5">
+      <Stat label="$WIF burned" href={DEPLOYED ? addrUrl(TF.FeePool) : undefined} value={v(burned !== undefined, () => token(burned!))} />
+      <Stat label="ETH to staker stock" href={DEPLOYED ? addrUrl(TF.FeePool) : undefined} value={v(toStock !== undefined, () => eth(toStock!))} />
+      <Stat label="Routed trades" href={DEPLOYED ? addrUrl(TF.TerraRouter) : undefined} value={v(!!l, () => traded.length.toLocaleString("en-US"))} />
+      <Stat label="Routed volume" href={DEPLOYED ? addrUrl(TF.TerraRouter) : undefined} value={v(!!l, () => `${eth(volume)} ETH`)} sub={l ? `${eth(fees)} ETH in fees` : undefined} />
+      <Stat label="Cards minted" href={DEPLOYED ? addrUrl(TF.HindsightLens) : undefined} value={v(!!l, () => only(l!.lens, "CardMinted").length.toString())} />
     </div>
   );
 }
@@ -6518,27 +6651,47 @@ function FirstOfKind() {
   );
 }
 
+/** ?addr=0x…&stock=NVDA from a "Recompute this card" link. Read after mount so /proof stays static. */
+function useQueryPrefill() {
+  const [q, setQ] = useState<{ addr: string; stock: string } | null>(null);
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    const addr = p.get("addr")?.trim() ?? "";
+    if (isAddress(addr)) setQ({ addr, stock: stockBySymbol(p.get("stock") ?? "")?.symbol ?? "NVDA" });
+  }, []);
+  return q;
+}
+
 function RecomputeBox() {
   const [v, setV] = useState("");
+  const [stock, setStock] = useState("NVDA");
   const [err, setErr] = useState(false);
+  const prefill = useQueryPrefill();
   const run = useMutation({
-    mutationFn: async (addr: string) => {
-      const card = await getJson<Card>(`/api/hindsight?addr=${addr}&stock=NVDA`);
+    mutationFn: async ({ addr, stock }: { addr: string; stock: string }) => {
+      const card = await getJson<Card>(`/api/hindsight?addr=${addr}&stock=${stock}`);
       if (!DEPLOYED || card.memes.length === 0) return { card, chain: undefined };
       const [usdPaid8, shares18, usdNow8] = await publicClient.readContract({ address: TF.HindsightLens, abi: hindsightLensAbi, functionName: "recompute", args: [lensBuys(card), stockIdOf(card.stock)] });
       return { card, chain: { usdPaid8, shares18, usdNow8 } };
     },
   });
+  const { mutate } = run;
+  useEffect(() => {
+    if (!prefill) return;
+    setV(prefill.addr);
+    setStock(prefill.stock);
+    mutate(prefill);
+  }, [prefill, mutate]);
   return (
-    <Panel aria-labelledby="r-title">
+    <Panel id="recompute" aria-labelledby="r-title" className="scroll-mt-24">
       <h2 id="r-title" className="font-semibold">Recompute a card</h2>
-      <p className="mt-1 text-sm text-muted">Runs /api/hindsight, then HindsightLens.recompute on the same inputs via eth_call.</p>
+      <p className="mt-1 text-sm text-muted">Runs /api/hindsight, then HindsightLens.recompute on the same inputs via eth_call. Priced in {stock}.</p>
       <form
         className="mt-4 flex flex-col gap-2 sm:flex-row"
         onSubmit={(e) => {
           e.preventDefault();
           if (!isAddress(v.trim())) return setErr(true);
-          run.mutate(v.trim());
+          run.mutate({ addr: v.trim(), stock });
         }}
       >
         <label htmlFor="rc-addr" className="sr-only">Wallet address</label>
@@ -6590,7 +6743,7 @@ function Distribute() {
 
 function Evidence() {
   return (
-    <Panel aria-labelledby="e-title" className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <Panel id="fork-tests" aria-labelledby="e-title" className="scroll-mt-24 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <h2 id="e-title" className="font-semibold">Fork tests</h2>
         <p className="mt-1 text-sm text-muted">
@@ -7675,6 +7828,228 @@ export const inputCls =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent aria-[invalid=true]:border-danger";
 ```
 
+#### File: web/lib/quote.test.ts
+[ASSUMED] — Source: see header comment
+```typescript
+// File: web/lib/quote.test.ts
+import { describe, expect, it } from "vitest";
+import type { Address } from "viem";
+import { ADDR } from "./config";
+import type { PoolEntry } from "./registry";
+import { bestQuote, quoteStock, routeFor, v3Path } from "./quote";
+
+const TOKEN = "0x39dBED3a2bd333467115dE45665cC57F813C4571" as Address;
+const NVDA = "0xd0601CE157Db5bdC3162BbaC2a2C8aF5320D9EEC" as Address;
+const ZERO = "0x0000000000000000000000000000000000000000" as Address;
+const hexOf = (a: string) => a.slice(2).toLowerCase();
+
+const v2: PoolEntry = { kind: 1, version: "v2", pool: ZERO, quote: "WETH", liquidityUsd: 1 };
+const v3: PoolEntry = { kind: 2, version: "v3", pool: ZERO, fee: 3000, quote: "WETH", liquidityUsd: 1 };
+const v4Key = { currency0: ZERO, currency1: TOKEN, fee: 8388608, tickSpacing: 60, hooks: ADDR.wifHook };
+const v4: PoolEntry = { kind: 3, version: "v4", id: "0x01", key: v4Key, liquidityUsd: 1 };
+
+describe("v3Path", () => {
+  it("packs address(20) + uint24 fee(3) + address(20)", () => {
+    const p = v3Path(ADDR.weth, 500, NVDA);
+    expect(p).toBe(`0x${hexOf(ADDR.weth)}0001f4${hexOf(NVDA)}`);
+    expect((p.length - 2) / 2).toBe(43);
+  });
+
+  it("encodes the 1% tier and the zero fee at the edges of uint24", () => {
+    expect(v3Path(ADDR.weth, 10000, NVDA).slice(42, 48)).toBe("002710");
+    expect(v3Path(ADDR.weth, 0, NVDA).slice(42, 48)).toBe("000000");
+  });
+
+  it("rejects a fee that does not fit uint24", () => {
+    expect(() => v3Path(ADDR.weth, 2 ** 24, NVDA)).toThrow();
+  });
+});
+
+describe("routeFor", () => {
+  it("builds v2 and v3 routes with WETH on the input side for buys and the output side for sells", () => {
+    expect(routeFor(v2, TOKEN, "buy").v2Path).toEqual([ADDR.weth, TOKEN]);
+    expect(routeFor(v2, TOKEN, "sell").v2Path).toEqual([TOKEN, ADDR.weth]);
+    expect(routeFor(v3, TOKEN, "buy")).toMatchObject({ kind: 2, v2Path: [], v3Path: v3Path(ADDR.weth, 3000, TOKEN) });
+    expect(routeFor(v3, TOKEN, "sell").v3Path).toBe(v3Path(TOKEN, 3000, ADDR.weth));
+  });
+
+  it("passes a hooked, dynamic-fee v4 key through verbatim (fee 8388608 kept)", () => {
+    const r = routeFor(v4, TOKEN, "buy");
+    expect(r).toEqual({ kind: 3, v2Path: [], v3Path: "0x", key: v4Key });
+  });
+
+  it("never returns a v2/v3 route whose endpoints differ from the declared token (TerraRouter._validate would revert BadRoute)", () => {
+    for (const side of ["buy", "sell"] as const) {
+      const r2 = routeFor(v2, TOKEN, side);
+      expect(r2.v2Path).toContain(TOKEN);
+      expect(r2.v2Path).toContain(ADDR.weth);
+      expect(routeFor(v3, TOKEN, side).v3Path.toLowerCase()).toContain(hexOf(TOKEN));
+    }
+  });
+});
+
+describe("bestQuote / quoteStock guards (no RPC reached)", () => {
+  it("refuses to quote a $WIF sell (INVARIANT 1)", async () => {
+    await expect(bestQuote(ADDR.wif, "sell", 10n ** 18n)).resolves.toBeNull();
+  });
+
+  it("returns null for a zero amount and for a token outside the registry", async () => {
+    await expect(bestQuote(ADDR.wif, "buy", 0n)).resolves.toBeNull();
+    await expect(bestQuote("0x000000000000000000000000000000000000dEaD", "buy", 1n)).resolves.toBeNull();
+  });
+
+  it("quotes zero ETH into stock as zero without a call", async () => {
+    await expect(quoteStock(0, 0n)).resolves.toBe(0n);
+  });
+});
+```
+
+#### File: web/lib/rounds.integration.ts
+[ASSUMED] — Source: see header comment
+```typescript
+// File: web/lib/rounds.integration.ts
+// Integration tier: runs against the committed Chainlink round tables in web/data/rounds (built from mainnet 4663).
+import { describe, expect, it } from "vitest";
+import { loadTable, normalize8, NVDA_HISTORY_FEED, PHASE_BASE, roundAt } from "./rounds";
+
+describe("committed NVDA/USD history table", () => {
+  it("is ordered and roundAt brackets a mid-table timestamp", async () => {
+    const t = await loadTable(NVDA_HISTORY_FEED);
+    expect(t.rounds.length).toBeGreaterThan(100);
+    for (let i = 1; i < t.rounds.length; i++) expect(t.rounds[i][2]).toBeGreaterThanOrEqual(t.rounds[i - 1][2]);
+    const mid = t.rounds[Math.floor(t.rounds.length / 2)];
+    const r = roundAt(t, mid[2] + 1);
+    const idx = t.rounds.findIndex((x) => PHASE_BASE + BigInt(x[0]) === r.roundId);
+    expect(r.updatedAt).toBeLessThanOrEqual(mid[2] + 1);
+    if (idx + 1 < t.rounds.length) expect(t.rounds[idx + 1][2]).toBeGreaterThan(mid[2] + 1);
+  });
+
+  it("stores early scaled rounds already normalized (round 24 == SOURCE LOCK raw / 1e8)", async () => {
+    const t = await loadTable(NVDA_HISTORY_FEED);
+    const r24 = t.rounds.find((x) => x[0] === 24);
+    expect(r24?.[1]).toBe((2030652000000000000n / 10n ** 8n).toString());
+    for (const [n, a] of t.rounds) expect(normalize8(t.feed, n, BigInt(a))).toBe(BigInt(a));
+  });
+
+  it("rejects a feed with no committed table", async () => {
+    await expect(loadTable("0x000000000000000000000000000000000000dEaD")).rejects.toThrow(/ENOENT/);
+  });
+});
+```
+
+#### File: web/lib/rounds.test.ts
+[ASSUMED] — Source: see header comment
+```typescript
+// File: web/lib/rounds.test.ts
+import { describe, expect, it } from "vitest";
+import { normalize8, PHASE_BASE, roundAt, type RoundTable } from "./rounds";
+
+const FEED = "0x379EC4f7C378F34a1B47E4F3cbeBCbAC3E8E9F15";
+const table = (rounds: RoundTable["rounds"]): RoundTable => ({ feed: FEED, decimals: 8, phase: 1, rounds });
+const T = table([
+  [1, "100", 1000],
+  [2, "200", 2000],
+  [3, "300", 3000],
+]);
+
+describe("roundAt", () => {
+  it("returns the last round updated at or before ts", () => {
+    expect(roundAt(T, 2500)).toEqual({ roundId: PHASE_BASE + 2n, price8: 200n, updatedAt: 2000 });
+  });
+
+  it("includes a round whose updatedAt equals ts, and clamps to the last round after the table", () => {
+    expect(roundAt(T, 1000).roundId).toBe(PHASE_BASE + 1n);
+    expect(roundAt(T, 3000).roundId).toBe(PHASE_BASE + 3n);
+    expect(roundAt(T, 9_999_999).price8).toBe(300n);
+    expect(roundAt(table([[7, "42", 50]]), 51)).toEqual({ roundId: PHASE_BASE + 7n, price8: 42n, updatedAt: 50 });
+  });
+
+  it("throws when ts precedes the feed or the table is empty", () => {
+    expect(() => roundAt(T, 999)).toThrow(/no round before 999/);
+    expect(() => roundAt(table([]), 1000)).toThrow(/no round before 1000/);
+  });
+});
+
+describe("normalize8", () => {
+  it("divides 1e16-scaled early answers by 1e8 (NVDA/USD round 24, SOURCE LOCK value)", () => {
+    expect(normalize8(FEED, 24, 2030652000000000000n)).toBe(20306520000n);
+  });
+
+  it("uses a strict > 1e15 threshold, like StockOracle.SCALED_THRESHOLD", () => {
+    expect(normalize8(FEED, 1, 10n ** 15n)).toBe(10n ** 15n);
+    expect(normalize8(FEED, 1, 10n ** 15n + 1n)).toBe((10n ** 15n + 1n) / 10n ** 8n);
+  });
+
+  it("never rescales a normal 8-decimal answer", () => {
+    expect(normalize8(FEED, 1718, 17107118018n)).toBe(17107118018n);
+    expect(normalize8(FEED, 1, 0n)).toBe(0n);
+  });
+});
+```
+
+#### File: web/lib/stock-paths.integration.ts
+[ASSUMED] — Source: see header comment
+```typescript
+// File: web/lib/stock-paths.integration.ts
+// Integration tier: web/lib/config.ts STOCKS + web/lib/quote.ts STOCK_PATHS must match contracts/script/TerraConfig.sol
+// stocks() byte for byte (same tokens, feeds, symbols, pool fees and hops), or the UI quotes a path the contract won't use.
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { encodePacked, type Address, type Hex } from "viem";
+import { describe, expect, it } from "vitest";
+import { ADDR, STOCKS } from "./config";
+import { STOCK_PATHS } from "./quote";
+
+type SolStock = { id: number; token: Address; liveFeed: Address; historyFeed: Address; path: Hex; fees: number[]; symbol: string };
+const SOL = readFileSync(fileURLToPath(new URL("../../contracts/script/TerraConfig.sol", import.meta.url)), "utf8");
+const STOCK_RE =
+  /s\[(\d)\] = StockOracle\.Stock\(\s*(\w+), (0x[0-9a-fA-F]{40}), (0x[0-9a-fA-F]{40}),\s*abi\.encodePacked\(((?:[^()]|\([^()]*\))*)\), "(\w+)"\s*\);/g;
+
+function parseStocks(sol: string): SolStock[] {
+  const consts = new Map([...sol.matchAll(/address internal constant (\w+) = (0x[0-9a-fA-F]{40});/g)].map((m) => [m[1], m[2] as Address]));
+  const addr = (name: string) => {
+    const a = consts.get(name);
+    if (!a) throw new Error(`unknown constant ${name}`);
+    return a;
+  };
+  return [...sol.matchAll(STOCK_RE)].map((m) => {
+    const parts = m[5].split(",").map((s) => s.trim());
+    const fees = parts.filter((p) => p.startsWith("uint24(")).map((p) => Number(p.slice(7, -1)));
+    const types = parts.map((p) => (p.startsWith("uint24(") ? "uint24" : "address"));
+    const values = parts.map((p) => (p.startsWith("uint24(") ? Number(p.slice(7, -1)) : addr(p)));
+    return { id: Number(m[1]), token: addr(m[2]), liveFeed: m[3] as Address, historyFeed: m[4] as Address, path: encodePacked(types, values), fees, symbol: m[6] };
+  });
+}
+
+describe("STOCKS / STOCK_PATHS vs TerraConfig.sol stocks()", () => {
+  const sol = parseStocks(SOL);
+
+  it("has the same 6 stocks with identical tokens, feeds, symbols and packed paths", () => {
+    expect(sol.map((s) => s.id)).toEqual([0, 1, 2, 3, 4, 5]);
+    for (const s of sol) {
+      const w = STOCKS[s.id];
+      expect(w.symbol).toBe(s.symbol);
+      expect(w.token.toLowerCase()).toBe(s.token.toLowerCase());
+      expect(w.liveFeed.toLowerCase()).toBe(s.liveFeed.toLowerCase());
+      expect(w.historyFeed.toLowerCase()).toBe(s.historyFeed.toLowerCase());
+      expect(STOCK_PATHS[w.id].toLowerCase()).toBe(s.path.toLowerCase());
+    }
+  });
+
+  it("routes GOOGL and SNDK through USDG (2 hops, fees 500/500 and 500/10000)", () => {
+    expect(sol[2].fees).toEqual([500, 500]);
+    expect(sol[3].fees).toEqual([500, 10000]);
+    for (const id of [2, 3] as const) expect(STOCK_PATHS[id].toLowerCase()).toContain(ADDR.usdg.slice(2).toLowerCase());
+    expect(sol.filter((s) => s.fees.length === 1).map((s) => s.fees[0])).toEqual([500, 3000, 500, 3000]);
+  });
+
+  it("fails loudly on a path constant it cannot resolve", () => {
+    const bad = SOL.replace("abi.encodePacked(WETH, uint24(500), NVDA)", "abi.encodePacked(WETH, uint24(500), NOPE)");
+    expect(() => parseStocks(bad)).toThrow(/unknown constant NOPE/);
+  });
+});
+```
+
 #### File: web/lib/ui-chain.ts
 [ASSUMED] — Source: see header comment
 ```typescript
@@ -8153,6 +8528,7 @@ Client components talk only to API routes or read the chain through wagmi/public
 Data builders, deployment sync, keeper, seed, proof, claims.
 
 ### Files
+- `.github/workflows/ci.yml`
 - `.github/workflows/keeper.yml`
 - `package.json`
 - `scripts/build-registry.ts`
@@ -8163,6 +8539,7 @@ Data builders, deployment sync, keeper, seed, proof, claims.
 - `scripts/export-abis.mjs`
 - `scripts/gen-architecture.py`
 - `scripts/gen-plan.py`
+- `scripts/hindsight.live.ts`
 - `scripts/keeper.ts`
 - `scripts/lib/env.ts`
 - `scripts/lib/files.ts`
@@ -8177,6 +8554,81 @@ Data builders, deployment sync, keeper, seed, proof, claims.
 - `tsconfig.json`
 
 ### Code
+
+#### File: .github/workflows/ci.yml
+[ASSUMED] — Source: see header comment
+```yaml
+# File: .github/workflows/ci.yml
+# Offline gate on every push / PR. No secrets are used or needed here.
+# Live tier (contract fork tests + scripts/hindsight.live.ts) needs an RPC and runs locally via `pnpm test:live`:
+# every contract test forks Robinhood Chain mainnet (vm.createSelectFork(RPC_URL)), so CI compiles contracts only.
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - name: unit + integration tests (offline)
+        run: pnpm test
+      - run: pnpm build
+
+  scripts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            web/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile
+        working-directory: web
+      - run: pnpm typecheck
+      - name: verify CLAIMS.md (deployment rows stay PENDING until deploy)
+        run: pnpm verify-claims
+
+  contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.4.4
+      - name: forge build (600 s guard; solc via-IR has hung here before)
+        run: scripts/forge.sh build
+      - name: ABI drift (web/lib/abi.ts must match the compiled contracts)
+        run: node scripts/export-abis.mjs && git diff --exit-code web/lib/abi.ts
+```
 
 #### File: .github/workflows/keeper.yml
 [ASSUMED] — Source: see header comment
@@ -8273,7 +8725,13 @@ jobs:
     "proof": "tsx scripts/proof.ts",
     "verify-claims": "tsx scripts/verify-claims.ts",
     "test-hindsight": "tsx scripts/test-hindsight.ts",
-    "typecheck": "tsc --noEmit -p scripts"
+    "typecheck": "tsc --noEmit -p scripts",
+    "typecheck:web": "pnpm --dir web typecheck",
+    "forge:build": "scripts/forge.sh build",
+    "test": "pnpm --dir web test",
+    "test:live": "tsx --conditions=react-server scripts/hindsight.live.ts && scripts/fork-tests.sh",
+    "check": "pnpm typecheck && pnpm typecheck:web && pnpm forge:build && pnpm test && pnpm verify-claims",
+    "clean-room": "scripts/clean-room.sh"
   },
   "dependencies": {
     "viem": "^2.57.17"
@@ -9136,6 +9594,75 @@ if __name__ == "__main__":
     main()
 ```
 
+#### File: scripts/hindsight.live.ts
+[ASSUMED] — Source: see header comment
+```typescript
+// File: scripts/hindsight.live.ts
+// LIVE tier (contract rule 24): builds a real Hindsight card for a known mainnet wallet with web/lib/hindsight.ts
+// against the PUBLIC Robinhood Chain RPC only (GetBlock / Envio env vars are removed first), then checks it:
+//   1. card shape + asOfBlock near head   2. every buy tx resolves onchain, succeeded, and was sent by the wallet
+//   3. per-buy pricing arithmetic (usdPaid8 = amountPaid * payUsd8 / 10^dec; shares18 = usdPaid8 * 1e18 / stockUsd8)
+//   4. meme totals == sum of the meme rows.   Exit 1 on any failure.
+// Run (only via `pnpm test:live`): tsx --conditions=react-server scripts/hindsight.live.ts
+//   (--conditions=react-server resolves "server-only" to its empty module, exactly as Next does on the server.)
+import assert from "node:assert/strict";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import type { Address, Hex } from "viem";
+
+const WALLET = "0x3fDBeB0FC14cca8fDd238Dd21725F0b8585Ab09E" as Address;
+const PUBLIC_RPC = "https://rpc.mainnet.chain.robinhood.com";
+const WEB = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "web");
+
+for (const k of ["GETBLOCK_RPC_FRA", "GETBLOCK_RPC_NYC", "ENVIO_API_TOKEN"]) delete process.env[k];
+process.chdir(WEB); // web/lib/rounds.ts reads data/rounds relative to the Next app root
+
+type Receipt = { status: Hex; from: Address };
+
+async function rpc<T>(method: string, params: unknown[]): Promise<T> {
+  const res = await fetch(PUBLIC_RPC, {
+    method: "POST",
+    headers: { "content-type": "application/json", "user-agent": "terra-firma-live-test/1.0" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+  });
+  const j = (await res.json()) as { result?: T; error?: { message: string } };
+  if (j.error || j.result === undefined) throw new Error(`${method}: ${j.error?.message ?? "no result"}`);
+  return j.result;
+}
+
+async function main() {
+  const { buildCard } = await import("../web/lib/hindsight");
+  const t0 = Date.now();
+  const card = await buildCard(WALLET, 0);
+  const head = Number(await rpc<Hex>("eth_blockNumber", []));
+  console.log(`card for ${WALLET} in ${((Date.now() - t0) / 1000).toFixed(1)}s: ${card.memes.length} memes, ${card.unpriced.length} unpriced, block ${card.asOfBlock}`);
+
+  assert.equal(card.wallet.toLowerCase(), WALLET.toLowerCase());
+  assert.ok(card.asOfBlock > 0 && head - card.asOfBlock < 50_000, `asOfBlock ${card.asOfBlock} far from head ${head}`);
+  assert.ok(card.memes.length > 0, "known active wallet produced an empty card");
+
+  const buys = card.memes.flatMap((m) => m.buys);
+  for (const b of buys) {
+    const rc = await rpc<Receipt | null>("eth_getTransactionReceipt", [b.tx]);
+    assert.ok(rc, `tx ${b.tx} not found onchain`);
+    assert.equal(rc.status, "0x1", `tx ${b.tx} reverted`);
+    assert.equal(rc.from.toLowerCase(), WALLET.toLowerCase(), `tx ${b.tx} not sent by the wallet`);
+    const dec = b.payKind === 1 ? 10n ** 6n : 10n ** 18n;
+    assert.equal(BigInt(b.usdPaid8), (BigInt(b.amountPaid) * BigInt(b.payUsd8)) / dec, `usdPaid8 arithmetic ${b.tx}`);
+    assert.equal(BigInt(b.shares18), (BigInt(b.usdPaid8) * 10n ** 18n) / BigInt(b.stockUsd8), `shares18 arithmetic ${b.tx}`);
+  }
+  for (const m of card.memes) {
+    assert.equal(BigInt(m.usdPaid8), m.buys.reduce((s, b) => s + BigInt(b.usdPaid8), 0n), `${m.symbol} usdPaid8 total`);
+  }
+  console.log(`PASS hindsight.live: ${buys.length} buys resolved onchain (status 1, from = wallet), pricing arithmetic and totals consistent`);
+}
+
+main().catch((e) => {
+  console.error(`FAIL hindsight.live: ${e instanceof Error ? e.message : e}`);
+  process.exit(1);
+});
+```
+
 #### File: scripts/keeper.ts
 [ASSUMED] — Source: see header comment
 ```typescript
@@ -9820,13 +10347,16 @@ main().catch((e) => {
 [ASSUMED] — Source: see header comment
 ```typescript
 // File: scripts/seed-demo.ts
-// Earns the PRD §6 demo state with REAL mainnet transactions from the demo wallet (never fabricated). Idempotent: every
-// step reads chain state first and skips when already satisfied.
-//   a) buy 3 memes (top liquidity, tested) ~0.0005 ETH each via TerraRouter.buy, sweep 0
+// Earns the PRD §6 demo state with REAL mainnet transactions (never fabricated). Idempotent: every step reads chain
+// state first and skips when already satisfied. Minimal-spend plan: Dami runs the trades himself from his own wallet in
+// the UI; `--dry` prints the exact per-step amounts (live quotes) plus a "run these in the UI" checklist. The real-send
+// path (DEMO_KEY) is kept for completeness and uses the same small sizes.
+//   a) buy 3 memes (top liquidity, tested) 0.0003 ETH each via TerraRouter.buy, sweep 0
 //   b) one convert of one meme into NVDA         c) two buys with sweep 2% (NVDA)
 //   d) hold >= 500 WIF (buy ~600 via TerraRouter.buy on the WIF key if short) and stake 500 to NVDA (approve exact)
 //   e) print what remains (epoch wait, keeper)
 // Env: RPC_URL (optional), DEMO_KEY (0x private key; not needed with --dry, DEMO_ADDR then picks the wallet to inspect).
+//   For --dry with DEMO_KEY use a throwaway `cast wallet new` key that is never funded.
 // Run: pnpm tsx scripts/seed-demo.ts [--dry]
 import { createWalletClient, encodeEventTopics, formatEther, formatUnits, parseEther, type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
@@ -9839,7 +10369,7 @@ import { loadDeployments, loadRegistry, type Deployments } from "./lib/files";
 import { bestQuote, type BestQuote, type Route } from "./lib/quote";
 import { client, getLogsMany, headBlock, transports } from "./lib/rpc";
 
-const BUY_ETH = parseEther("0.0005");
+const BUY_ETH = parseEther("0.0003");
 const MEME_SLIPPAGE_BPS = 150n;
 const STAKE_WIF = 500n * 10n ** 18n;
 const WIF_TARGET = 600n * 10n ** 18n;
@@ -9852,10 +10382,16 @@ const WIF_POOL: PoolEntry = {
   liquidityUsd: 0,
 };
 
+interface PlanStep {
+  ui: string;
+  eth: bigint;
+}
+
 interface Ctx {
   user: Address | null;
   d: Deployments | null;
   send: ((label: string, req: () => Promise<Hex>) => Promise<void>) | null;
+  plan: PlanStep[];
 }
 
 const minOut = (q: BestQuote) => (q.amountOut * (10_000n - MEME_SLIPPAGE_BPS)) / 10_000n;
@@ -9891,6 +10427,8 @@ async function buy(ctx: Ctx, m: Pick<Meme, "token" | "symbol" | "pools">, eth: b
   const q = await bestQuote(m.token, m.pools, "buy", await tradeLeg(ctx, eth, sweepBps));
   if (!q) throw new Error(`no live quote for ${m.symbol}`);
   console.log(`  plan buy ${formatEther(eth)} ETH -> ${m.symbol} via ${q.pool.version}: quote ${formatUnits(q.amountOut, 18)} min ${formatUnits(minOut(q), 18)} sweep ${sweepBps}bps`);
+  const sweep = sweepBps > 0 ? `sweep ${sweepBps / 100}% into NVDA` : "sweep 0%";
+  ctx.plan.push({ ui: `/trade: buy ${m.symbol} for exactly ${formatEther(eth)} ETH, ${sweep} (expect ~${formatUnits(q.amountOut, 18)} ${m.symbol})`, eth });
   if (!ctx.send || !ctx.d) return;
   const d = ctx.d;
   const args = [routeArg(q.route), m.token, sweepBps, NVDA, minOut(q), 0n] as const;
@@ -9918,10 +10456,14 @@ async function seedConvert(ctx: Ctx, m: Meme) {
   if ((await routerEvents(ctx, "Converted")) > 0) return console.log("  skip: Converted event exists");
   const bal = await balanceOf(m.token, ctx.user);
   const amount = bal / 2n;
-  if (amount === 0n) return console.log(`  pending: needs a ${m.symbol} balance from step (a) first`);
+  if (amount === 0n) {
+    ctx.plan.push({ ui: `/app/convert: convert half the ${m.symbol} bought in step 1 into NVDA (approve exact, then convert)`, eth: 0n });
+    return console.log(`  pending: needs a ${m.symbol} balance from step (a) first`);
+  }
   const q = await bestQuote(m.token, m.pools, "sell", amount);
   if (!q) throw new Error(`no sell quote for ${m.symbol}`);
   console.log(`  plan convert ${formatUnits(amount, m.decimals)} ${m.symbol} -> ~${formatEther(q.amountOut)} ETH -> NVDA (oracle band min)`);
+  ctx.plan.push({ ui: `/app/convert: convert half your ${m.symbol} (${formatUnits(amount, m.decimals)}) into NVDA (approve exact, then convert)`, eth: 0n });
   if (!ctx.d) return;
   const d = ctx.d;
   await approveExact(ctx, m.token, d.TerraRouter, amount, `${m.symbol}->TerraRouter`);
@@ -9942,6 +10484,7 @@ async function seedStake(ctx: Ctx) {
   if (staked && staked[1] + staked[2] >= STAKE_WIF) return console.log(`  skip: active ${formatEther(staked[1])} pending ${formatEther(staked[2])} WIF`);
   const wif = await balanceOf(ADDR.wif, ctx.user);
   if (wif < STAKE_WIF) await buy(ctx, { token: ADDR.wif, symbol: "WIF", pools: [WIF_POOL] }, await ethFor(WIF_TARGET - wif), 0);
+  ctx.plan.push({ ui: `/stake: approve exactly ${formatEther(STAKE_WIF)} WIF, stake it to NVDA`, eth: 0n });
   if (!ctx.d) return console.log("  plan approve exact 500 WIF + stake(500e18, 0) after deployment");
   const d = ctx.d;
   await approveExact(ctx, ADDR.wif, d.WifStaking, STAKE_WIF, "WIF->WifStaking");
@@ -9965,6 +10508,14 @@ async function remaining(ctx: Ctx) {
   if (pend === 0n) console.log("  wait for the next epoch (stake activates next hour), then run `pnpm tsx scripts/keeper.ts` twice across epochs");
 }
 
+function printChecklist(ctx: Ctx) {
+  const total = ctx.plan.reduce((s, p) => s + p.eth, 0n);
+  console.log("\nRun these in the UI from your own wallet (Robinhood Chain mainnet 4663), in order:");
+  ctx.plan.forEach((p, i) => console.log(`  [ ] ${i + 1}. ${p.ui}`));
+  console.log(`  [ ] ${ctx.plan.length + 1}. after the stake activates (2 epochs), /proof: Run distribute (or wait for the keeper), then /stake: claim`);
+  console.log(`ETH sent by these steps: ${formatEther(total)} ETH (+ gas). Amounts come from live quotes at this block; rerun --dry right before trading.`);
+}
+
 let acct: ReturnType<typeof privateKeyToAccount> | null = null;
 const account = () => {
   if (!acct) throw new Error("DEMO_KEY is not set");
@@ -9986,7 +10537,7 @@ async function main() {
   const d = loadDeployments();
   if (!dry && !d) throw new Error("no live deployment in web/data/deployments.json; run sync-deployments first");
   const user = acct?.address ?? ((process.env.DEMO_ADDR as Address | undefined) ?? null);
-  const ctx: Ctx = { user, d, send: dry ? null : sendAndWait };
+  const ctx: Ctx = { user, d, send: dry ? null : sendAndWait, plan: [] };
   console.log(`seed-demo ${dry ? "DRY RUN (nothing is sent)" : "LIVE"} wallet ${user ?? "(none)"} deployment ${d ? d.TerraRouter : "none"}`);
   if (user) console.log(`  ETH balance ${formatEther(await client.getBalance({ address: user }))}`);
   const memes = pickMemes();
@@ -9995,6 +10546,7 @@ async function main() {
   await seedSweeps(ctx, memes[1] ?? memes[0]);
   await seedStake(ctx);
   await remaining(ctx);
+  if (dry) printChecklist(ctx);
 }
 
 main().catch((e) => {
@@ -10324,7 +10876,7 @@ Build generates `DOMAIN-GUIDE.md` from this spec (non-agent project).
 | Activation | stake earns from the epoch after it was placed | `pendingEpoch`, `_rollPool` | OD3 |
 | Sub-pool | stakers who chose the same reward stock | `pools[stockId]` | AMEND-4 |
 | Chainlink round | (phase << 64) \| n; phase 1 for all used feeds | `PHASE_BASE` | spike-indexing §4 |
-| NVDA early rounds | n <= 24 report 1e16-scaled values; divide by 1e8 for 8dp | `NVDA_SCALED_LAST_ROUND`, `normalize8` | spike-indexing §4 |
+| Early-round scaling | early rounds of every stock history feed report 1e16-scaled values; an answer > 1e15 is divided by 1e8 | `SCALED_THRESHOLD`, `historicalAnswer8`, `normalize8` | spike-indexing §4, build-rounds.ts |
 | Heartbeat | Chainlink directory heartbeat 86400s; we allow 25h | `MAX_AGE` | cl-feeds-rh.json |
 | Band | stock fills must be >= Chainlink price − 3% | `BAND_BPS` | PRD 4.15 |
 | UR 2.1 layout | V2/V3 inputs end with `uint256[] maxHopSlippage` | `URCodec.v2/v3` | URProbe.t.sol |

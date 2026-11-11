@@ -1,8 +1,8 @@
 {
  "project": "terra-firma",
- "currentPhase": "P1/P2",
+ "currentPhase": "P3",
  "currentStep": "P0.T",
- "status": "in-progress",
+ "status": "blocked-awaiting-funding",
  "autonomous_mode": true,
  "expected_phases": [
   "P0",
@@ -17,39 +17,45 @@
   "P0.T",
   "P1.0",
   "P1.3",
-  "P2.1"
+  "P2.1",
+  "P1.1",
+  "P1.2",
+  "P1.4",
+  "P2.3"
  ],
  "fileGroups": {},
  "deviations": [],
  "phaseExecutors": {
-  "P0": "inline"
+  "P0": "inline",
+  "P1": "subagent",
+  "P2": "subagent+inline"
  },
  "contractAddresses": {},
  "devPort": 3000,
- "depsVerified": false,
+ "depsVerified": true,
  "invariantsConsumed": true,
  "franchiseSkeletonScaffolded": {
-  "claimsLedger": false,
-  "claimsJsonStub": false,
-  "recomputeVerifier": false,
-  "securityMd": false,
-  "honestyLedger": false
+  "claimsLedger": true,
+  "claimsJsonStub": true,
+  "recomputeVerifier": true,
+  "securityMd": true,
+  "honestyLedger": true
  },
  "repoLayoutScaffolded": {
   "evidenceDir": true,
   "sponsorAdapter": ""
  },
  "cleanRoomScaffolded": {
-  "script": "",
-  "oneCommandGate": ""
+  "script": "scripts/clean-room.sh",
+  "oneCommandGate": "pnpm check"
  },
  "testTiersScaffolded": {
-  "offlineGlob": "",
-  "integrationGlob": "",
-  "liveGlob": "",
-  "defaultGateExcludesLive": false
+  "offlineGlob": "web/lib/**/*.test.ts",
+  "integrationGlob": "web/lib/**/*.integration.ts",
+  "liveGlob": "scripts/**/*.live.ts",
+  "defaultGateExcludesLive": true
  },
- "ciScaffolded": false,
+ "ciScaffolded": true,
  "notes": "P7 belongs to downstream skills; P3+ blocked on Dami funding (DT-8)",
  "timestamp": "2026-11-11T06:50:00Z",
  "slice": "SF-1 in_progress (eval PASS 5/5, fork drill PASS)",

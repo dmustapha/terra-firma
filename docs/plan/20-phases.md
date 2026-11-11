@@ -23,7 +23,7 @@ Files in this phase were written and tested during forge Phase 2; tasks verify p
 #### Task P1.1: Domain knowledge file
 - Architecture: Section N+1 (Domain Knowledge)
 - Command: create `DOMAIN-GUIDE.md` from the Section N+1 table (concepts, rules, glossary, source mapping)
-- Expected: every code identifier in the table exists (`for id in BAND_BPS MAX_AGE NVDA_SCALED_LAST_ROUND normalize8 scanBuys payments; do grep -rq $id contracts/src web/lib || echo MISSING $id; done` prints nothing)
+- Expected: every code identifier in the table exists (`for id in BAND_BPS MAX_AGE SCALED_THRESHOLD normalize8 scanBuys payments; do grep -rq $id contracts/src web/lib || echo MISSING $id; done` prints nothing)
 - Commit: `docs: domain guide`
 #### Task P1.2: Franchise skeleton (claims ledger, recompute verifier, SECURITY.md, honesty ledger)
 - Architecture: Section "Security spec (for build's SECURITY.md)"; INVARIANTS.md VERIFY-BEFORE-CLAIMING
