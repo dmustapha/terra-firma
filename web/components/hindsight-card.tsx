@@ -5,6 +5,7 @@ import { ADDR, EXPLORER, STOCKS } from "@/lib/config";
 import type { Card, CardBuy, CardMeme } from "@/lib/hindsight";
 import { REGISTRY } from "@/lib/registry";
 import { date, pct, pctChange, roundTail, shares18, token, usd8, usd8Label } from "@/lib/ui-format";
+import { Guarantee } from "./guarantee";
 import { AddrLink, Badge, ExtLink, Panel, Skeleton, TxLink, cx } from "./ui";
 
 const payAsset = (b: CardBuy) =>
@@ -146,6 +147,8 @@ export function HindsightCard({ card, owner = true, stockControl, actions }: { c
       )}
 
       {actions}
+
+      <Guarantee addr={card.wallet} stock={card.stock} className="border-t border-line pt-4" />
     </Panel>
   );
 }

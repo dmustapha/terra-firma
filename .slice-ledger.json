@@ -1,0 +1,6 @@
+{"schema":"slice-ledger/1","produced_by":"hackathon-build","run_profile":"CAMPAIGN","status":"in_progress",
+ "slices":[{"id":"SF-1","goal":"core money path on Robinhood Chain mainnet 4663 (Hindsight, convert, trade+sweep, stake, distribute burn+stream)","status":"in_progress",
+  "touches_contracts":true,"build_order":["contracts","scripts","web"],"dod_complete":false,
+  "eval":{"present":true,"harness":"~/.claude/skills/utils/eval-harness.sh","cases":"evidence/eval/sf1/cases.jsonl","ran_in_ci":false,"semantic":true,"verdict":"PASS","evidence":"evidence/eval/sf1/result.json"},
+  "drill":{"present":true,"scripted":true,"script":"scripts/drill-fork.sh","corpus_source":"evidence/eval/sf1/cases.jsonl","evidence":"evidence/drill-fork.txt","onchain_evidence":"FORK ONLY (anvil fork of 4663) — mainnet drill pending P3 funding"},
+  "blocked_on":"P3 mainnet deploy (Dami funding)"}]}

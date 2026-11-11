@@ -1,0 +1,35 @@
+{
+  "schema": "eval-result/1",
+  "semantic": true,
+  "llm_judged": false,
+  "passed": 5,
+  "total": 5,
+  "verdict": "PASS",
+  "cases": [
+    {
+      "id": "nvda-scaled-n24",
+      "verdict": "PASS",
+      "reason": "ok"
+    },
+    {
+      "id": "nvda-boundary-n25",
+      "verdict": "PASS",
+      "reason": "ok"
+    },
+    {
+      "id": "eth-n549",
+      "verdict": "PASS",
+      "reason": "ok"
+    },
+    {
+      "id": "before-history",
+      "verdict": "PASS",
+      "reason": "ok"
+    },
+    {
+      "id": "tsla-scaled-first",
+      "verdict": "PASS",
+      "reason": "ok"
+    }
+  ]
+}

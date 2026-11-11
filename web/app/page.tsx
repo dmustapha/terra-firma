@@ -1,4 +1,5 @@
 import { AddressLookup, Counters, LiveTicker } from "@/components/landing-live";
+import { Guarantee } from "@/components/guarantee";
 import { LandingConnect } from "@/components/landing-connect";
 import { LinkButton } from "@/components/ui";
 import { DEMO_ADDR } from "@/lib/ui-chain";
@@ -16,6 +17,7 @@ export default function Home() {
         <p className="text-sm font-medium uppercase tracking-widest text-accent">The world is flat. Stand on solid ground.</p>
         <h1 className="mt-4 max-w-3xl text-5xl font-bold leading-[1.05] tracking-tight sm:text-7xl">Stand on $WIF. Sweep the rest into stock.</h1>
         <p className="mt-5 max-w-xl text-lg text-muted sm:text-xl">See what your memes would be in NVDA today. Move the dead ones into real stock with one confirmation.</p>
+        <Guarantee addr={DEMO_ADDR || undefined} className="mt-4 max-w-xl" />
         <div className="mt-8 flex max-w-xl flex-col gap-3">
           <div className="flex flex-col gap-3 sm:flex-row">
             <LandingConnect />

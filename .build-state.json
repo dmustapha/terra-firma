@@ -1,7 +1,61 @@
-{"project":"terra-firma","currentPhase":"P0","currentStep":"P0.T","status":"in-progress","autonomous_mode":true,
- "expected_phases":["P0","P1","P2","P3","P4","P5","P6"],"completedSteps":[],"fileGroups":{},"deviations":[],"phaseExecutors":{},
- "contractAddresses":{},"devPort":3000,"depsVerified":false,"invariantsConsumed":true,
- "franchiseSkeletonScaffolded":{"claimsLedger":false,"claimsJsonStub":false,"recomputeVerifier":false,"securityMd":false,"honestyLedger":false},
- "repoLayoutScaffolded":{"evidenceDir":true,"sponsorAdapter":""},"cleanRoomScaffolded":{"script":"","oneCommandGate":""},
- "testTiersScaffolded":{"offlineGlob":"","integrationGlob":"","liveGlob":"","defaultGateExcludesLive":false},"ciScaffolded":false,
- "notes":"P7 belongs to downstream skills; P3+ blocked on Dami funding (DT-8)","timestamp":"2026-11-11T06:50:00Z"}
+{
+ "project": "terra-firma",
+ "currentPhase": "P1/P2",
+ "currentStep": "P0.T",
+ "status": "in-progress",
+ "autonomous_mode": true,
+ "expected_phases": [
+  "P0",
+  "P1",
+  "P2",
+  "P3",
+  "P4",
+  "P5",
+  "P6"
+ ],
+ "completedSteps": [
+  "P0.T",
+  "P1.0",
+  "P1.3",
+  "P2.1"
+ ],
+ "fileGroups": {},
+ "deviations": [],
+ "phaseExecutors": {
+  "P0": "inline"
+ },
+ "contractAddresses": {},
+ "devPort": 3000,
+ "depsVerified": false,
+ "invariantsConsumed": true,
+ "franchiseSkeletonScaffolded": {
+  "claimsLedger": false,
+  "claimsJsonStub": false,
+  "recomputeVerifier": false,
+  "securityMd": false,
+  "honestyLedger": false
+ },
+ "repoLayoutScaffolded": {
+  "evidenceDir": true,
+  "sponsorAdapter": ""
+ },
+ "cleanRoomScaffolded": {
+  "script": "",
+  "oneCommandGate": ""
+ },
+ "testTiersScaffolded": {
+  "offlineGlob": "",
+  "integrationGlob": "",
+  "liveGlob": "",
+  "defaultGateExcludesLive": false
+ },
+ "ciScaffolded": false,
+ "notes": "P7 belongs to downstream skills; P3+ blocked on Dami funding (DT-8)",
+ "timestamp": "2026-11-11T06:50:00Z",
+ "slice": "SF-1 in_progress (eval PASS 5/5, fork drill PASS)",
+ "forkDeployment": "contracts/deployments/4663.fork.json",
+ "deployGasMeasured": {
+  "gasUsed": 8470710,
+  "eth_at_0.02gwei": 0.000169
+ }
+}
