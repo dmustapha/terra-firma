@@ -44,7 +44,7 @@ export default async function Image({ params }: { params: Promise<{ addr: string
     const empty = card.memes.length === 0;
     return new ImageResponse(
       <Shell>
-        <div style={{ display: "flex", marginTop: 24, fontSize: 28, color: C.muted }}>Hindsight card · {short(card.wallet)} · block {card.asOfBlock}</div>
+        <div style={{ display: "flex", marginTop: 24, fontSize: 28, color: C.muted }}>Hindsight card · {short(card.wallet)}</div>
         {empty ? (
           <div style={{ display: "flex", marginTop: 120, fontSize: 60, fontWeight: 700 }}>None of the tracked memes here.</div>
         ) : (
@@ -57,7 +57,10 @@ export default async function Image({ params }: { params: Promise<{ addr: string
             </div>
           </div>
         )}
-        <div style={{ display: "flex", marginTop: "auto", fontSize: 24, color: C.muted }}>Every number from Robinhood Chain and Chainlink rounds.</div>
+        <div style={{ display: "flex", marginTop: "auto", paddingTop: 14, borderTop: `1px solid ${C.rule}`, fontSize: 24, color: C.muted }}>
+          <span style={{ fontStyle: "italic", color: C.fg, marginRight: 12 }}>Measured, not estimated.</span>
+          <span>Every number from Robinhood Chain and Chainlink rounds, as of block {card.asOfBlock.toLocaleString("en-US")}.</span>
+        </div>
       </Shell>,
       size,
     );

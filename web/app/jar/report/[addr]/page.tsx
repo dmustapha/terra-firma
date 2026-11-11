@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { isAddress } from "viem";
 import { ReportShare } from "@/components/report-share";
-import { AddrLink, Notice, PageHeader, Panel, Stat } from "@/components/ui";
+import { AddrLink, Notice, PageHeader, Panel, RuledTable, Stat } from "@/components/ui";
 import { addrUrl, TF } from "@/lib/config";
-import { orDash, short, sig4, signedSig4, signedUsd, usd } from "@/lib/ui-format";
+import { DASH, orDash, short, sig4, signedSig4, signedUsd, usd } from "@/lib/ui-format";
 import { jarReport, type JarReport } from "@/lib/ui-report";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +32,15 @@ export default async function ReportPage({ params }: Props) {
       {!report ? (
         <Notice tone="danger">The chain is busy. Refresh in a few seconds.</Notice>
       ) : !report.deployed ? (
-        <Notice tone="warn">Weekly reports start once the Terra Firma contracts are live on Robinhood Chain.</Notice>
+        <Panel aria-labelledby="ledger-title">
+          <h2 id="ledger-title" className="mb-4 font-display text-deck">Last 7 days</h2>
+          <RuledTable
+            caption="Jar ledger for the last 7 days (no entries yet)"
+            heads={["Line", "Value"]}
+            rows={[["Credits", DASH], ["Withdrawals", DASH], ["7-day total", DASH]]}
+            foot="Weekly reports start once the Terra Firma contracts are live on Robinhood Chain. Nothing is estimated in the meantime."
+          />
+        </Panel>
       ) : (
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">

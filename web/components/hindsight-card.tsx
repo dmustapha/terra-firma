@@ -44,7 +44,7 @@ function MemeRow({ m, stock, worst }: { m: CardMeme; stock: (typeof STOCKS)[numb
       >
         <span className="flex items-center gap-2 font-semibold">
           {m.symbol}
-          {worst && <Badge tone="danger">worst trade</Badge>}
+          {worst && <Badge tone="neutral">worst trade</Badge>}
         </span>
         <span className="num text-right text-sm sm:text-base">
           <span className="text-muted sm:hidden">paid </span>
@@ -65,7 +65,7 @@ function MemeRow({ m, stock, worst }: { m: CardMeme; stock: (typeof STOCKS)[numb
               <span className="sr-only">value today {usd8Label(m.usdToday8)}</span>
             </>
           )}
-          {change !== null && <span className={cx("ml-1 text-xs", change < 0 ? "text-danger" : "text-accent")}>{pct(change)}</span>}
+          {change !== null && <span className="ml-1 text-xs text-muted">{pct(change)}</span>}
         </span>
         <span className="num text-right text-sm font-semibold text-accent sm:text-base">
           <span className="font-normal text-muted sm:hidden">in {stock.symbol} </span>
@@ -96,16 +96,11 @@ export function HindsightCard({ card, owner = true, stockControl, actions }: { c
   const empty = card.memes.length === 0 && card.unpriced.length === 0;
   const who = owner ? "You" : "This wallet";
   return (
-    <Panel aria-labelledby="card-title" className="space-y-6">
-      <div className="flex flex-col gap-1 border-b border-line pb-3 sm:flex-row sm:items-baseline sm:justify-between">
-        <div className="flex flex-wrap items-baseline gap-x-3">
-          <h2 id="card-title" className="font-display text-deck">Hindsight card</h2>
-          <p className="font-mono text-sm"><AddrLink addr={card.wallet} /></p>
-        </div>
-        <p className="text-xs text-muted">
-          Values re-read live · as of block <ExtLink href={`${EXPLORER}/block/${card.asOfBlock}`}><span className="num">{card.asOfBlock.toLocaleString("en-US")}</span></ExtLink>
-        </p>
-      </div>
+    <Panel aria-label={`Hindsight card for wallet ${card.wallet}`} className="space-y-6">
+      <p className="border-b border-line pb-3 text-xs text-muted">
+        Wallet <AddrLink addr={card.wallet} className="font-mono" /> · values re-read live · as of block{" "}
+        <ExtLink href={`${EXPLORER}/block/${card.asOfBlock}`}><span className="num">{card.asOfBlock.toLocaleString("en-US")}</span></ExtLink>
+      </p>
 
       {card.partial && <PartialBanner card={card} />}
 
@@ -122,14 +117,10 @@ export function HindsightCard({ card, owner = true, stockControl, actions }: { c
               <i className="num text-accent">{usd8(card.totals.usdCounterfactual8)}</i>.
             </p>
             <p className="text-sm text-muted">Gross buys of memes this wallet still holds, priced with the Chainlink round at each buy. Sells and transfers out are not netted; this is not profit and loss.</p>
-            {card.worst && (
-              <p className="border-t border-line pt-3 text-sm text-muted">
-                Worst trade: <strong className="text-fg">{card.worst.symbol}</strong> <span className="num font-semibold text-danger">{pct(card.worst.pct)}</span>
-              </p>
-            )}
+            {card.worst && <WorstLine card={card} />}
             {stockControl && <div className="border-t border-line pt-4">{stockControl}</div>}
           </div>
-          {card.memes.length > 0 && <StrataPlate card={card} className="lg:col-span-5" />}
+          {card.memes.length > 0 && <StrataPlate card={card} className="order-first lg:order-none lg:col-span-5" />}
         </div>
       )}
 
@@ -137,7 +128,7 @@ export function HindsightCard({ card, owner = true, stockControl, actions }: { c
 
       {card.memes.length > 0 && (
         <div>
-          <h3 className="mb-2 font-display text-xl">Receipts, meme by meme</h3>
+          <h2 className="mb-2 font-display text-xl">Receipts, meme by meme</h2>
           <div className="hidden grid-cols-[1.2fr_1fr_1fr_1fr_auto] gap-x-3 border-y border-fg px-3 py-2 text-[0.8125rem] font-semibold text-muted sm:grid" aria-hidden>
             <span>Meme</span><span className="text-right">Paid</span><span className="text-right">Today</span><span className="text-right">In {stock.symbol}</span><span className="w-3" />
           </div>
@@ -172,6 +163,20 @@ export function HindsightCard({ card, owner = true, stockControl, actions }: { c
 
       <Guarantee addr={card.wallet} stock={card.stock} />
     </Panel>
+  );
+}
+
+/** The worst trade as two plain figures in ink: a loss is shown as the lower value, never as a red minus. */
+function WorstLine({ card }: { card: Card }) {
+  const m = card.memes.find((x) => x.symbol === card.worst?.symbol);
+  if (!m) return null;
+  return (
+    <p className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-line pt-3 text-sm text-fg">
+      <Badge>worst trade</Badge>
+      <span className="num">
+        <strong className="font-semibold">{m.symbol}</strong>: {usd8(m.usdPaid8)} paid → {m.usdToday8 === null ? `${DASH} today (no live quote)` : `${usd8(m.usdToday8)} today`}
+      </span>
+    </p>
   );
 }
 

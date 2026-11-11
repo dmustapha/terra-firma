@@ -1,0 +1,81 @@
+{
+  "name": "Terra Firma",
+  "tagline": "Stand on $WIF. Sweep the rest into stock.",
+  "colorMode": "both",
+  "defaultMode": "light",
+  "brandColor": "#3F6B4A",
+  "accent": "#3F6B4A",
+  "accentDark": "#86B391",
+  "ink": [
+    "#E8E0CD",
+    "#F1EBDD",
+    "#F7F3E9",
+    "#BCB4A2",
+    "#1A1712"
+  ],
+  "inkDark": [
+    "#110E0A",
+    "#17140F",
+    "#1F1B15",
+    "#4B4438",
+    "#ECE4D2"
+  ],
+  "semantic": {
+    "success": "#3F6B4A",
+    "warning": "#7A5512",
+    "danger": "#9B3B1F"
+  },
+  "fonts": {
+    "display": "Instrument Serif",
+    "body": "Public Sans",
+    "mono": "ui-monospace"
+  },
+  "radii": {
+    "sm": 2,
+    "md": 4,
+    "lg": 4,
+    "xl": 4
+  },
+  "shadowPhilosophy": "pixel-offset",
+  "signatureElement": "Fig. 1 strata plate: a wallet's Hindsight card drawn to scale as a soil cross-section (paid datum, eroded meme horizon, bedrock stock horizon), every caption citing its source",
+  "signatureObject": {
+    "name": "Fig. 1 strata plate",
+    "thesis": "Terra Firma's claim is that every number is measured from Robinhood Chain and Chainlink, not estimated; an almanac figure drawn to scale with sourced captions makes that claim visible and checkable at a glance.",
+    "perSurface": {
+      "landing": "a real long-history wallet's plate above the fold as the lead story's figure",
+      "console": "the connected wallet's own plate heading its card, with horizon captions linking to receipts and Chainlink rounds"
+    }
+  },
+  "invariantPhrase": "Measured, not estimated.",
+  "statusLegend": [
+    {
+      "color": "#3F6B4A",
+      "token": "accent",
+      "meaning": "read from the chain and confirmed (live, verified, ownerless, tracked meme, discount unlocked)"
+    },
+    {
+      "color": "#7A5512",
+      "token": "warn",
+      "meaning": "real but not active yet, or two sources disagree (not live yet, waiting for epoch e+2, Quicknode count differs); nothing is estimated in its place"
+    },
+    {
+      "color": "#9B3B1F",
+      "token": "danger",
+      "meaning": "the read failed or the token is unsafe to route (couldn't read the chain, invalid address, has an owner, taxed token)"
+    }
+  ],
+  "inkRoles": [
+    "well",
+    "page",
+    "sheet",
+    "rule",
+    "ink"
+  ],
+  "logoPath": "public/logo.svg",
+  "logoFiles": {
+    "svg": "web/public/logo.svg",
+    "png512": "web/public/logo.png",
+    "favicon": "web/app/favicon.ico",
+    "appIcon": "web/app/icon.svg"
+  }
+}

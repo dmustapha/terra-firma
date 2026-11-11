@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/ui";
 import { stockBySymbol, type StockId } from "@/lib/config";
 import { getCard } from "@/lib/card-cache";
 import type { Card } from "@/lib/hindsight";
-import { short, usd8 } from "@/lib/ui-format";
+import { short } from "@/lib/ui-format";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -36,10 +36,7 @@ export default async function CardPage({ params, searchParams }: Props) {
   const { card, error } = await load(addr, stock.toUpperCase());
   return (
     <>
-      <PageHeader
-        title="Hindsight card"
-        sub={card && card.memes.length > 0 ? `This wallet put ${usd8(card.totals.usdPaid8)} into memes. In ${card.stock} it would be ${usd8(card.totals.usdCounterfactual8)}.` : "Read-only. Every number links to its transaction or Chainlink round."}
-      />
+      <PageHeader title={`Hindsight card · ${short(getAddress(addr))}`} sub="Read-only. Every number links to its transaction or Chainlink round." />
       <CardView card={card} error={error} />
     </>
   );

@@ -5,7 +5,7 @@ import "./globals.css";
 import { GroundBand } from "@/components/ground-band";
 import { Providers } from "@/components/providers";
 import { SiteHeader } from "@/components/site-header";
-import { REPO_URL, DEPLOYED, SITE_URL } from "@/lib/ui-chain";
+import { REPO_URL, SITE_URL } from "@/lib/ui-chain";
 
 const sans = Public_Sans({ variable: "--font-public-sans", subsets: ["latin"], weight: ["400", "500", "600", "700"], style: ["normal", "italic"] });
 const display = Instrument_Serif({ variable: "--font-instrument-serif", subsets: ["latin"], weight: "400", style: ["normal", "italic"] });
@@ -39,15 +39,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         </a>
         <Providers>
           <SiteHeader />
-          {!DEPLOYED && (
-            <div role="note" className="mx-auto w-full max-w-[80rem] px-4 sm:px-6 lg:px-8">
-              <p className="mt-3 border-y border-warn/50 bg-warn-soft px-4 py-2.5 text-sm leading-relaxed">
-                <span className="font-display text-lg italic text-warn">Notice.</span>{" "}
-                <strong className="font-semibold">Contracts deploying: read-only preview.</strong> Transaction buttons stay off until the Terra Firma contracts
-                are live on Robinhood Chain. Nothing on this site is simulated.
-              </p>
-            </div>
-          )}
           <main id="main" className="mx-auto w-full max-w-[80rem] flex-1 px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
             {children}
           </main>

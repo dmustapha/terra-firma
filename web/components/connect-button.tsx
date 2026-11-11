@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useAccount, useConnect, useDisconnect, useSwitchChain } from "wagmi";
 import { CHAIN_ID, addrUrl } from "@/lib/config";
 import { short } from "@/lib/ui-format";
@@ -9,14 +9,14 @@ import { useMounted } from "./hooks";
 import { Button, cx } from "./ui";
 
 /** Connect / account button. Connecting always targets chain 4663 (the wallet is asked to add it if missing). */
-export function ConnectButton({ className, label = "Connect wallet", onConnected }: { className?: string; label?: string; onConnected?: () => void }) {
+export function ConnectButton({ className, label = "Connect wallet", variant = "primary", onConnected }: { className?: string; label?: string; variant?: "primary" | "secondary"; onConnected?: () => void }) {
   const mounted = useMounted();
   const { address, isConnected, chainId } = useAccount();
   const { disconnect } = useDisconnect();
   const { switchChain, isPending: switching } = useSwitchChain();
   const [open, setOpen] = useState(false);
 
-  if (!mounted) return <Button className={cx("min-w-36", className)} disabled>{label}</Button>;
+  if (!mounted) return <Button variant={variant} className={cx("min-w-36", className)} disabled>{label}</Button>;
   if (isConnected && address) {
     if (chainId !== CHAIN_ID)
       return (
@@ -28,7 +28,7 @@ export function ConnectButton({ className, label = "Connect wallet", onConnected
   }
   return (
     <>
-      <Button className={className} onClick={() => setOpen(true)}>{label}</Button>
+      <Button variant={variant} className={className} onClick={() => setOpen(true)}>{label}</Button>
       <WalletDialog open={open} onClose={() => setOpen(false)} onConnected={onConnected} />
     </>
   );
@@ -40,7 +40,7 @@ function AccountMenu({ address, className, onDisconnect }: { address: string; cl
   const [copied, setCopied] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
   const btn = useRef<HTMLButtonElement>(null);
-  const menuId = `acct-${address.slice(2, 8)}`;
+  const menuId = useId();
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -88,6 +88,7 @@ function AccountMenu({ address, className, onDisconnect }: { address: string; cl
 function WalletDialog({ open, onClose, onConnected }: { open: boolean; onClose: () => void; onConnected?: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
   const { connectors, connect, isPending, error, variables } = useConnect();
+  const titleId = useId();
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
@@ -105,8 +106,8 @@ function WalletDialog({ open, onClose, onConnected }: { open: boolean; onClose: 
   });
 
   return (
-    <dialog ref={ref} onClose={onClose} aria-labelledby="wallet-title" className="m-auto w-[min(26rem,calc(100vw-2rem))] rounded-sm border border-fg bg-surface p-6 text-fg shadow-lg">
-      <h2 id="wallet-title" className="font-display text-deck">Connect a wallet</h2>
+    <dialog ref={ref} onClose={onClose} aria-labelledby={titleId} className="m-auto w-[min(26rem,calc(100vw-2rem))] rounded-sm border border-fg bg-surface p-6 text-fg shadow-lg">
+      <h2 id={titleId} className="font-display text-deck">Connect a wallet</h2>
       <p className="mt-2 text-sm text-muted">Terra Firma runs on Robinhood Chain. Your wallet will be asked to switch to it, or to add it.</p>
       <ul className="mt-5 space-y-2">
         {list.length === 0 && <li className="text-sm text-muted">No wallet found. Install a browser wallet{HAS_WALLETCONNECT ? " or use WalletConnect" : ""}.</li>}

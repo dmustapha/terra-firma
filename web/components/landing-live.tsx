@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useReadContracts } from "wagmi";
 import { feePoolAbi } from "@/lib/abi";
@@ -9,10 +8,9 @@ import { DEPLOYED } from "@/lib/ui-chain";
 import { eth, short, token } from "@/lib/ui-format";
 import { mergeTicker, only, parseFrame, toTickerEvents, type TfLogs, type TickerEvent } from "@/lib/ui-logs";
 import { useTfLogs } from "./hooks";
-import { ExtLink, Skeleton, TxLink } from "./ui";
+import { ExtLink, Skeleton, TextLink, TxLink } from "./ui";
 
 const UNAVAILABLE = <span className="text-danger">couldn&apos;t be read right now</span>;
-const PRE = <span className="italic text-muted">not live yet</span>;
 
 /** One figure in the edition line. Linked to the explorer page holding the number once the contracts are live. */
 function Figure({ label, value, href }: { label: string; value: ReactNode; href?: string }) {
@@ -37,25 +35,20 @@ export function EditionFigures() {
   });
   const logs = useTfLogs();
   const [burned, toStock] = reads.data ?? [];
-  const readVal = (r: typeof burned, f: (v: bigint) => string) =>
-    !DEPLOYED ? PRE : r?.status === "success" ? f(r.result as bigint) : reads.error || r?.status === "failure" ? UNAVAILABLE : <Skeleton w="4rem" h="1.2rem" />;
-  const logVal = (f: (l: TfLogs) => number) =>
-    !DEPLOYED ? PRE : logs.data ? f(logs.data).toLocaleString("en-US") : logs.error ? UNAVAILABLE : <Skeleton w="3rem" h="1.2rem" />;
-  const href = (a: string) => (DEPLOYED ? addrUrl(a) : undefined);
   if (!DEPLOYED)
     return (
-      <section aria-labelledby="figures-title" className="border-y border-line-strong py-3">
-        <p className="leading-relaxed">
-          <span id="figures-title" className="font-display text-xl italic">Edition figures.</span>{" "}
-          <span className="text-muted">
-            $WIF bought with fees and burned, ETH streamed into stock for stakers, trades routed through Terra Firma and wallets with a Jar are read live here once the
-            contracts are on Robinhood Chain. Until then nothing is shown in their place (see the{" "}
-          </span>
-          <Link href="/proof" className="rounded-sm font-semibold text-accent underline decoration-accent-32 underline-offset-4 hover:decoration-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fg">Proof page</Link>
-          <span className="text-muted">).</span>
+      <section aria-labelledby="figures-title" className="border-y border-line-strong py-3 leading-relaxed">
+        <h2 id="figures-title" className="inline font-display text-xl italic">Edition figures.</h2>{" "}
+        <p className="inline text-muted">
+          $WIF bought with fees and burned, ETH streamed into stock for stakers, trades routed through Terra Firma and wallets with a Jar are read live here once the
+          contracts are on Robinhood Chain. Until then nothing is shown in their place (see the <TextLink inline href="/proof">Proof page</TextLink>).
         </p>
       </section>
     );
+  const readVal = (r: typeof burned, f: (v: bigint) => string) =>
+    r?.status === "success" ? f(r.result as bigint) : reads.error || r?.status === "failure" ? UNAVAILABLE : <Skeleton w="4rem" h="1.2rem" />;
+  const logVal = (f: (l: TfLogs) => number) => (logs.data ? f(logs.data).toLocaleString("en-US") : logs.error ? UNAVAILABLE : <Skeleton w="3rem" h="1.2rem" />);
+  const href = addrUrl;
   return (
     <section aria-labelledby="figures-title" className="border-y border-line-strong py-3">
       <div className="flex flex-col gap-1 lg:flex-row lg:items-baseline lg:gap-6">
@@ -68,8 +61,7 @@ export function EditionFigures() {
         </ul>
       </div>
       <p className="mt-1 text-sm text-muted">
-        {DEPLOYED ? "Read live from Robinhood Chain, including the team's own demo trades (their wallets are listed on the " : "These fill in once the contracts are live on Robinhood Chain. Until then nothing is shown in their place (see the "}
-        <Link href="/proof" className="rounded-sm font-semibold text-accent underline decoration-accent-32 underline-offset-4 hover:decoration-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fg">Proof page</Link>).
+        Read live from Robinhood Chain, including the team&apos;s own demo trades (their wallets are listed on the <TextLink inline href="/proof">Proof page</TextLink>).
       </p>
     </section>
   );
@@ -133,9 +125,29 @@ function useDispatches() {
   return { events: mergeTicker(live, backfill(logs.data), 8), status };
 }
 
+/** Text for the screen-reader status line: the newest dispatch, only once something arrives after the first load. */
+function useNewDispatch(events: TickerEvent[]) {
+  const first = useRef<string | null>(null);
+  const [msg, setMsg] = useState("");
+  const top = events[0] ? `${events[0].tx}-${events[0].type}` : null;
+  useEffect(() => {
+    if (!top || !events[0]) return;
+    if (first.current === null) {
+      first.current = top;
+      return;
+    }
+    if (first.current !== top) {
+      first.current = top;
+      setMsg(`New dispatch: ${describe(events[0])}`);
+    }
+  }, [top, events]);
+  return msg;
+}
+
 /** "Dispatches": the latest real Terra Firma events as a still column. No marquee, no auto-scroll. */
 export function Dispatches({ className }: { className?: string }) {
   const { events, status } = useDispatches();
+  const announce = useNewDispatch(events);
   const state = !DEPLOYED ? "Starts when the contracts are live" : status === "live" ? "Arriving live" : status === "connecting" ? "Connecting" : "Reconnecting";
   return (
     <section aria-labelledby="dispatch-title" className={className}>
@@ -146,7 +158,8 @@ export function Dispatches({ className }: { className?: string }) {
           {state}
         </span>
       </div>
-      <ul aria-live="polite" className="text-[0.9375rem] lg:columns-2 lg:gap-x-10 lg:[column-rule:1px_solid_var(--line)]">
+      <p role="status" className="sr-only">{announce}</p>
+      <ul className="text-[0.9375rem] lg:columns-2 lg:gap-x-10 lg:[column-rule:1px_solid_var(--line)]">
         {events.length === 0 && (
           <li className="py-3 text-muted">{DEPLOYED ? "No dispatches yet. The next Terra Firma transaction will appear here." : "No dispatches until the contracts are live. Nothing is simulated in the meantime."}</li>
         )}
@@ -161,7 +174,3 @@ export function Dispatches({ className }: { className?: string }) {
   );
 }
 
-/** Kept for /proof, which shows the same column. */
-export const LiveTicker = Dispatches;
-
-export { AddressLookup } from "./address-lookup";

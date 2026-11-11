@@ -3,12 +3,12 @@
 import type { ReactNode } from "react";
 import { STOCKS } from "@/lib/config";
 import { DEPLOYED } from "@/lib/ui-chain";
-import { eth, pct, pctChange, usd, usd8 } from "@/lib/ui-format";
+import { DASH, eth, pct, pctChange, usd, usd8 } from "@/lib/ui-format";
 import { mapLimit, only, type TfLogs } from "@/lib/ui-logs";
 import { sumKnown, usdOf, type StockQuote } from "@/lib/ui-report";
 import { useQuery } from "@tanstack/react-query";
 import { useStockQuotes, useTfLogs } from "./hooks";
-import { AddrLink, Notice, Panel, Skeleton, TxLink } from "./ui";
+import { AddrLink, Notice, Panel, RuledTable, Skeleton, TxLink } from "./ui";
 
 interface Row {
   who: string;
@@ -123,6 +123,34 @@ function Board({ title, desc, rows, loading, empty, note }: { title: string; des
   );
 }
 
+const BOARDS = [
+  { title: "Biggest regret", desc: "Minted Hindsight cards, each rebuilt from Robinhood Chain before it is ranked: what was paid vs. what it would be in stock.", value: "Paid → in stock" },
+  { title: "Biggest Jars", desc: "Stock added minus stock withdrawn, per wallet.", value: "Jar value" },
+  { title: "Most fees paid", desc: "Trade fees paid per wallet (half buys and burns $WIF, half buys stakers' stock).", value: "Fees paid" },
+];
+
+/** Before the contracts are live: the three boards as ruled tables with their real column heads and no values. */
+function BoardShape() {
+  const blank = [0, 1, 2].map(() => [DASH, DASH, DASH]);
+  return (
+    <div className="space-y-3">
+      <div className="grid gap-6 lg:grid-cols-3">
+        {BOARDS.map((b) => {
+          const id = b.title.replace(/\W+/g, "-").toLowerCase();
+          return (
+            <Panel key={b.title} aria-labelledby={id}>
+              <h2 id={id} className="font-display text-deck">{b.title}</h2>
+              <p className="mt-1 text-sm text-muted">{b.desc}</p>
+              <RuledTable className="mt-4" caption={`${b.title} (no entries yet)`} heads={["Wallet", b.value, "Receipt"]} rows={blank} />
+            </Panel>
+          );
+        })}
+      </div>
+      <p className="text-sm text-muted">First entries appear after the first routed trade.</p>
+    </div>
+  );
+}
+
 export function BoardView() {
   const logs = useTfLogs();
   const quotes = useStockQuotes();
@@ -137,15 +165,15 @@ export function BoardView() {
   const verified = checks.data?.verified ?? new Set<string>();
   const failed = checks.data?.failed ?? 0;
   const pricesMissing = quotes.data?.some((q) => q.price8 === null || q.multiplier === null);
-  if (!DEPLOYED) return <Notice tone="warn">Leaderboards fill in once Terra Firma is live on Robinhood Chain.</Notice>;
+  if (!DEPLOYED) return <BoardShape />;
   if (logs.error) return <Notice tone="danger">Couldn&apos;t read the chain right now. Retrying shortly.</Notice>;
   const l = logs.data;
   const loading = !l;
   return (
     <div className="grid gap-6 lg:grid-cols-3">
-      <Board title="Biggest regret" desc="Minted Hindsight cards, each rebuilt from Robinhood Chain before it is ranked: what was paid vs. what it would be in stock." rows={regret(cands, verified)} loading={loading || (cands.length > 0 && checks.isLoading)} empty="No verified minted cards yet (each mint is rebuilt from Robinhood Chain before it is ranked)." note={failed > 0 ? `${failed} card check${failed === 1 ? "" : "s"} couldn't run right now; those cards are not ranked.` : undefined} />
-      <Board title="Biggest Jars" desc="Stock added minus stock withdrawn, per wallet." note={pricesMissing ? "Some live stock prices are unavailable; wallets holding those stocks are left out until they read again." : undefined} rows={l && quotes.data ? jars(l, quotes.data) : []} loading={loading || !quotes.data} empty="No Jars yet." />
-      <Board title="Most fees paid" desc="Trade fees paid per wallet (half buys and burns $WIF, half buys stakers' stock)." rows={l ? fees(l) : []} loading={loading} empty="No routed trades yet." />
+      <Board title={BOARDS[0].title} desc={BOARDS[0].desc} rows={regret(cands, verified)} loading={loading || (cands.length > 0 && checks.isLoading)} empty="No verified minted cards yet (each mint is rebuilt from Robinhood Chain before it is ranked)." note={failed > 0 ? `${failed} card check${failed === 1 ? "" : "s"} couldn't run right now; those cards are not ranked.` : undefined} />
+      <Board title={BOARDS[1].title} desc={BOARDS[1].desc} note={pricesMissing ? "Some live stock prices are unavailable; wallets holding those stocks are left out until they read again." : undefined} rows={l && quotes.data ? jars(l, quotes.data) : []} loading={loading || !quotes.data} empty="No Jars yet." />
+      <Board title={BOARDS[2].title} desc={BOARDS[2].desc} rows={l ? fees(l) : []} loading={loading} empty="No routed trades yet." />
     </div>
   );
 }

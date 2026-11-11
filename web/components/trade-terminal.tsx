@@ -55,11 +55,19 @@ function useTokenInfo(addr?: Address) {
 
 export function TradeTerminal({ initialToken }: { initialToken?: string }) {
   const tokenAddr = initialToken && isAddress(initialToken) ? getAddress(initialToken) : undefined;
+  if (!tokenAddr)
+    return (
+      <div className="space-y-6">
+        <PasteCa />
+        {initialToken && <Notice tone="danger">That isn&apos;t a valid token address.</Notice>}
+        <Trending wide />
+      </div>
+    );
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
       <div className="space-y-6">
         <PasteCa current={tokenAddr} />
-        {tokenAddr ? <TradeBox token={tokenAddr} key={tokenAddr} /> : initialToken ? <Notice tone="danger">That isn&apos;t a valid token address.</Notice> : <Panel><p className="font-display text-deck">Paste a meme&apos;s contract address, or pick one from the list.</p><p className="mt-2 text-muted">Buy or sell through Uniswap. A slice of every trade can land in your Jar as real stock.</p></Panel>}
+        <TradeBox token={tokenAddr} key={tokenAddr} />
       </div>
       <Trending current={tokenAddr} />
     </div>
@@ -100,23 +108,25 @@ function PasteCa({ current }: { current?: Address }) {
   );
 }
 
-function Trending({ current }: { current?: Address }) {
+/** Tracked memes by pool liquidity. `wide` = the page's main body (no token loaded): two columns of rows on lg. */
+function Trending({ current, wide = false }: { current?: Address; wide?: boolean }) {
   return (
     <Panel aria-labelledby="trending-title" className="h-fit">
       <h2 id="trending-title" className="font-display text-deck">Trending by liquidity</h2>
+      {wide && <p className="mt-1 text-sm text-muted">Pick a meme to load it, or paste any contract address above.</p>}
       {TRENDING.length === 0 ? (
         <p className="mt-3 text-sm text-muted">The list of tracked memes isn&apos;t ready yet. Paste any contract address above.</p>
       ) : (
-        <ul className="mt-3 border-t border-fg">
+        <ul className={cx("mt-3 border-t border-fg", wide && "lg:grid lg:grid-cols-2 lg:gap-x-10")}>
           {[{ token: WIF, symbol: "WIF", liq: null as number | null }, ...TRENDING.filter((m) => m.token.toLowerCase() !== WIF.toLowerCase()).map((m) => ({ token: m.token, symbol: m.symbol, liq: liq(m) }))].map((m) => (
             <li key={m.token}>
               <Link
                 href={`/trade/${m.token}`}
                 aria-current={current?.toLowerCase() === m.token.toLowerCase() ? "page" : undefined}
-                className={cx("flex min-h-11 items-center justify-between border-b border-line px-2 transition-[background-color,transform] duration-150 hover:translate-x-0.5 hover:bg-accent-06 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-fg", current?.toLowerCase() === m.token.toLowerCase() && "bg-accent-soft shadow-[inset_3px_0_0_var(--accent)]")}
+                className={cx("flex min-h-11 items-center justify-between gap-3 border-b border-line px-2 transition-[background-color,transform] duration-150 hover:translate-x-0.5 hover:bg-accent-06 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-fg", current?.toLowerCase() === m.token.toLowerCase() && "bg-accent-soft shadow-[inset_3px_0_0_var(--accent)]")}
               >
                 <span className="font-semibold">{m.symbol === "WIF" ? "$WIF" : m.symbol}</span>
-                <span className="num text-sm text-muted">{m.liq === null ? "buy only" : `$${Math.round(m.liq).toLocaleString("en-US")} in pool`}</span>
+                <span className="num py-1 text-right text-sm text-muted">{m.liq === null ? "buy only: Terra Firma never sells $WIF." : `$${Math.round(m.liq).toLocaleString("en-US")} in pool`}</span>
               </Link>
             </li>
           ))}

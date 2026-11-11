@@ -65,10 +65,34 @@ export function Badge({ tone = "neutral", children }: { tone?: "neutral" | "acce
 /** Fixed-width skeleton so numbers never shift layout when they load. */
 export function Skeleton({ w = "6rem", h = "1em", className }: { w?: string; h?: string; className?: string }) {
   return (
-    <span
-      aria-hidden
-      className={cx("inline-block animate-pulse rounded-sm bg-surface-2 align-middle motion-reduce:animate-none", className)}
-      style={{ width: w, height: h }}
+    <>
+      <span className="sr-only">Loading</span>
+      <span
+        aria-hidden
+        className={cx("inline-block animate-pulse rounded-sm bg-surface-2 align-middle motion-reduce:animate-none", className)}
+        style={{ width: w, height: h }}
+      />
+    </>
+  );
+}
+
+const textLinkTone = {
+  accent: "text-accent decoration-accent-32 hover:text-accent-strong hover:decoration-accent",
+  ink: "text-fg decoration-accent hover:decoration-accent-strong",
+};
+
+/** In-site text link: moss (or ink with a moss underline); the underline thickens on hover. `inline` keeps it in running text. */
+export function TextLink({ tone = "accent", inline = false, className, ...p }: ComponentProps<typeof Link> & { tone?: keyof typeof textLinkTone; inline?: boolean }) {
+  return (
+    <Link
+      className={cx(
+        "rounded-sm font-semibold underline decoration-1 underline-offset-4 transition-[color,text-decoration-color,text-decoration-thickness] duration-150 hover:decoration-2",
+        !inline && "inline-flex min-h-11 items-center",
+        focus,
+        textLinkTone[tone],
+        className,
+      )}
+      {...p}
     />
   );
 }
@@ -145,6 +169,39 @@ export function Stat({ label, value, sub, href }: { label: string; value: ReactN
     </a>
   ) : (
     <div className={cls}>{body}</div>
+  );
+}
+
+/** A ruled ledger table: ink rule under the heads, hairlines between rows, figures right-aligned and tabular.
+ *  The first column is the row label. Empty states pass "—" cells so the shape of the data shows before any data exists. */
+export function RuledTable({ caption, heads, rows, foot, className }: { caption: string; heads: string[]; rows: ReactNode[][]; foot?: ReactNode; className?: string }) {
+  return (
+    <div className={cx("min-w-0", className)}>
+      <table className="num w-full border-collapse text-sm">
+        <caption className="sr-only">{caption}</caption>
+        <thead className="border-b border-fg text-[0.8125rem] text-muted">
+          <tr>
+            {heads.map((h, i) => (
+              <th key={h} scope="col" className={cx("py-2 font-medium", i === 0 ? "text-left" : "text-right")}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, ri) => (
+            <tr key={ri} className="border-b border-line">
+              {r.map((c, i) =>
+                i === 0 ? (
+                  <th key={i} scope="row" className="py-2.5 pr-3 text-left font-semibold">{c}</th>
+                ) : (
+                  <td key={i} className="py-2.5 pl-3 text-right">{c}</td>
+                ),
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {foot && <p className="mt-2 text-xs text-muted">{foot}</p>}
+    </div>
   );
 }
 

@@ -1,6 +1,6 @@
 {
  "width": 375,
- "method": "Chrome DevTools protocol, mobile emulation 375x812, scrollWidth + elements past right edge",
+ "method": "CDP Emulation.setDeviceMetricsOverride 375x812 mobile (captured 2x = 750px)",
  "pages": [
   {
    "page": "/",
@@ -64,5 +64,35 @@
   }
  ],
  "all_pass": true,
- "ts": "2026-11-11T16:20:00Z"
+ "ts": "2026-11-11T16:20:00Z",
+ "ran": true,
+ "overflow_x": false,
+ "verdict": "pass",
+ "screenshot": "screenshots/home-375.png",
+ "states": {
+  "loading": true,
+  "timer": true,
+  "abort": true,
+  "empty": true,
+  "error": true,
+  "abstain": true
+ },
+ "state_evidence": {
+  "loading": "web/components/hindsight-card.tsx CardSkeleton 'Going to press'",
+  "timer": "hindsight-card.tsx elapsed seconds; stake-view 'Next epoch in'",
+  "abort": "lib/ui-errors.ts UserRejectedRequestError \u2192 'You cancelled in your wallet.'",
+  "empty": "hindsight-card.tsx `empty` branch",
+  "error": "'Couldn't read the chain right now' notices (board-view, proof-view)",
+  "abstain": "strata-plate.tsx null usdToday8 \u2192 'no live quote', never estimated"
+ },
+ "a11y": {
+  "ran": true,
+  "contrast_pass": true,
+  "evidence": "evidence/design/lighthouse-mobile.json",
+  "also": [
+   "ai/design-qa-report.md (14/14 token pairs AA)",
+   "DESIGN_SYSTEM.md Contrast section",
+   "Tab-key focus-visible verified via CDP"
+  ]
+ }
 }

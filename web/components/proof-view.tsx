@@ -10,11 +10,11 @@ import { ADDR, CHAIN_ID, FEE_BPS, STAKER_FEE_BPS, DISCOUNT_STAKE, TF, addrUrl, s
 import type { Card } from "@/lib/hindsight";
 import { DEPLOYED, REPO_URL, SHOWN_CONTRACTS, VERIFIED, publicClient } from "@/lib/ui-chain";
 import { classifyOwnerProbe, type OwnerProbe } from "@/lib/ui-errors";
-import { dateTime, eth, token } from "@/lib/ui-format";
+import { DASH, dateTime, eth, token } from "@/lib/ui-format";
 import { blockTimes, only, type TfLogs } from "@/lib/ui-logs";
 import { lensBuys, RecomputeResult, stockIdOf } from "./card-actions";
 import { getJson, useTfLogs, useTx } from "./hooks";
-import { LiveTicker } from "./landing-live";
+import { Dispatches } from "./landing-live";
 import { TxStatus } from "./tx-status";
 import { AddrLink, Badge, Button, ExtLink, Notice, Panel, Skeleton, Stat, TxLink, inputCls } from "./ui";
 
@@ -30,7 +30,7 @@ export function ProofView() {
         <Distribute />
       </div>
       <Evidence />
-      <LiveTicker />
+      <Dispatches />
     </div>
   );
 }
@@ -48,7 +48,8 @@ const CONTRACT_NAME: Record<string, string> = {
   FriendJar: "Friend Jars",
 };
 
-const PENDING = "live once the contracts are deployed";
+/** Pre-deploy placeholder in every evidence row; one shared footnote explains it. */
+const PENDING = <span className="text-muted">{DASH}</span>;
 const anchorCls = "inline-flex min-h-11 items-center rounded-sm underline decoration-fg/35 underline-offset-4 transition-[text-decoration-color] duration-150 hover:decoration-accent hover:decoration-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fg";
 const bps = (b: number) => `${(b / 100).toFixed(1)}%`;
 
@@ -56,23 +57,24 @@ function Jump({ to, children }: { to: string; children: ReactNode }) {
   return <a href={`#${to}`} className={anchorCls}>{children}</a>;
 }
 
-/** One evidence line: what it proves, then the link (or an honest pending/loading state). */
+/** The one row pattern on this page: what it proves on the left, the figure or link on the right (tabular). */
 function Row({ k, children }: { k: ReactNode; children: ReactNode }) {
   return (
     <li className="flex min-h-11 flex-wrap items-center justify-between gap-x-3 gap-y-1 py-1.5 text-sm">
-      <span className="text-muted">{k}</span>
-      <span className="text-right">{children}</span>
+      <span className="min-w-0 text-muted">{k}</span>
+      <span className="num ml-auto text-right">{children}</span>
     </li>
   );
 }
 
+/** One rubric column; columns are separated by ruled gutters, not boxes. */
 function RubricCard({ id, title, claim, children }: { id: string; title: string; claim: string; children: ReactNode }) {
   return (
-    <Panel aria-labelledby={id} className="flex flex-col">
+    <section aria-labelledby={id} className="flex flex-col border-line max-lg:border-t max-lg:pt-5 lg:border-l lg:pl-8 lg:first:border-l-0 lg:first:pl-0">
       <h3 id={id} className="font-display text-deck">{title}</h3>
       <p className="mt-1 text-sm text-muted">{claim}</p>
       <ul className="mt-3 divide-y divide-line border-t border-fg">{children}</ul>
-    </Panel>
+    </section>
   );
 }
 
@@ -84,18 +86,18 @@ function RubricMap() {
   const failed = DEPLOYED && !!logs.error;
   /** Event-derived link: pending pre-deploy, explicit on RPC failure, skeleton while scanning. */
   const ev = (hash: string | undefined, none: string) =>
-    !DEPLOYED ? <span className="text-muted">{PENDING}</span> : failed ? <span className="text-danger">couldn&apos;t read the chain</span> : !l ? <Skeleton w="6rem" /> : hash ? <TxLink hash={hash} /> : <span className="text-muted">{none}</span>;
+    !DEPLOYED ? PENDING : failed ? <span className="text-danger">couldn&apos;t read the chain</span> : !l ? <Skeleton w="6rem" /> : hash ? <TxLink hash={hash} /> : <span className="text-muted">{none}</span>;
   const total = (x: bigint | undefined, fmt: (n: bigint) => string, href: string) =>
-    !DEPLOYED ? <span className="text-muted">{PENDING}</span> : x == null ? <Skeleton w="5rem" /> : <ExtLink href={href}><span className="num">{fmt(x)}</span></ExtLink>;
+    !DEPLOYED ? PENDING : x == null ? <Skeleton w="5rem" /> : <ExtLink href={href}><span className="num">{fmt(x)}</span></ExtLink>;
   return (
-    <section aria-labelledby="rubric-title" className="space-y-3">
-      <h2 id="rubric-title" className="font-display text-deck">Judging criteria, mapped to evidence</h2>
-      <div className="grid gap-4 lg:grid-cols-3">
+    <section aria-labelledby="rubric-title" className="space-y-4 border-t-2 border-line-strong pt-5">
+      <h2 id="rubric-title" className="font-display text-deck">How to check every claim</h2>
+      <div className="grid gap-x-8 gap-y-6 lg:grid-cols-3">
         <RubricCard id="rb-wif" title="A real reason to use $WIF" claim="Fees buy and burn $WIF, stakers earn real stock, and staking cuts your trade fee.">
           <Row k="First fee-funded $WIF burn">{ev(f?.[2].log?.transactionHash, "not yet")}</Row>
           <Row k="First staker claim">{ev(f?.[3].log?.transactionHash, "not yet")}</Row>
           <Row k={`Fee discount: ${token(DISCOUNT_STAKE)} $WIF staked → ${bps(STAKER_FEE_BPS)} instead of ${bps(FEE_BPS)}`}>
-            {DEPLOYED ? <AddrLink addr={TF.TerraRouter}>Fee setting on the router</AddrLink> : <span className="text-muted">{PENDING}</span>}
+            {DEPLOYED ? <AddrLink addr={TF.TerraRouter}>Fee setting on the router</AddrLink> : PENDING}
           </Row>
           <Row k="$WIF token (the router refuses any $WIF sell)"><AddrLink addr={ADDR.wif} /></Row>
         </RubricCard>
@@ -108,12 +110,13 @@ function RubricMap() {
         </RubricCard>
         <RubricCard id="rb-built" title="Works and built well" claim="Ownerless contracts, tests run against a copy of Robinhood Chain, and every card recomputable onchain.">
           <Row k={<OwnerlessClaim />}>
-            {DEPLOYED ? <Jump to="contracts">Addresses</Jump> : <span className="text-muted">{PENDING}</span>}
+            {DEPLOYED ? <Jump to="contracts">Addresses</Jump> : PENDING}
           </Row>
           <Row k={`${evidence.forkTests} tests passing on a copy of Robinhood Chain`}><Jump to="fork-tests">Command and output</Jump></Row>
           <Row k="Recompute any card onchain"><Jump to="recompute">Recompute box</Jump></Row>
         </RubricCard>
       </div>
+      {!DEPLOYED && <p className="text-xs text-muted">{DASH} marks a figure or transaction that goes live once the contracts are deployed on Robinhood Chain. Nothing is shown in its place until then.</p>}
     </section>
   );
 }
@@ -206,7 +209,7 @@ function Totals() {
       <Stat label="$WIF burned" href={DEPLOYED ? addrUrl(TF.FeePool) : undefined} value={v(burned !== undefined, () => token(burned!))} />
       <Stat label="ETH to staker stock" href={DEPLOYED ? addrUrl(TF.FeePool) : undefined} value={v(toStock !== undefined, () => eth(toStock!))} />
       <Stat label="Routed trades" href={DEPLOYED ? addrUrl(TF.TerraRouter) : undefined} value={v(!!l, () => traded.length.toLocaleString("en-US"))} />
-      <Stat label="Routed volume" href={DEPLOYED ? addrUrl(TF.TerraRouter) : undefined} value={v(!!l, () => `${eth(volume)} ETH`)} sub={l ? `${eth(fees)} ETH in fees` : undefined} />
+      <Stat label="Routed volume" href={DEPLOYED ? addrUrl(TF.TerraRouter) : undefined} value={v(!!l, () => `${eth(volume)} ETH`)} sub={DEPLOYED && l ? `${eth(fees)} ETH in fees` : undefined} />
       <Stat label="Cards minted" href={DEPLOYED ? addrUrl(TF.HindsightLens) : undefined} value={v(!!l, () => only(l!.lens, "CardMinted").length.toString())} />
     </div>
   );
@@ -235,21 +238,19 @@ function FirstOfKind() {
       ) : logs.error ? (
         <Notice tone="danger" className="mt-3">Live data unavailable: couldn&apos;t read the chain right now. Nothing is shown in its place.</Notice>
       ) : (
-        <ul className="mt-3 divide-y divide-line">
+        <ul className="mt-3 divide-y divide-line border-t border-fg">
           {(l ? firsts(l) : [0, 1, 2, 3].map((i) => ({ k: String(i), log: undefined }))).map((f) => (
-            <li key={f.k} className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
-              <span>{l ? f.k : <Skeleton w="12rem" />}</span>
+            <Row key={f.k} k={l ? f.k : <Skeleton w="12rem" />}>
               {!l ? <Skeleton w="7rem" /> : f.log ? <TxLink hash={f.log.transactionHash} /> : <span className="text-muted">not yet</span>}
-            </li>
+            </Row>
           ))}
-          <li className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
-            <span>Last scheduled payout (latest hourly distribute)</span>
+          <Row k="Last scheduled payout (latest hourly distribute)">
             {!l ? <Skeleton w="7rem" /> : lastDist ? (
-              <span className="flex items-center gap-3"><span className="num text-muted">{t.data ? dateTime(t.data.get(lastDist.blockNumber)!) : "…"}</span><TxLink hash={lastDist.transactionHash} /></span>
+              <span className="flex items-center gap-3"><span className="text-muted">{t.data ? dateTime(t.data.get(lastDist.blockNumber)!) : "…"}</span><TxLink hash={lastDist.transactionHash} /></span>
             ) : (
               <span className="text-muted">no distribute yet</span>
             )}
-          </li>
+          </Row>
         </ul>
       )}
     </Panel>
@@ -326,10 +327,10 @@ function Distribute() {
     <Panel aria-labelledby="d-title">
       <h2 id="d-title" className="font-display text-deck">Run the hourly distribute</h2>
       <p className="mt-1 text-sm text-muted">Anyone can trigger the hourly payout if the scheduled run hasn&apos;t: half buys and burns $WIF, half buys stakers&apos; stock.</p>
-      <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
-        <div><dt className="text-muted">Fee pool balance</dt><dd className="num font-semibold">{!DEPLOYED ? "—" : bal.data != null ? <ExtLink href={addrUrl(TF.FeePool)}>{eth(bal.data)} ETH</ExtLink> : bal.error ? <span className="text-danger">couldn&apos;t read the chain</span> : <Skeleton w="4rem" />}</dd></div>
-        <div><dt className="text-muted">Current epoch</dt><dd className="num font-semibold">{!DEPLOYED ? "—" : can.data?.[1]?.result != null ? String(can.data[1].result) : <Skeleton w="3rem" />}</dd></div>
-      </dl>
+      <ul className="mt-4 divide-y divide-line border-t border-fg">
+        <Row k="Fee pool balance">{!DEPLOYED ? PENDING : bal.data != null ? <ExtLink href={addrUrl(TF.FeePool)}>{eth(bal.data)} ETH</ExtLink> : bal.error ? <span className="text-danger">couldn&apos;t read the chain</span> : <Skeleton w="4rem" />}</Row>
+        <Row k="Current epoch">{!DEPLOYED ? PENDING : can.data?.[1]?.result != null ? String(can.data[1].result) : <Skeleton w="3rem" />}</Row>
+      </ul>
       <Button
         className="mt-4 w-full"
         disabled={!DEPLOYED || !address || !ok || tx.busy}

@@ -21,7 +21,7 @@ export function TxStatus({ state, success, onReset }: { state: TxState; success?
         <Notice tone="danger">
           {state.error}{" "}
           {onReset && (
-            <button type="button" onClick={onReset} className="ml-1 inline-flex min-h-11 items-center rounded-sm underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
+            <button type="button" onClick={onReset} className="ml-1 inline-flex min-h-11 items-center rounded-sm underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-fg">
               Dismiss
             </button>
           )}

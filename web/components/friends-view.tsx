@@ -5,9 +5,8 @@ import { keccak256, parseEventLogs, toBytes, type Abi, type Address } from "viem
 import { useAccount, useReadContracts } from "wagmi";
 import { friendJarAbi, stockOracleAbi } from "@/lib/abi";
 import { CHAIN_ID, STOCKS, TF } from "@/lib/config";
-import { orDash } from "@/lib/ui-format";
 import { DEPLOYED, publicClient } from "@/lib/ui-chain";
-import { parseAmount, shares18 } from "@/lib/ui-format";
+import { orDash, parseAmount, shares18 } from "@/lib/ui-format";
 import { only } from "@/lib/ui-logs";
 import { sharesOf } from "@/lib/ui-report";
 import { ConnectButton } from "./connect-button";

@@ -14,12 +14,13 @@ import { scanLogs } from "@/lib/ui-logs";
 import { stockQuotes } from "@/lib/ui-report";
 
 /** Ticking clock (seconds). */
-export function useNow(ms = 1000) {
+export function useNow(ms = 1000, enabled = true) {
   const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
   useEffect(() => {
+    if (!enabled) return;
     const id = setInterval(() => setNow(Math.floor(Date.now() / 1000)), ms);
     return () => clearInterval(id);
-  }, [ms]);
+  }, [ms, enabled]);
   return now;
 }
 

@@ -1,7 +1,6 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import Link from "next/link";
 import { useState } from "react";
 import { formatUnits, parseUnits, type Abi, type Address } from "viem";
 import { useAccount, useReadContracts } from "wagmi";
@@ -14,7 +13,7 @@ import { sharesOf, sumKnown, usdOf, type StockQuote } from "@/lib/ui-report";
 import { ConnectButton } from "./connect-button";
 import { useMounted, useStockQuotes, useTfLogs, useTx } from "./hooks";
 import { TxStatus } from "./tx-status";
-import { AddrLink, Badge, Button, LinkButton, Notice, Panel, Skeleton, Stat, TxLink, inputCls } from "./ui";
+import { AddrLink, Badge, Button, LinkButton, Notice, Panel, RuledTable, Skeleton, Stat, TextLink, TxLink, inputCls } from "./ui";
 
 export const SOURCE: Record<number, string> = { 1: "convert", 2: "sweep", 3: "staking reward", 4: "deposit" };
 
@@ -24,12 +23,30 @@ export function JarView() {
   if (!mounted) return <Skeleton w="100%" h="12rem" className="block" />;
   if (!address)
     return (
-      <Panel className="flex flex-col items-start gap-4">
-        <p className="font-display text-deck">Connect a wallet to see your Jar.</p>
-        <ConnectButton />
-      </Panel>
+      <div className="space-y-6">
+        <Panel className="flex flex-col items-start gap-4">
+          <p className="font-display text-deck">Connect a wallet to see your Jar.</p>
+          <ConnectButton />
+        </Panel>
+        <JarShape />
+      </div>
     );
   return <Jar user={address} />;
+}
+
+/** The Jar's ledger before there is anything to show: every Stock Token it can hold, with "—" in place of figures. */
+function JarShape() {
+  return (
+    <Panel aria-labelledby="shape-title">
+      <h2 id="shape-title" className="mb-4 font-display text-deck">Balances</h2>
+      <RuledTable
+        caption="Jar balances per Stock Token"
+        heads={["Stock Token", "Shares", "Value"]}
+        rows={STOCKS.map((s) => [<>{s.symbol} <span className="font-normal text-muted">{s.name}</span></>, DASH, DASH])}
+        foot={DEPLOYED ? "Connect a wallet to read your balances from the Jar contract." : "Balances are read from the Jar contract once it is live on Robinhood Chain."}
+      />
+    </Panel>
+  );
 }
 
 function useJarBalances(user: Address) {
@@ -78,13 +95,14 @@ function Jar({ user }: { user: Address }) {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-2">
         <QuicknodeBadge />
-        <Link href={`/jar/report/${user}`} className="inline-flex min-h-11 items-center rounded-sm text-sm font-semibold text-accent underline decoration-accent-32 underline-offset-4 hover:decoration-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fg">Weekly report</Link>
+        <TextLink href={`/jar/report/${user}`} className="text-sm">Weekly report</TextLink>
       </div>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         <Stat label="Jar value" value={!DEPLOYED ? "Not live yet" : loaded ? orDash(total, usd) : bals.error || market.error ? <span className="text-base font-normal text-danger">couldn&apos;t read the chain</span> : <Skeleton w="6rem" h="1.6rem" />} sub={loaded && total === null ? "A live stock price is unavailable right now" : "Chainlink live prices"} href={DEPLOYED ? addrUrl(TF.Jar) : undefined} />
         <Stat label="Saving streak" value={!DEPLOYED ? "—" : streak.data === undefined ? <Skeleton w="3rem" h="1.6rem" /> : `${streak.data} day${streak.data === 1 ? "" : "s"}`} sub="UTC days with a sweep or convert" />
       </div>
-      {!DEPLOYED && <Notice tone="warn">Your Jar opens when the Terra Firma contracts are live on Robinhood Chain.</Notice>}
+      {!DEPLOYED && <Notice>Your Jar opens when the Terra Firma contracts are live on Robinhood Chain.</Notice>}
+      {!DEPLOYED && <JarShape />}
       {empty ? (
         <Panel className="flex flex-col items-start gap-4">
           <p className="font-display text-deck">Your Jar is empty. Convert a meme or make a trade to start.</p>

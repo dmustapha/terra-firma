@@ -4,31 +4,43 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAccount } from "wagmi";
 import { HISTORY_ADDR } from "@/lib/ui-chain";
+import { short } from "@/lib/ui-format";
 import { AddressLookup } from "./address-lookup";
 import { ConvertPanel } from "./convert-panel";
 import { MintButton, RecomputeButton, ShareButton } from "./card-actions";
+import { ConvertLocked } from "./card-view";
+import { ConnectButton } from "./connect-button";
 import { CardSkeleton, HindsightCard } from "./hindsight-card";
 import { useCard, useMounted } from "./hooks";
 import { StockSelect } from "./stock-select";
-import { Button, LinkButton, Notice, Panel } from "./ui";
+import { Button, LinkButton, Notice, PageHeader, Panel } from "./ui";
 
-/** Sends visitors without a wallet back to the landing page once wagmi finished reconnecting. */
-function useRequireWallet() {
+/** Connected wallet, or "guest" once wagmi finished reconnecting without one (guests see the demo card, read-only). */
+function useWallet() {
   const { status, address } = useAccount();
-  const router = useRouter();
   const mounted = useMounted();
-  useEffect(() => {
-    if (mounted && status === "disconnected") router.replace("/");
-  }, [mounted, status, router]);
-  return { address, ready: mounted && status === "connected" };
+  const guest = mounted && status === "disconnected";
+  return { address, ready: mounted && status === "connected", guest };
+}
+
+/** Top bar over a demo card: says whose card it is and offers the real thing. */
+function DemoBar({ next, text = "This is a real wallet's card. Connect yours to see your own." }: { next: string; text?: string }) {
+  const router = useRouter();
+  return (
+    <div className="mb-6 flex flex-col items-start gap-3 border-y border-line-strong py-3 sm:flex-row sm:items-center sm:justify-between">
+      <p className="text-[1.0625rem]">{text}</p>
+      <ConnectButton className="w-full sm:w-auto" onConnected={() => router.push(next)} />
+    </div>
+  );
 }
 
 export function AppHome() {
-  const { address, ready } = useRequireWallet();
+  const { address, ready, guest } = useWallet();
   const params = useSearchParams();
   const router = useRouter();
   const [stock, setStock] = useState(params.get("stock") ?? "NVDA");
-  const card = useCard(address, stock);
+  const who = guest ? HISTORY_ADDR : address;
+  const card = useCard(who, stock);
   const [sheet, setSheet] = useState(false);
   const [busy, setBusy] = useState(false);
   const onBusy = useCallback((b: boolean) => setBusy(b), []);
@@ -38,23 +50,49 @@ export function AppHome() {
     else router.push(`/app/convert?stock=${stock}`);
   };
 
-  if (!ready) return <CardSkeleton />;
-  if (card.isLoading) return <CardSkeleton />;
+  const title = guest ? `Hindsight card · ${short(HISTORY_ADDR)}` : address ? `Your Hindsight card · ${short(address)}` : "Your Hindsight card";
+  const header = <PageHeader title={title} sub="What meme buys cost, priced with the Chainlink round at each block. Expand any row for receipts." />;
+  const bar = guest && <DemoBar next="/app" />;
+  if ((!ready && !guest) || card.isLoading) return <>{header}{bar}<CardSkeleton /></>;
   if (card.error || !card.data)
     return (
-      <Panel>
-        <p role="alert" className="font-display text-deck">{(card.error as Error)?.message ?? "The chain is busy. Try again in a few seconds."}</p>
-        <Button className="mt-4" onClick={() => card.refetch()}>Try again</Button>
-      </Panel>
+      <>
+        {header}
+        {bar}
+        <Panel>
+          <p role="alert" className="font-display text-deck">{(card.error as Error)?.message ?? "The chain is busy. Try again in a few seconds."}</p>
+          <Button className="mt-4" onClick={() => card.refetch()}>Try again</Button>
+        </Panel>
+      </>
     );
 
   const c = card.data;
+  const stockControl = <StockSelect value={stock} onChange={setStock} label="Compare against" name="card-stock" />;
+  if (guest)
+    return (
+      <>
+        {header}
+        {bar}
+        <HindsightCard
+          card={c}
+          owner={false}
+          stockControl={stockControl}
+          actions={
+            <div className="flex flex-col gap-3 border-t border-line pt-5 sm:flex-row sm:flex-wrap">
+              <ConvertLocked stock={stock} />
+              <ShareButton card={c} />
+            </div>
+          }
+        />
+      </>
+    );
   const hasMemes = c.memes.some((m) => BigInt(m.holding) > 0n);
   return (
     <>
+      {header}
       <HindsightCard
         card={c}
-        stockControl={<StockSelect value={stock} onChange={setStock} label="Compare against" name="card-stock" />}
+        stockControl={stockControl}
         actions={
           <div className="space-y-4 border-t border-line pt-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
@@ -113,12 +151,46 @@ function ConvertSheet({ open, locked, onClose, children }: { open: boolean; lock
   );
 }
 
+/** What convert does, shown read-only to visitors without a wallet. Nothing here is a quote. */
+function ConvertExplainer({ stock }: { stock: string }) {
+  const steps = [
+    "Pick the memes you still hold that you want out of.",
+    `Each one is sold through Uniswap and the ETH buys real ${stock} Stock Tokens, in one transaction.`,
+    "Before you sign you see what goes in and the least that comes out; a worse fill reverts and nothing happens.",
+    "The stock lands in your Jar, where you can withdraw it whenever you like.",
+  ];
+  return (
+    <Panel aria-labelledby="convert-how" className="space-y-5">
+      <h2 id="convert-how" className="font-display text-deck">What convert does</h2>
+      <ol className="max-w-[62ch] border-t border-fg">
+        {steps.map((t, i) => (
+          <li key={t} className="grid grid-cols-[2rem_minmax(0,1fr)] gap-x-3 border-b border-line py-3 text-[0.96875rem] leading-relaxed">
+            <span className="num font-display text-lg leading-tight text-muted">{i + 1}.</span>
+            <span>{t}</span>
+          </li>
+        ))}
+      </ol>
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+        <ConvertLocked stock={stock} />
+        <LinkButton href={`/card/${HISTORY_ADDR}`} variant="secondary">See a real wallet&apos;s card</LinkButton>
+      </div>
+    </Panel>
+  );
+}
+
 export function ConvertPage() {
-  const { address, ready } = useRequireWallet();
+  const { address, ready, guest } = useWallet();
   const params = useSearchParams();
   const stock = params.get("stock") ?? "NVDA";
   const card = useCard(address, stock);
   const router = useRouter();
+  if (guest)
+    return (
+      <>
+        <DemoBar next={`/app/convert?stock=${stock}`} text="Convert works on your own wallet. Connect it to pick your memes." />
+        <ConvertExplainer stock={stock} />
+      </>
+    );
   if (!ready || card.isLoading) return <CardSkeleton />;
   if (card.error || !card.data) return <Notice tone="danger">{(card.error as Error)?.message ?? "The chain is busy. Try again in a few seconds."}</Notice>;
   return (

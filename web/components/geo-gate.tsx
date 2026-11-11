@@ -3,7 +3,7 @@
 // Geofence on the stock leg only (PRD F8): IP country from /api/geo + one-time attestation in localStorage.
 // Restricted -> stock actions disabled. Unknown or not restricted -> attestation required, never silently allowed.
 import { useQuery } from "@tanstack/react-query";
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import restricted from "@/data/restricted.json";
 import { Button, ExtLink } from "./ui";
 
@@ -82,21 +82,23 @@ export function useStockGate() {
 function AttestDialog({ open, country, onClose, onConfirm }: { open: boolean; country?: string; onClose: () => void; onConfirm: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
   const [checked, setChecked] = useState(false);
+  const titleId = useId();
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
     if (open && !d.open) d.showModal();
     if (!open && d.open) d.close();
+    if (!open) setChecked(false);
   }, [open]);
   const list = (restricted as { countries: string[]; source: string }).countries;
   return (
     <dialog
       ref={ref}
       onClose={onClose}
-      aria-labelledby="attest-title"
+      aria-labelledby={titleId}
       className="m-auto w-[min(32rem,calc(100vw-2rem))] rounded-sm border border-fg bg-surface p-6 text-fg shadow-lg"
     >
-      <h2 id="attest-title" className="font-display text-deck">One quick check</h2>
+      <h2 id={titleId} className="font-display text-deck">One quick check</h2>
       <p className="mt-3 text-muted">
         Stock Tokens aren&apos;t available in some regions. We detected{" "}
         <strong className="text-fg">{country && country !== "UNKNOWN" ? country : "an unknown region"}</strong>. This check happens
@@ -108,7 +110,7 @@ function AttestDialog({ open, country, onClose, onConfirm }: { open: boolean; co
         <ExtLink href={(restricted as { source: string }).source}>source</ExtLink>).
       </p>
       <label className="mt-5 flex min-h-11 cursor-pointer items-start gap-3">
-        <input type="checkbox" className="mt-1 size-5 accent-[var(--accent)]" checked={checked} onChange={(e) => setChecked(e.target.checked)} />
+        <input type="checkbox" autoFocus className="mt-1 size-5 accent-[var(--accent)]" checked={checked} onChange={(e) => setChecked(e.target.checked)} />
         <span>I am not a resident of a restricted jurisdiction.</span>
       </label>
       <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">

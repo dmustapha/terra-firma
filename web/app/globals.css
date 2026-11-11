@@ -38,7 +38,7 @@
 :root[data-theme="dark"] {
   --bg: #17140f;
   --surface: #1f1b15;
-  --surface-2: #2a251d;
+  --surface-2: #110e0a; /* well: one step BELOW basalt, same meaning as light (wells sink) */
   --line: #4b4438;
   --line-strong: #ece4d2;
   --fg: #ece4d2;
@@ -84,7 +84,7 @@
   --color-warn-soft: var(--warn-soft);
 
   --font-sans: var(--font-public-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-instrument-serif), "Iowan Old Style", Georgia, serif;
+  --font-display: var(--font-instrument-serif), "Instrument Serif", "Iowan Old Style", Georgia, serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
   /* Radius scale: near-square print geometry. Tailwind's own steps collapse onto it. */
@@ -118,6 +118,8 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  /* clip (not hidden) on the root: a stray overflow never creates a sideways scroll, and it still shows in scrollWidth. */
+  overflow-x: clip;
 }
 
 body {
@@ -130,7 +132,6 @@ body {
   background-position: 0 0, 2.5px 2.5px;
   color: var(--fg);
   font-family: var(--font-sans);
-  overflow-x: hidden;
 }
 
 .num {
@@ -178,10 +179,8 @@ dialog::backdrop {
 .ground-band > i:nth-child(3) { --top: 40%; --dot: 1.4px; --shift: -420px; }
 .ground-band > i:nth-child(4) { --top: 60%; --dot: 1.8px; --shift: -130px; }
 .ground-band > i:nth-child(5) { --top: 78%; --dot: 2.2px; --shift: -560px; }
-.ground-band--short { height: 4.5rem; }
 @media (max-width: 640px) {
   .ground-band { height: 6rem; }
-  .ground-band--short { height: 3.5rem; }
 }
 
 /* ---- Going-to-press: horizons engrave in sequence (state-driven; off under reduced motion) ---- */

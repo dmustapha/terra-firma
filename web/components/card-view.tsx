@@ -12,6 +12,15 @@ import { HindsightCard } from "./hindsight-card";
 import { StockSelect } from "./stock-select";
 import { Button, LinkButton, Notice, Panel } from "./ui";
 
+/** The main action, visible but off until a wallet is connected (read-only and demo cards). */
+export function ConvertLocked({ stock }: { stock: string }) {
+  return (
+    <Button disabled>
+      Convert to {stock} <span className="font-normal">· connect to use</span>
+    </Button>
+  );
+}
+
 /** Read-only card for any wallet (server-fetched), ending with "Connect to fix yours". */
 export function CardView({ card, error }: { card: Card | null; error: string | null }) {
   const router = useRouter();
@@ -37,6 +46,7 @@ export function CardView({ card, error }: { card: Card | null; error: string | n
         actions={
           <div className="space-y-4 border-t border-line pt-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              {own ? <LinkButton href={`/app/convert?stock=${card.stock}`}>Fix it: convert to {card.stock}</LinkButton> : !isConnected && <ConvertLocked stock={card.stock} />}
               <ShareButton card={card} />
               {own && <MintButton card={card} />}
             </div>
