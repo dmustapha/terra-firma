@@ -109,8 +109,8 @@ export function HindsightReceipts({ initial }: { initial: Card | null }) {
           </p>
           <TextLink href={`/card/${HISTORY_ADDR}`} className="mt-4">All {buys.length.toLocaleString("en-US")} receipts<span aria-hidden>&nbsp;→</span></TextLink>
         </div>
-        <div className="plate overflow-x-auto px-2 pt-2 pb-1">
-          <table className="num w-full text-[0.9375rem] sm:min-w-[34rem]">
+        <div className="plate overflow-x-auto px-1 pt-2 pb-1 sm:px-2 max-sm:[mask-image:linear-gradient(90deg,#000_92%,transparent)]">
+          <table className="num w-full text-[0.875rem] sm:min-w-[34rem] sm:text-[0.9375rem]">
             <caption className="px-4 pt-3 pb-1 text-left text-xs font-semibold text-muted">The {top.length} biggest of {buys.length.toLocaleString("en-US")} buys, all into {memesLine(c)}</caption>
             <thead className="text-left text-xs font-semibold text-muted">
               <tr><th className="px-4 py-3 max-sm:px-2">Day</th><th className="px-4 py-3 max-sm:hidden">Aped into</th><th className="px-4 py-3 text-right max-sm:px-2">Paid</th><th className="px-4 py-3 text-right max-sm:px-2">{c.stock} that day</th><th className="px-4 py-3 text-right max-sm:px-2">Would be</th><th className="px-4 py-3 text-right max-sm:hidden">Tx</th></tr>
@@ -120,9 +120,9 @@ export function HindsightReceipts({ initial }: { initial: Card | null }) {
                 <tr key={b.tx + b.usdPaid8} className="border-t border-dashed border-fg/15">
                   <td className="px-4 py-3 whitespace-nowrap text-muted max-sm:px-2"><span className="max-sm:hidden">{dateTime(b.ts).replace(/, \d{4}/, "")}</span><span className="sm:hidden"><TxLink hash={b.tx}>{dateTime(b.ts).replace(/, \d{4}/, "").replace(/ UTC$/, "").replace(/\s+/g, " ")}</TxLink></span></td>
                   <td className="px-4 py-3 font-semibold max-sm:hidden">${b.sym}</td>
-                  <td className="px-4 py-3 text-right font-semibold max-sm:px-2">{big(b.usdPaid8)}</td>
-                  <td className="px-4 py-3 text-right text-muted max-sm:px-2">{usd8(b.stockUsd8)}</td>
-                  <td className="px-4 py-3 text-right max-sm:px-2">{shares18(b.shares18)} sh</td>
+                  <td className="px-4 py-3 text-right font-semibold whitespace-nowrap max-sm:px-2">{usd8(b.usdPaid8)}</td>
+                  <td className="px-4 py-3 text-right whitespace-nowrap text-muted max-sm:px-2">{usd8(b.stockUsd8)}</td>
+                  <td className="px-4 py-3 text-right whitespace-nowrap max-sm:px-2">{shares18(b.shares18)} sh</td>
                   <td className="px-4 py-3 text-right text-sm max-sm:hidden"><TxLink hash={b.tx} /></td>
                 </tr>
               ))}

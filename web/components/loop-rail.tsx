@@ -9,14 +9,14 @@ import { LinkButton, cx } from "./ui";
 const STATIONS = [
   { n: "01", title: "The sweep", line: "Tick the memes that died and sweep them in one transaction. Each meme needs a one-time approval first." },
   { n: "02", title: "Stock lands", line: "Real Stock Tokens in your Jar, your stock wallet. Withdraw any time." },
-  { n: "03", title: "$WIF burns", line: "The 0.5% fee (0.3% if you stake 10k $WIF) splits off: half buys $WIF and burns it, half buys stock for stakers." },
+  { n: "03", title: "$WIF burns", line: "The 0.5% fee (0.3% if you stake 10k $WIF) pools up. Each epoch, half buys $WIF and burns it, half buys stock for stakers." },
 ];
 
 // phase 0: dead meme at 01 · phase 1: it travels to 02 and becomes stock · phase 2: the fee chip splits off to 03.
 const STEPS_MS = [1200, 2500];
 // Centre of column i in a 3-column grid with a 2rem gap (matches the tiles below, so each tick meets its dot).
 const COL = ["calc((100% - 4rem) / 6)", "50%", "calc(100% - (100% - 4rem) / 6)"];
-const CHIPS = ["$AI · dead bag", "NVDA · in your Jar", "0.5% fee → half burns $WIF"];
+const CHIPS = ["$AI · dead bag", "NVDA · in your Jar", "fee pool → half burns $WIF each epoch"];
 
 export function LoopRail() {
   const [phase, setPhase] = useState(2);
@@ -52,7 +52,7 @@ export function LoopRail() {
           <span key={main.label} className={cx("rise inline-block rounded-full border-[1.5px] border-fg px-4 py-1.5 text-[0.9375rem] font-semibold whitespace-nowrap text-[color:var(--plate)] shadow-[3px_3px_0_var(--plate-offset)]", main.tone)}>{main.label}</span>
         </span>
         <span className={cx("absolute top-[62%] -translate-x-[88%] -translate-y-[175%]", move, phase === 2 ? "opacity-100" : "opacity-0")} style={{ left: phase === 2 ? COL[2] : COL[1] }}>
-          <span className="stamp !rotate-[-4deg] !text-[1rem] whitespace-nowrap !font-sans font-bold">0.5% fee → half burns $WIF</span>
+          <span className="stamp !rotate-[-4deg] !text-[1rem] whitespace-nowrap !font-sans font-bold">fee pool → half burns $WIF each epoch</span>
         </span>
       </div>
       <ol className="mt-4 grid gap-6 lg:grid-cols-3 lg:gap-8">
@@ -61,7 +61,7 @@ export function LoopRail() {
           <li key={st.n} id={`step-${st.n}`} className="relative scroll-mt-28 text-center">
             <span aria-hidden className="absolute -top-4 left-1/2 hidden h-4 w-0.5 -translate-x-1/2 bg-fg lg:block" />
             <div className="sheet h-full px-6 pt-5 pb-6">
-            <p className="mb-3 lg:hidden"><span className={cx("inline-block rounded-full border-[1.5px] border-fg px-3 py-1 text-[0.875rem] font-semibold", ["bg-[color:var(--danger)] text-[color:var(--plate)]", "bg-[color:var(--accent)] text-[color:var(--plate)]", "border-[color:var(--danger)] text-danger"][Number(st.n) - 1])}>{CHIPS[Number(st.n) - 1]}</span></p>
+            <p className="mb-3"><span className={cx("inline-block rounded-full border-[1.5px] border-fg px-3 py-1 text-[0.875rem] font-semibold", ["bg-[color:var(--danger)] text-[color:var(--plate)]", "bg-[color:var(--accent)] text-[color:var(--plate)]", "border-[color:var(--danger)] text-danger"][Number(st.n) - 1])}>{CHIPS[Number(st.n) - 1]}</span></p>
             <p className="num text-sm font-semibold text-accent">{st.n}</p>
             <h3 className="mt-1 font-display text-[2.5rem] leading-none">{st.title}</h3>
             <p className="mx-auto mt-3 max-w-[30ch] text-[1rem] leading-relaxed text-fg/85">{st.line}</p>

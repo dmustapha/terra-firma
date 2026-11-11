@@ -56,7 +56,7 @@ export default async function Home() {
               Your memes died. <em className="text-accent">NVDA didn&apos;t.</em>
             </h1>
             <p className="mt-6 max-w-[44ch] text-[1.1875rem] leading-relaxed text-fg/85 max-sm:hidden">
-              See what your bag would be worth in real stock. Then sweep the dead coins into it in one transaction. Half of every 0.5% fee buys $WIF and burns it.
+              See what your bag would be worth in real stock. Then sweep the dead coins into it in one transaction, after a one-time approval per coin. Every fee pools up, and each epoch half of it buys $WIF and burns it.
             </p>
             <div className="mt-5 sm:mt-8"><LoopLine /></div>
           </div>
