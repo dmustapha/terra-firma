@@ -103,3 +103,17 @@ describe("duration / short / roundTail", () => {
     expect(roundTail("18446744073709551001")).toBe("…001");
   });
 });
+
+import { usdWhole8 as _usdWhole8 } from "./ui-format";
+describe("usdWhole8", () => {
+  it("floors in integer math and never rounds up at the cents edge", () => {
+    expect(_usdWhole8("1719499500000")).toBe("$17,194"); // 17,194.995 would round to 17,195 via cents
+    expect(_usdWhole8("0")).toBe("$0");
+    expect(_usdWhole8(2n)).toBe("$0");
+  });
+  it("a gap never prints larger than the figure it was taken from", () => {
+    const cf = 1719499500000n, today = 1000000n;
+    const n = (s: string) => Number(s.replace(/[$,]/g, ""));
+    expect(n(_usdWhole8(cf - today))).toBeLessThanOrEqual(n(_usdWhole8(cf)));
+  });
+});

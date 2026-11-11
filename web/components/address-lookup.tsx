@@ -6,7 +6,7 @@ import { isAddress } from "viem";
 import { Button, cx, inputCls } from "./ui";
 
 /** "Look up any wallet" (0x only, validated before any request). Used on /, /app and /card/[addr]. */
-export function AddressLookup({ id = "lookup", placeholder = "Paste a 0x address", label, button = "Read card" }: { id?: string; placeholder?: string; label?: string; button?: string }) {
+export function AddressLookup({ id = "lookup", placeholder = "Paste a 0x address", label, button = "Read card", primary = false }: { id?: string; placeholder?: string; label?: string; button?: string; primary?: boolean }) {
   const router = useRouter();
   const [v, setV] = useState("");
   const [err, setErr] = useState(false);
@@ -33,13 +33,13 @@ export function AddressLookup({ id = "lookup", placeholder = "Paste a 0x address
             setErr(false);
           }}
           placeholder={placeholder}
-          className={cx(inputCls, "min-w-0 flex-1 rounded-r-none border-r-0 font-mono")}
+          className={cx(inputCls, "min-w-0 flex-1 rounded-r-none border-r-0", !primary && "font-mono", primary && "min-h-13 border-fg bg-well shadow-[var(--sh-well)]")}
           aria-invalid={err}
           aria-describedby={err ? errId : undefined}
           autoComplete="off"
           spellCheck={false}
         />
-        <Button type="submit" variant="secondary" className="shrink-0 rounded-l-none px-4">{button}</Button>
+        <Button type="submit" variant={primary ? "primary" : "secondary"} className={cx("shrink-0 rounded-l-none px-4", primary && "min-h-13 px-6 text-[1.0625rem]")}>{button}</Button>
       </div>
       {err && <p id={errId} role="alert" className="text-sm text-danger">Enter a 0x address (42 characters).</p>}
     </form>

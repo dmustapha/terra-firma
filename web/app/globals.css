@@ -31,6 +31,24 @@
   --grain: rgb(26 23 18 / 0.05);
   --grain-2: rgb(63 107 74 / 0.04);
   --backdrop: rgb(26 23 18 / 0.45);
+  /* ---- DEPTH LADDER (v2): every container earns a plane. ground < band(recessed bed) < sheet < plate; wells sink. ---- */
+  --bg: #ede5d3; /* ground: newsprint */
+  --band: #d9ccaf; /* recessed section bed */
+  --sheet: #f8f3e7; /* raised sheet */
+  --plate: #fffcf3; /* popped plate, the freshest paper */
+  --well: #e6dcc6; /* recessed well inside a sheet/plate */
+  --corner: rgb(255 255 255 / 0.62); /* corner light on raised planes */
+  --rim: rgb(255 255 255 / 0.75);
+  --sh-sheet: inset 0 1px 0 var(--rim), 0 1px 2px rgb(74 58 28 / 0.12), 0 22px 40px -22px rgb(74 58 28 / 0.5);
+  --sh-sheet-hover: inset 0 1px 0 var(--rim), 0 2px 4px rgb(74 58 28 / 0.14), 0 30px 50px -24px rgb(74 58 28 / 0.55);
+  --sh-plate: 8px 8px 0 var(--fg), 0 40px 80px -30px rgb(47 82 57 / 0.5);
+  --sh-well: inset 0 2px 4px rgb(26 23 18 / 0.14), inset 0 0 0 1px rgb(26 23 18 / 0.07);
+  --sh-band: inset 0 18px 24px -18px rgb(26 23 18 / 0.22), inset 0 -1px 0 rgb(255 255 255 / 0.6);
+  --plate-offset: var(--fg);
+  --slab: #2f5239;
+  --slab-fg: #f6f0e1;
+  --bloom: rgb(63 107 74 / 0.13);
+  --bloom-2: rgb(200 144 27 / 0.1);
   color-scheme: light;
 }
 
@@ -60,6 +78,24 @@
   --grain: rgb(236 228 210 / 0.035);
   --grain-2: rgb(134 179 145 / 0.03);
   --backdrop: rgb(0 0 0 / 0.6);
+  --bg: #211b14;
+  --band: #0e0c09;
+  --sheet: #2e261c;
+  --plate: #3a3125;
+  --well: #100d09;
+  --surface-2: #100d09;
+  --corner: rgb(236 228 210 / 0.06);
+  --rim: rgb(236 228 210 / 0.12);
+  --sh-sheet: inset 0 1px 0 var(--rim), 0 1px 2px rgb(0 0 0 / 0.5), 0 24px 44px -20px rgb(0 0 0 / 0.85);
+  --sh-sheet-hover: inset 0 1px 0 var(--rim), 0 2px 4px rgb(0 0 0 / 0.55), 0 30px 54px -22px rgb(0 0 0 / 0.9);
+  --sh-plate: 8px 8px 0 #4f7d5a, 0 30px 60px -30px rgb(0 0 0 / 0.8);
+  --sh-well: inset 0 2px 5px rgb(0 0 0 / 0.55), inset 0 0 0 1px rgb(236 228 210 / 0.05);
+  --sh-band: inset 0 18px 26px -18px rgb(0 0 0 / 0.75), inset 0 -1px 0 rgb(236 228 210 / 0.05);
+  --plate-offset: #4f7d5a;
+  --slab: #ece4d2;
+  --slab-fg: #17140f;
+  --bloom: rgb(134 179 145 / 0.1);
+  --bloom-2: rgb(220 176 98 / 0.06);
   color-scheme: dark;
 }
 
@@ -67,6 +103,10 @@
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
+  --color-band: var(--band);
+  --color-sheet: var(--sheet);
+  --color-plate: var(--plate);
+  --color-well: var(--well);
   --color-line: var(--line);
   --color-line-strong: var(--line-strong);
   --color-fg: var(--fg);
@@ -125,11 +165,15 @@ html {
 body {
   background-color: var(--bg);
   /* Newsprint grain: two offset dot screens, barely there. */
+  /* Atmosphere: two light blooms over a newsprint dot screen. The ground is lit, never a bare fill. */
   background-image:
+    radial-gradient(70rem 40rem at 82% -8%, var(--bloom), transparent 70%),
+    radial-gradient(50rem 30rem at -5% 30%, var(--bloom-2), transparent 70%),
     radial-gradient(var(--grain) 0.7px, transparent 0.9px),
     radial-gradient(var(--grain-2) 0.7px, transparent 0.9px);
-  background-size: 5px 5px, 5px 5px;
-  background-position: 0 0, 2.5px 2.5px;
+  background-size: 100% 100%, 100% 100%, 5px 5px, 5px 5px;
+  background-position: 0 0, 0 0, 0 0, 2.5px 2.5px;
+  background-repeat: no-repeat, no-repeat, repeat, repeat;
   color: var(--fg);
   font-family: var(--font-sans);
 }
@@ -211,3 +255,86 @@ dialog::backdrop {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ================= DEPTH PLANES (v2) =================
+   ground → band (recessed section bed) → sheet (raised) → plate (popped, primary) ; well = recessed inside a raised plane.
+   Each plane differs from its parent in paper L AND in shadow. Corner light models the surface (chit), the rim catches it (leash). */
+.bleed { margin-inline: calc(50% - 50vw); }
+.band {
+  background-color: var(--band);
+  border-block: 1px solid color-mix(in oklab, var(--fg) 22%, transparent);
+  box-shadow: var(--sh-band);
+}
+.sheet {
+  position: relative;
+  background-color: var(--sheet);
+  background-image: radial-gradient(120% 90% at 0 0, var(--corner), transparent 55%);
+  border: 1px solid color-mix(in oklab, var(--fg) 16%, transparent);
+  border-radius: 12px;
+  box-shadow: var(--sh-sheet);
+}
+.plate {
+  position: relative;
+  background-color: var(--plate);
+  background-image: radial-gradient(110% 70% at 0 0, var(--corner), transparent 60%);
+  border: 1.5px solid var(--fg);
+  border-radius: 16px;
+  box-shadow: var(--sh-plate);
+}
+.well {
+  background-color: var(--well);
+  border-radius: 10px;
+  box-shadow: var(--sh-well);
+}
+.ui-label {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+/* Rubber stamp: brick ink, rotated, a double ring. Sits across the plate edge. */
+.stamp {
+  display: inline-block;
+  padding: 0.35em 0.6em 0.3em;
+  border: 3px double var(--danger);
+  border-radius: 8px;
+  color: var(--danger);
+  background: color-mix(in oklab, var(--plate) 82%, transparent);
+  font-family: var(--font-display);
+  line-height: 1;
+  transform: rotate(-7deg);
+  box-shadow: 2px 2px 0 rgb(155 59 31 / 0.25);
+}
+.drain { width: var(--to); }
+.live-dot { display: inline-block; width: 0.5rem; height: 0.5rem; border-radius: 999px; background: var(--accent); }
+
+@media (prefers-reduced-motion: no-preference) {
+  /* entrance: the plate drops from above and SEATS onto its ink offset */
+  .seat { animation: seat 700ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  /* state: the stamp lands once the numbers resolve */
+  .stamp-land { animation: stamp-land 520ms cubic-bezier(0.3, 1.4, 0.5, 1) 650ms both; }
+  /* entrance: steps rise one after another */
+  .drain { width: var(--to); animation: drain 1400ms cubic-bezier(0.6, 0, 0.2, 1) 500ms both; }
+  .grow-x { transform-origin: left; animation: grow-x 900ms cubic-bezier(0.2, 0.8, 0.2, 1) 400ms both; }
+  .rise { animation: rise 600ms cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: calc(var(--i, 0) * 90ms + 120ms); }
+  /* ambient: the live dot breathes (the only loop above the fold) */
+  .live-dot { animation: live 2.4s ease-in-out infinite; }
+}
+@keyframes seat {
+  from { opacity: 0; transform: translate(8px, -14px); box-shadow: 0 0 0 var(--plate-offset), 0 10px 30px -20px transparent; }
+  to { opacity: 1; transform: none; }
+}
+@keyframes stamp-land {
+  0% { opacity: 0; transform: rotate(-16deg) scale(1.7); }
+  70% { opacity: 1; transform: rotate(-6deg) scale(0.96); }
+  100% { opacity: 1; transform: rotate(-7deg) scale(1); }
+}
+@keyframes drain { from { width: 100%; } to { width: var(--to); } }
+@keyframes grow-x { from { transform: scaleX(0); } to { transform: none; } }
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes live { 0%, 100% { box-shadow: 0 0 0 0 var(--accent-55); } 50% { box-shadow: 0 0 0 5px transparent; } }
+
+/* The seal: multiply onto light paper (its cream ground disappears); in dark, inverted to cream strokes and screened out. */
+.seal { mix-blend-mode: multiply; }
+:root[data-theme="dark"] .seal { filter: invert(1) hue-rotate(180deg) saturate(1.4); mix-blend-mode: screen; }

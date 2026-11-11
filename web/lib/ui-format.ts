@@ -8,6 +8,14 @@ const toBig = (v: string | bigint | number) => (typeof v === "bigint" ? v : BigI
 /** 8-decimal USD integer -> "$1,234.56". */
 export const usd8 = (v: string | bigint) => usdFmt.format(Number(formatUnits(toBig(v), 8)));
 
+/** 8-decimal USD integer -> whole dollars, FLOORED in integer math ("$17,194"). One rounding mode everywhere on the card,
+ *  so a difference can never print larger than the figure it was taken from. */
+export const usdWhole8 = (v: string | bigint) => {
+  const n = toBig(v);
+  const whole = (n < 0n ? -n : n) / 100_000_000n;
+  return `${n < 0n ? "-" : ""}$${whole.toLocaleString("en-US")}`;
+};
+
 /** Accessible label: "41.07 dollars". */
 export const usd8Label = (v: string | bigint) => `${Number(formatUnits(toBig(v), 8)).toFixed(2)} dollars`;
 

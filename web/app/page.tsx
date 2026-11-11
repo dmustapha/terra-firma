@@ -1,67 +1,101 @@
+import { getAddress } from "viem";
 import { AddressLookup } from "@/components/address-lookup";
-import { Guarantee } from "@/components/guarantee";
-import { LandingConnect } from "@/components/landing-connect";
-import { LazyDispatches, LazyEditionFigures } from "@/components/landing-below";
-import { LandingDeck, LandingPlate } from "@/components/landing-figure";
+import { HindsightPlate, HindsightReceipts } from "@/components/hindsight-plate";
+import { LiveProof } from "@/components/live-proof";
+import { LoopRail } from "@/components/loop-rail";
 import { TextLink } from "@/components/ui";
+import { getCard } from "@/lib/card-cache";
+import type { Card } from "@/lib/hindsight";
 import { HISTORY_ADDR } from "@/lib/ui-chain";
 
-/** One department of the broadsheet: kicker, head, prose. Columns are separated by hairline rules, never boxed. */
-function Dept({ kicker, title, href, cta, className, children }: { kicker: string; title: string; href: string; cta: string; className: string; children: React.ReactNode }) {
+// The hero card is the same cached on-chain read /api/hindsight serves (5-min TTL); re-render on that cadence.
+export const revalidate = 300;
+
+/** Server read of the hero wallet, capped. With ISR visitors get the last resolved plate; the client re-reads if null. */
+async function heroCard(): Promise<Card | null> {
+  const cap = new Promise<null>((r) => setTimeout(() => r(null), 25000));
+  try {
+    return await Promise.race([getCard(getAddress(HISTORY_ADDR), 0), cap]);
+  } catch {
+    return null;
+  }
+}
+
+const LOOP = [
+  { n: "01", head: "Dead memes in" },
+  { n: "02", head: "Real stock out" },
+  { n: "03", head: "$WIF burns" },
+];
+
+/** The loop in one line: no container, no tabs. Each step jumps to its station below. */
+function LoopLine() {
   return (
-    <article className={`border-line max-lg:border-t max-lg:pt-5 lg:border-l lg:pl-8 lg:first:border-l-0 lg:first:pl-0 ${className}`}>
-      <p className="mb-1 font-display text-[1.375rem] italic text-accent">{kicker}</p>
-      <h3 className="mb-3 font-display text-deck">{title}</h3>
-      {children}
-      <TextLink href={href} className="text-[0.9375rem]">{cta}</TextLink>
-    </article>
+    <p aria-label="How Terra Firma works" className="flex flex-wrap items-baseline gap-x-3 gap-y-1 font-display text-[clamp(1.5rem,1.2rem+1vw,2rem)] leading-tight">
+      {LOOP.map((s, i) => (
+        <span key={s.n} style={{ "--i": i } as React.CSSProperties} className="rise inline-flex items-baseline gap-3">
+          <a href={`#step-${s.n}`} className={`underline decoration-transparent decoration-1 underline-offset-[6px] transition-colors hover:decoration-current ${i === 2 ? "text-accent" : ""}`}>{s.head}</a>
+          {i < LOOP.length - 1 && <span aria-hidden className="text-muted">→</span>}
+        </span>
+      ))}
+    </p>
   );
 }
 
-export default function Home() {
+export default async function Home() {
+  const card = await heroCard();
   return (
-    <div className="space-y-10 sm:space-y-12">
-      <div className="grid gap-x-10 gap-y-8 lg:grid-cols-12">
-        <article className="lg:col-span-7 lg:row-start-1">
-          <h1 className="max-w-[13ch] font-display text-headline text-balance">
-            Stand on $WIF. Sweep the rest <em className="text-accent">into stock.</em>
-          </h1>
-          <Guarantee lead addr={HISTORY_ADDR} className="mt-5 max-w-[46ch]" />
-          <div className="mt-7 flex flex-col gap-5 sm:flex-row sm:items-end sm:gap-7">
-            <LandingConnect />
-            <div className="min-w-0 sm:max-w-[30rem] sm:flex-1">
-              <AddressLookup id="lookup" label="Look up any wallet" />
+    <div className="-mt-8 sm:-mt-10">
+      {/* HERO: a recessed press bed; the plate pops off it. */}
+      <section aria-labelledby="hero-title" className="band bleed">
+        <div className="mx-auto grid max-w-[80rem] items-center gap-x-16 gap-y-14 px-4 pt-14 pb-16 sm:px-6 lg:grid-cols-[1fr_1.12fr] lg:px-8 lg:pt-20 lg:pb-20">
+          <div>
+            <p className="mb-6 flex items-center gap-2 text-sm font-semibold text-muted">
+              <span className="live-dot" aria-hidden /> Live on Robinhood Chain
+            </p>
+            <h1 id="hero-title" className="font-display text-[clamp(3rem,1.6rem+5vw,6rem)] leading-[0.92] tracking-[-0.025em] text-balance">
+              Your memes died. <em className="text-accent">NVDA didn&apos;t.</em>
+            </h1>
+            <p className="mt-6 max-w-[44ch] text-[1.1875rem] leading-relaxed text-fg/85">
+              See what your bag would be worth in real stock. Then sweep the dead coins into it in one transaction, and the fee on every sweep burns $WIF.
+            </p>
+            <div className="mt-8"><LoopLine /></div>
+            <div id="check" className="mt-8 max-w-[34rem]">
+              <AddressLookup id="lookup" label="Paste your wallet" placeholder="0x… your wallet" button="Check my bag" primary />
+              <p className="mt-3 text-sm text-muted">Read-only. Nothing to sign to see your card.</p>
             </div>
           </div>
-        </article>
-        <div className="lg:col-span-5 lg:col-start-8 lg:row-span-2 lg:row-start-1 lg:border-l lg:border-line lg:pl-10">
-          <LandingPlate />
+          <HindsightPlate initial={card} />
         </div>
-        <div className="lg:col-span-7 lg:row-start-2">
-          <LandingDeck />
-        </div>
-      </div>
-
-      <LazyEditionFigures />
-
-      <section aria-labelledby="departments-title" className="grid gap-x-8 gap-y-6 lg:grid-cols-12">
-        <h2 id="departments-title" className="sr-only">The Jar, the Sweep and the Pool</h2>
-        <Dept kicker="The Jar" title="Dead memes, settled into bedrock" href="/jar" cta="Open your Jar" className="lg:col-span-5">
-          <div className="text-[0.9375rem] leading-relaxed sm:columns-2 sm:gap-x-8 sm:[column-rule:1px_solid_var(--line)]">
-            <p className="mb-3">Pick the memes that stopped moving. Terra Firma converts them into real Stock Tokens and keeps them in your Jar, where you can see where each one came from and withdraw it whenever you like.</p>
-            <p className="mb-3">Before you sign, you see what goes in and the least that comes out. Nothing is converted without your signature.</p>
-          </div>
-        </Dept>
-        <Dept kicker="The Sweep" title="A slice of every trade" href="/trade" cta="Trade with a sweep" className="lg:col-span-3">
-          <p className="mb-3 text-[0.9375rem] leading-relaxed">Trade memes as usual. You set the slice, and that part of every trade is swept into stock in the same transaction, instead of into the next coin.</p>
-        </Dept>
-        <Dept kicker="The Pool" title="Where the fees go" href="/stake" cta="Stake $WIF" className="lg:col-span-4">
-          <p className="my-1 mb-3 border-y border-fg py-2 font-display text-[1.6rem] italic leading-tight">The fee pool buys $WIF and burns it, and streams stock to $WIF stakers.</p>
-          <p className="mb-3 text-[0.9375rem] leading-relaxed">Every burn and every stream is a transaction you can open on the Proof page.</p>
-        </Dept>
       </section>
 
-      <LazyDispatches className="border-t-2 border-line-strong pt-4" />
+      <LiveProof />
+
+      <HindsightReceipts initial={card} />
+
+      {/* THE LOOP, as one connected flow that climbs out of the ground: well → sheet → plate. */}
+      <section aria-labelledby="how-title" className="py-24 text-center">
+        <p className="ui-label mb-4 text-accent">What you do with a dead bag</p>
+        <h2 id="how-title" className="mx-auto max-w-[16ch] font-display text-[clamp(2.4rem,1.6rem+2.6vw,4rem)] leading-[1] tracking-[-0.02em]">
+          Sweep it into stock.<br /><span className="text-muted">Burn $WIF on the way.</span>
+        </h2>
+        <LoopRail />
+      </section>
+
+      {/* CLOSE: the one inverted plate. */}
+      <section aria-labelledby="close-title" className="mb-16 rounded-[20px] border-[1.5px] border-fg bg-[color:var(--slab)] px-8 py-14 text-[color:var(--slab-fg)] shadow-[8px_8px_0_var(--plate-offset)] sm:px-14">
+        <div className="grid items-end gap-10 lg:grid-cols-[1.2fr_1fr]">
+          <div>
+            <p className="ui-label mb-4 opacity-70">Every number is read from the chain</p>
+            <h2 id="close-title" className="font-display text-[clamp(2.2rem,1.4rem+2.4vw,3.75rem)] leading-[1.02]">
+              Your bag is still sitting there. <em className="opacity-75">Check what it cost you.</em>
+            </h2>
+          </div>
+          <div className="space-y-3 text-[1rem] leading-relaxed opacity-85">
+            <p>Buys from Robinhood Chain logs. Prices from the Chainlink round each buy landed in. Terra Firma never sells or prices $WIF.</p>
+            <div className="rounded-[12px] bg-[color:var(--plate)] p-4 text-fg"><AddressLookup id="lookup-close" label="Paste your wallet" placeholder="0x… your wallet" button="Check my bag" primary /></div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
