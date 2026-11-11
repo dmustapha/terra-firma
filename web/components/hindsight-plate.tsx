@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Card } from "@/lib/hindsight";
 import { HISTORY_ADDR } from "@/lib/ui-chain";
-import { dateTime, shares18, short, usd8, usdWhole8 } from "@/lib/ui-format";
+import { date, shares18, short, usd8, usdWhole8 } from "@/lib/ui-format";
 import { recomputeHref } from "./guarantee";
 import { useCard } from "./hooks";
 import { Skeleton, TextLink, TxLink } from "./ui";
@@ -85,7 +85,7 @@ function Drain({ c }: { c: Card }) {
         <span className={`absolute top-1/2 right-3 -translate-y-1/2 text-right text-[0.875rem] leading-tight font-semibold text-[color:var(--plate)] transition-opacity duration-300 ${w < 55 ? "opacity-100" : "opacity-0"}`}>{big(c.totals.usdCounterfactual8)} in {c.stock}<span className="block font-display text-[0.9375rem] font-normal italic opacity-85">not yours</span></span>
       </div>
       <div className="mt-2 flex items-center justify-end gap-3 text-[0.8125rem]">
-        <span className={`mr-auto pl-36 opacity-75 transition-opacity max-sm:pl-0 max-sm:pt-8 ${k >= 1 ? "" : "opacity-0"}`}>bag drawn to scale</span>
+        <span className={`mr-auto pl-36 opacity-75 transition-opacity max-sm:pl-0 max-sm:pt-8 ${k >= 1 ? "" : "opacity-0"}`}>{pct < 0.5 ? "bag shown at a 3px minimum: to scale it would be invisible" : "bag drawn to scale"}</span>
         <button type="button" onClick={() => setRun((r) => r + 1)} className="rounded-sm px-1 font-semibold underline decoration-1 underline-offset-4 hover:opacity-80 focus-visible:outline-2 focus-visible:outline-current">Replay ↺</button>
       </div>
     </div>
@@ -120,7 +120,7 @@ export function HindsightReceipts({ initial }: { initial: Card | null }) {
             <tbody>
               {top.map((b) => (
                 <tr key={b.tx + b.usdPaid8} className="border-t border-dashed border-fg/15">
-                  <td className="px-4 py-3 whitespace-nowrap text-muted max-sm:px-2 max-sm:py-2.5"><span className="max-sm:hidden">{dateTime(b.ts).replace(/, \d{4}/, "").replace(/ UTC$/, "")}</span><span className="block sm:hidden">{new Date(b.ts * 1000).toISOString().slice(5, 16).replace("T", " ")}<span className="mt-0.5 block text-[0.8125rem]">@ {usd8(b.stockUsd8)} → {sh3(b.shares18)} sh · <TxLink hash={b.tx} /></span></span></td>
+                  <td className="px-4 py-3 whitespace-nowrap text-muted max-sm:px-2 max-sm:py-2.5"><span className="max-sm:hidden">{date(b.ts).replace(/, \d{4}/, "")} {new Date(b.ts * 1000).toISOString().slice(11, 16)}</span><span className="block sm:hidden">{new Date(b.ts * 1000).toISOString().slice(5, 16).replace("T", " ")}<span className="mt-0.5 block text-[0.8125rem]">@ {usd8(b.stockUsd8)} → {sh3(b.shares18)} sh · <TxLink hash={b.tx} /></span></span></td>
                   
                   <td className="px-4 py-3 text-right align-top font-semibold whitespace-nowrap max-sm:px-2 max-sm:py-2.5">{usd8(b.usdPaid8)}</td>
                   <td className="px-4 py-3 text-right whitespace-nowrap text-muted max-sm:hidden">{usd8(b.stockUsd8)}</td>
@@ -178,7 +178,7 @@ export function HindsightPlate({ initial }: { initial: Card | null }) {
             </div>
             <Drain c={c} />
             {loss && (
-              <span aria-label={`the bag is down ${loss} percent`} className="stamp stamp-land absolute -top-5 -right-2 text-[1.375rem] sm:-top-6 sm:-right-6 sm:text-[2.1rem]">
+              <span title={`Exact: −${(100 - (Number(c.totals.usdToday8) / Number(c.totals.usdPaidQuoted8)) * 100).toFixed(4)}%`} aria-label={`the bag is down ${loss} percent`} className="stamp stamp-land absolute -top-5 -right-2 text-[1.375rem] sm:-top-6 sm:-right-6 sm:text-[2.1rem]">
                 −{loss}%
               </span>
             )}
