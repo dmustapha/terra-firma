@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 import { isAddress } from "viem";
-import { short, sig4, usd } from "@/lib/ui-format";
+import { orDash, short, signedSig4, signedUsd, usd } from "@/lib/ui-format";
 import { jarReport } from "@/lib/ui-report";
 
 export const runtime = "nodejs";
@@ -21,15 +21,14 @@ export default async function Image({ params }: { params: Promise<{ addr: string
       <div style={{ display: "flex", flexDirection: "column" }}>
         <div style={{ display: "flex", marginTop: 24, fontSize: 28, color: C.muted }}>Weekly Jar report · {short(report.user)}</div>
         <div style={{ display: "flex", marginTop: 36, fontSize: 96, fontWeight: 800, color: C.accent }}>
-          {report.usdWeek >= 0 ? "+" : ""}
-          {usd(report.usdWeek)}
+          {signedUsd(report.usdWeek)}
         </div>
-        <div style={{ display: "flex", fontSize: 32, color: C.fg }}>added this week · Jar now {usd(report.usdNow)}</div>
+        <div style={{ display: "flex", fontSize: 32, color: C.fg }}>added this week · Jar now {orDash(report.usdNow, usd)}</div>
         <div style={{ display: "flex", gap: 16, marginTop: 36 }}>
           {report.rows.slice(0, 4).map((r) => (
             <div key={r.symbol} style={{ display: "flex", flexDirection: "column", padding: 20, borderRadius: 16, border: `2px solid ${C.line}`, background: C.surface, minWidth: 220 }}>
               <div style={{ fontSize: 26, color: C.muted }}>{r.symbol}</div>
-              <div style={{ fontSize: 36, fontWeight: 700 }}>+{sig4(r.sharesWeek)}</div>
+              <div style={{ fontSize: 36, fontWeight: 700 }}>{signedSig4(r.sharesWeek)}</div>
             </div>
           ))}
         </div>

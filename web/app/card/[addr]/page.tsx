@@ -5,7 +5,8 @@ import { getAddress, isAddress } from "viem";
 import { CardView } from "@/components/card-view";
 import { PageHeader } from "@/components/ui";
 import { stockBySymbol, type StockId } from "@/lib/config";
-import { buildCard, type Card } from "@/lib/hindsight";
+import { getCard } from "@/lib/card-cache";
+import type { Card } from "@/lib/hindsight";
 import { short, usd8 } from "@/lib/ui-format";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +17,7 @@ type Props = { params: Promise<{ addr: string }>; searchParams: Promise<{ stock?
 const load = cache(async (addr: string, stock: string): Promise<{ card: Card | null; error: string | null }> => {
   const s = stockBySymbol(stock) ?? stockBySymbol("NVDA")!;
   try {
-    return { card: await buildCard(getAddress(addr), s.id as StockId), error: null };
+    return { card: await getCard(getAddress(addr), s.id as StockId), error: null };
   } catch {
     return { card: null, error: "The chain is busy. Try again in a few seconds." };
   }

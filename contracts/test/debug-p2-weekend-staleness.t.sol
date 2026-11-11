@@ -94,7 +94,7 @@ contract DebugP2WeekendStaleness is Test, TerraConfig {
         uint256 ethIn = address(d.feePool).balance;
         uint256 leg = ethIn / 2 > d.feePool.MAX_WIF_BUY_ETH() ? d.feePool.MAX_WIF_BUY_ETH() : ethIn / 2;
         vm.recordLogs();
-        d.feePool.distribute(1);
+        d.feePool.distribute();
         Vm.Log[] memory logs = vm.getRecordedLogs();
 
         bytes32 skipped = FeePool.StockBuySkipped.selector;

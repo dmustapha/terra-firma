@@ -60,6 +60,8 @@ contract TerraRouter is ReentrancyGuard {
         address indexed user, address indexed token, bool isBuy, uint256 ethAmount, uint256 tokenAmount, uint256 fee
     );
     event Swept(address indexed user, uint8 indexed stockId, uint256 ethIn, uint256 stockOut);
+    /// @notice A direct ETH -> Stock Token deposit into the Jar (distinct from trade sweeps, which emit Swept).
+    event Deposited(address indexed user, uint8 indexed stockId, uint256 ethIn, uint256 stockOut);
     event Converted(address indexed user, uint8 indexed stockId, uint256 ethIn, uint256 stockOut, uint256 memes);
 
     error WifNotSellable();
@@ -175,7 +177,7 @@ contract TerraRouter is ReentrancyGuard {
         uint256 fee = msg.value * feeBps(msg.sender) / 10_000;
         _sendEth(feePool, fee);
         stockOut = _ethToJar(msg.sender, stockId, msg.value - fee, minStockOut, SRC_DEPOSIT);
-        emit Swept(msg.sender, stockId, msg.value - fee, stockOut);
+        emit Deposited(msg.sender, stockId, msg.value - fee, stockOut);
     }
 
     /// @notice 30 bps for wallets with >= 10,000 $WIF active stake, else 50 bps. Reads a stake amount, never a price.

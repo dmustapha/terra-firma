@@ -13,7 +13,7 @@ Copilot unavailable this run (intel: copilot_available=false); Grid broad search
 ### Differentiation Strengths
 - Only entry turning meme activity into **owned real stock** (Hindsight → convert → sweep), with a **per-wallet shocking number** from real chain data (0x3fDB…b09E: $15,314.80 → $2.28 vs $14,798.24 in NVDA).
 - **Onchain recompute** of the card (HindsightLens) — verifiability no entrant offers.
-- Security legibility at the top tier's bar: 7 ownerless contracts, 38 mainnet-fork tests incl. adversarial (JIT, cross-pool drain, gas starvation, route injection), Chainlink bounds.
+- Security legibility at the top tier's bar: 7 ownerless contracts, 62 mainnet-fork tests incl. adversarial (JIT, cross-pool drain, gas starvation, route injection), Chainlink bounds.
 
 ### Differentiation Gaps
 - Top competitors already show **verified contracts + SECURITY.md listing their own flaws** (WIF Agent Arena) and **Sourcify verification + self-audit** (Proof of Ship). We plan both but they do not exist yet → E-4.

@@ -87,6 +87,8 @@ contract HindsightLens {
 
     /// @dev Round `rid` must be the one in effect at `ts`: updatedAt(rid) <= ts < updatedAt(rid + 1),
     ///      or rid is the latest round. Answers are normalized to 8dp (NVDA early-round scaling).
+    ///      Round ids are phaseId << 64 | n: at the last round of a phase rid + 1 does not exist (updatedAt == 0), so
+    ///      it cannot bracket `ts` and is rejected; otherwise a stale old-phase round would price any later ts.
     function _priceAt(address feed, uint80 rid, uint64 ts) internal view returns (uint256 price8) {
         uint256 at;
         (price8, at) = oracle.historicalAnswer8(feed, rid);
@@ -94,7 +96,7 @@ contract HindsightLens {
         (uint80 latest,,,,) = IAggregatorV3(feed).latestRoundData();
         if (rid < latest) {
             (,,, uint256 nextAt,) = IAggregatorV3(feed).getRoundData(rid + 1);
-            if (nextAt != 0 && nextAt <= ts) revert BadRound(feed, rid);
+            if (nextAt == 0 || nextAt <= ts) revert BadRound(feed, rid);
         }
     }
 }

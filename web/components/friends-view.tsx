@@ -5,16 +5,17 @@ import { keccak256, parseEventLogs, toBytes, type Abi, type Address } from "viem
 import { useAccount, useReadContracts } from "wagmi";
 import { friendJarAbi, stockOracleAbi } from "@/lib/abi";
 import { CHAIN_ID, STOCKS, TF } from "@/lib/config";
+import { orDash } from "@/lib/ui-format";
 import { DEPLOYED, publicClient } from "@/lib/ui-chain";
 import { parseAmount, shares18 } from "@/lib/ui-format";
 import { only } from "@/lib/ui-logs";
 import { sharesOf } from "@/lib/ui-report";
 import { ConnectButton } from "./connect-button";
-import { GEO_BLOCKED, useStockGate } from "./geo-gate";
+import { GEO_BLOCKED, GeoLoadingNote, useStockGate } from "./geo-gate";
 import { useMounted, useStockQuotes, useTfLogs, useTx } from "./hooks";
 import { StockSelect } from "./stock-select";
 import { TxStatus } from "./tx-status";
-import { Button, Notice, Panel, Skeleton, inputCls } from "./ui";
+import { AddrLink, Button, Notice, Panel, Skeleton, inputCls } from "./ui";
 
 const F = { address: TF.FriendJar, abi: friendJarAbi as unknown as Abi };
 
@@ -125,16 +126,20 @@ function JarCard({ id, user }: { id: bigint; user: Address }) {
     <Panel className="space-y-4">
       {gate.dialog}
       <h3 className="font-semibold">Friend Jar #{id.toString()} · {STOCKS[stockId]?.symbol}</h3>
-      <p className="num text-sm text-muted">Your share: {q ? `${shares18(sharesOf(myStock, q))} ${STOCKS[stockId]?.symbol}` : <Skeleton w="5rem" />} · whole Jar {pot !== undefined && q ? shares18(sharesOf(pot, q)) : "…"}</p>
+      <p className="num text-sm text-muted">
+        Your share: {quotes.data ? <AddrLink addr={TF.FriendJar}>{orDash(sharesOf(myStock, q), shares18)} {STOCKS[stockId]?.symbol}</AddrLink> : <Skeleton w="5rem" />} · whole Jar{" "}
+        {pot !== undefined && quotes.data ? <AddrLink addr={TF.FriendJar}>{orDash(sharesOf(pot, q), shares18)}</AddrLink> : "…"}
+      </p>
       {gate.status === "restricted" ? (
         <Notice tone="warn">{GEO_BLOCKED}</Notice>
       ) : (
         <div className="flex flex-col gap-2 sm:flex-row">
           <label htmlFor={`fj-amt-${id}`} className="sr-only">ETH to contribute</label>
           <input id={`fj-amt-${id}`} inputMode="decimal" value={amt} onChange={(e) => setAmt(e.target.value)} placeholder="ETH" className={`${inputCls} num sm:flex-1`} />
-          <Button disabled={!wei || tx.busy} onClick={contribute}>Contribute</Button>
+          <Button disabled={!wei || tx.busy || gate.status === "loading"} onClick={contribute}>Contribute</Button>
         </div>
       )}
+      <GeoLoadingNote status={gate.status} />
       <Button variant="secondary" className="w-full" disabled={!mine || tx.busy} onClick={async () => { await tx.run([{ label: "Exit Friend Jar", call: { ...F, functionName: "exit", args: [id] } }]); r.refetch(); }}>
         Exit with my share
       </Button>

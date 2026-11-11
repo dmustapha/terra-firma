@@ -90,13 +90,21 @@ terra-firma/
   contracts/test/HindsightLens.t.sol
   contracts/test/TerraFirma.t.sol
   contracts/test/URProbe.t.sol
+  contracts/test/debug-p2-reentrancy.t.sol
+  contracts/test/debug-p2-staking-invariant.t.sol
+  contracts/test/debug-p2-weekend-staleness.t.sol
+  contracts/test/debug-p6-crossepoch-lock.t.sol
+  contracts/test/debug-p6-feepool.t.sol
+  contracts/test/debug-p6-hindsight-phase.t.sol
   package.json
   scripts/build-registry.ts
   scripts/build-restricted.ts
   scripts/build-rounds.ts
   scripts/check-arch-metrics.py
   scripts/check-plan-metrics.py
+  scripts/debug-p2-hindsight-latency.live.ts
   scripts/export-abis.mjs
+  scripts/fixtures/debug-p2-hindsight-baseline.json
   scripts/gen-architecture.py
   scripts/gen-plan.py
   scripts/hindsight.live.ts
@@ -139,6 +147,7 @@ terra-firma/
   web/app/stake/page.tsx
   web/app/trade/[token]/page.tsx
   web/app/trade/page.tsx
+  web/components/address-lookup.tsx
   web/components/app-home.tsx
   web/components/board-view.tsx
   web/components/card-actions.tsx
@@ -163,7 +172,15 @@ terra-firma/
   web/components/trade-terminal.tsx
   web/components/tx-status.tsx
   web/components/ui.tsx
+  web/lib/api-hindsight.test.ts
+  web/lib/api-quote.test.ts
+  web/lib/api-stream.test.ts
+  web/lib/api-validation.test.ts
+  web/lib/card-cache.test.ts
+  web/lib/card-cache.ts
+  web/lib/concurrency.ts
   web/lib/config.ts
+  web/lib/hindsight.test.ts
   web/lib/hindsight.ts
   web/lib/hypersync.ts
   web/lib/quote.test.ts
@@ -172,12 +189,17 @@ terra-firma/
   web/lib/rounds.integration.ts
   web/lib/rounds.test.ts
   web/lib/rounds.ts
+  web/lib/rpc.test.ts
   web/lib/rpc.ts
   web/lib/stock-paths.integration.ts
   web/lib/ui-chain.ts
+  web/lib/ui-errors.test.ts
   web/lib/ui-errors.ts
+  web/lib/ui-format.test.ts
   web/lib/ui-format.ts
+  web/lib/ui-logs.test.ts
   web/lib/ui-logs.ts
+  web/lib/ui-report.test.ts
   web/lib/ui-report.ts
   web/lib/wagmi.ts
   web/next.config.ts
@@ -869,6 +891,8 @@ contract WifStaking is ReentrancyGuard {
     event Withdrawn(address indexed user, uint256 amount);
     event Claimed(address indexed user, uint8 stockId, uint256 amount);
     event RewardNotified(uint8 indexed stockId, uint256 epoch, uint256 amount, uint256 activeTotal);
+    /// @notice A pending bucket placed in `placedEpoch` matured and its `amount` joined the pool's active stake.
+    event Rolled(uint8 indexed stockId, uint256 placedEpoch, uint256 amount);
 
     error NotFeePool();
     error ZeroAmount();
@@ -902,7 +926,7 @@ contract WifStaking is ReentrancyGuard {
         wif.safeTransferFrom(msg.sender, address(this), amount);
         s.stockId = stockId;
         _addPending(s, stockId, amount);
-        emit Staked(msg.sender, amount, stockId, currentEpoch() + 1);
+        emit Staked(msg.sender, amount, stockId, currentEpoch() + 2); // first epoch it earns in (see _matured)
     }
 
     /// @notice Move your whole stake to another reward stock. Claims first; earns in the new pool from next epoch.
@@ -1031,6 +1055,14 @@ contract WifStaking is ReentrancyGuard {
         Pool storage p = pools[stockId];
         _rollPool(stockId);
         uint256 e = currentEpoch();
+        // A staker tracks one pending batch. An older batch still pending (placed in e-1; _touch already activated
+        // anything older) moves into this epoch's bucket and activates with the top-up at e+2: never earlier (anti-JIT),
+        // and never left in a bucket the staker no longer points at (stranded rewards / underflow lock).
+        if (s.pending > 0 && s.pendingEpoch != e) {
+            _removePending(stockId, s.pendingEpoch, s.pending);
+            amount += s.pending;
+            s.pending = 0;
+        }
         uint256 slot = 2;
         for (uint256 k; k < 2; ++k) {
             if (p.pend[k].amount > 0 && p.pend[k].epoch == e) slot = k;
@@ -1061,6 +1093,7 @@ contract WifStaking is ReentrancyGuard {
             if (b.amount == 0 || !_matured(b.epoch)) continue;
             rollAccPlusOne[i][b.epoch] = p.acc + 1;
             p.activeTotal += b.amount;
+            emit Rolled(i, b.epoch, b.amount);
             b.amount = 0;
         }
     }
@@ -1141,6 +1174,8 @@ contract FeePool is ReentrancyGuard {
     /// @dev Gas floors so a caller cannot starve a swap into an out-of-gas "skip" while the epoch still advances.
     uint256 public constant MIN_GAS_BURN_LEG = 400_000;
     uint256 public constant MIN_GAS_STOCK_LEG = 450_000;
+    /// @dev 63/64 rule: a swap that ran out of gas hands back at most ~1/64 of the gas it was given (plus call overhead).
+    uint256 private constant OOG_MARGIN = 10_000;
 
     IUniversalRouter public immutable ur;
     IWIF public immutable wif;
@@ -1195,8 +1230,9 @@ contract FeePool is ReentrancyGuard {
         return epoch() + 1 > lastEpoch && address(this).balance >= MIN_DISTRIBUTE_ETH;
     }
 
-    /// @param wifMinOut optional slippage guard for the $WIF buy (protection only; the cap bounds any loss to dust).
-    function distribute(uint256 wifMinOut) external nonReentrant {
+    /// @notice Permissionless. The $WIF buy has no caller-chosen minimum (a griefer could otherwise force every burn
+    ///         to skip): it is never priced (INVARIANT 2) and the per-epoch MAX_WIF_BUY_ETH cap bounds any sandwich to dust.
+    function distribute() external nonReentrant {
         uint256 e = epoch();
         if (e + 1 <= lastEpoch) revert EpochNotElapsed();
         uint256 ethIn = address(this).balance;
@@ -1206,23 +1242,24 @@ contract FeePool is ReentrancyGuard {
         // 50/50 split, each leg capped at MAX_WIF_BUY_ETH per epoch; anything above the caps carries forward.
         uint256 half = ethIn / 2;
         uint256 leg = half > MAX_WIF_BUY_ETH ? MAX_WIF_BUY_ETH : half;
-        uint256 burned = _buyAndBurn(leg, wifMinOut);
+        uint256 burned = _buyAndBurn(leg);
         uint256[6] memory bought = _streamToStakers(leg);
         emit Distributed(e, ethIn, burned, bought, address(this).balance);
     }
 
     // ------------------------------------------------------------------ internals
 
-    function _buyAndBurn(uint256 ethAmount, uint256 minOut) internal returns (uint256 burned) {
+    function _buyAndBurn(uint256 ethAmount) internal returns (uint256 burned) {
         if (ethAmount == 0) return 0;
-        bytes memory input = URCodec.v4EthIn(wifPoolKey, ethAmount, minOut);
+        bytes memory input = URCodec.v4EthIn(wifPoolKey, ethAmount, 0);
         if (gasleft() < MIN_GAS_BURN_LEG) revert InsufficientGas();
+        uint256 g = gasleft();
         try ur.execute{value: ethAmount}(URCodec.one(URCodec.V4_SWAP), URCodec.inputs1(input), block.timestamp) {
             burned = wif.balanceOf(address(this));
             wif.burn(burned);
             totalWifBurned += burned;
         } catch (bytes memory reason) {
-            _revertIfEmpty(reason); // out-of-gas looks like an empty revert: never skip on it
+            _revertIfOutOfGas(g); // never skip (and advance the epoch) on a starved swap
             burned = 0; // third-party hook or pool failure: ETH stays here and carries to the next epoch
             emit BurnSkipped(epoch(), ethAmount, reason);
         }
@@ -1246,15 +1283,12 @@ contract FeePool is ReentrancyGuard {
         }
     }
 
-    /// @dev Assembly form: the high-level `reason.length == 0` check inside a catch block sends solc 0.8.26 via-IR's
-    ///      optimizer into a near-endless loop (measured: > 10 min vs 1 s), so the same check is written in Yul.
-    function _revertIfEmpty(bytes memory reason) private pure {
-        assembly {
-            if iszero(mload(reason)) {
-                mstore(0x00, 0x1c26714c) // InsufficientGas()
-                revert(0x1c, 0x04)
-            }
-        }
+    /// @dev Out-of-gas is detected by gas left, not by revert data: v4-core wraps hook failures (never empty), and an
+    ///      empty revert with gas to spare is a real failure that must skip and carry, not brick distribute.
+    ///      `gasBefore` is gasleft() just before the try. Gas math only: a `reason.length` check inside a catch block
+    ///      sends solc 0.8.26 via-IR's optimizer into a near-endless loop.
+    function _revertIfOutOfGas(uint256 gasBefore) private view {
+        if (gasleft() <= gasBefore / 64 + OOG_MARGIN) revert InsufficientGas();
     }
 
     function _buyStockFor(uint8 id, uint256 eth) internal returns (uint256 got) {
@@ -1263,6 +1297,7 @@ contract FeePool is ReentrancyGuard {
         uint256 before = IERC20(token).balanceOf(address(staking));
         bytes memory leg = URCodec.v3(address(staking), minOut, oracle.path(id));
         if (gasleft() < MIN_GAS_STOCK_LEG) revert InsufficientGas();
+        uint256 g = gasleft();
         try ur.execute{value: eth}(
             URCodec.two(URCodec.WRAP_ETH, URCodec.V3_SWAP_EXACT_IN),
             URCodec.inputs2(URCodec.wrap(eth), leg),
@@ -1272,7 +1307,7 @@ contract FeePool is ReentrancyGuard {
             staking.notifyReward(id, got);
             totalEthToStock += eth;
         } catch (bytes memory reason) {
-            _revertIfEmpty(reason);
+            _revertIfOutOfGas(g);
             got = 0;
             emit StockBuySkipped(epoch(), id, eth, reason);
         }
@@ -1359,6 +1394,8 @@ contract TerraRouter is ReentrancyGuard {
         address indexed user, address indexed token, bool isBuy, uint256 ethAmount, uint256 tokenAmount, uint256 fee
     );
     event Swept(address indexed user, uint8 indexed stockId, uint256 ethIn, uint256 stockOut);
+    /// @notice A direct ETH -> Stock Token deposit into the Jar (distinct from trade sweeps, which emit Swept).
+    event Deposited(address indexed user, uint8 indexed stockId, uint256 ethIn, uint256 stockOut);
     event Converted(address indexed user, uint8 indexed stockId, uint256 ethIn, uint256 stockOut, uint256 memes);
 
     error WifNotSellable();
@@ -1474,7 +1511,7 @@ contract TerraRouter is ReentrancyGuard {
         uint256 fee = msg.value * feeBps(msg.sender) / 10_000;
         _sendEth(feePool, fee);
         stockOut = _ethToJar(msg.sender, stockId, msg.value - fee, minStockOut, SRC_DEPOSIT);
-        emit Swept(msg.sender, stockId, msg.value - fee, stockOut);
+        emit Deposited(msg.sender, stockId, msg.value - fee, stockOut);
     }
 
     /// @notice 30 bps for wallets with >= 10,000 $WIF active stake, else 50 bps. Reads a stake amount, never a price.
@@ -1685,6 +1722,8 @@ contract HindsightLens {
 
     /// @dev Round `rid` must be the one in effect at `ts`: updatedAt(rid) <= ts < updatedAt(rid + 1),
     ///      or rid is the latest round. Answers are normalized to 8dp (NVDA early-round scaling).
+    ///      Round ids are phaseId << 64 | n: at the last round of a phase rid + 1 does not exist (updatedAt == 0), so
+    ///      it cannot bracket `ts` and is rejected; otherwise a stale old-phase round would price any later ts.
     function _priceAt(address feed, uint80 rid, uint64 ts) internal view returns (uint256 price8) {
         uint256 at;
         (price8, at) = oracle.historicalAnswer8(feed, rid);
@@ -1692,7 +1731,7 @@ contract HindsightLens {
         (uint80 latest,,,,) = IAggregatorV3(feed).latestRoundData();
         if (rid < latest) {
             (,,, uint256 nextAt,) = IAggregatorV3(feed).getRoundData(rid + 1);
-            if (nextAt != 0 && nextAt <= ts) revert BadRound(feed, rid);
+            if (nextAt == 0 || nextAt <= ts) revert BadRound(feed, rid);
         }
     }
 }
@@ -1829,6 +1868,12 @@ Mainnet-fork test suites (32 tests).
 - `contracts/test/HindsightLens.t.sol`
 - `contracts/test/TerraFirma.t.sol`
 - `contracts/test/URProbe.t.sol`
+- `contracts/test/debug-p2-reentrancy.t.sol`
+- `contracts/test/debug-p2-staking-invariant.t.sol`
+- `contracts/test/debug-p2-weekend-staleness.t.sol`
+- `contracts/test/debug-p6-crossepoch-lock.t.sol`
+- `contracts/test/debug-p6-feepool.t.sol`
+- `contracts/test/debug-p6-hindsight-phase.t.sol`
 
 ### Code
 
@@ -1902,7 +1947,7 @@ import {StockOracle} from "../src/StockOracle.sol";
 import {Jar} from "../src/Jar.sol";
 import {WifStaking} from "../src/WifStaking.sol";
 import {FeePool} from "../src/FeePool.sol";
-import {PoolKey, IWIF} from "../src/interfaces/IExternal.sol";
+import {PoolKey, IWIF, IUniversalRouter} from "../src/interfaces/IExternal.sol";
 
 contract TerraFirmaTest is Test, TerraConfig {
     address constant PONS = 0x39dBED3a2bd333467115dE45665cC57F813C4571;
@@ -2151,7 +2196,7 @@ contract TerraFirmaTest is Test, TerraConfig {
         for (uint256 i; i < 3; ++i) buyPons(alice, 0.05 ether, 200);
         uint256 supply0 = IWIF(WIF).totalSupply();
         vm.recordLogs();
-        d.feePool.distribute(1);
+        d.feePool.distribute();
         uint256 burned = d.feePool.totalWifBurned();
         assertGt(burned, 0, "burned");
         assertEq(supply0 - IWIF(WIF).totalSupply(), burned, "supply drop == burned");
@@ -2169,7 +2214,7 @@ contract TerraFirmaTest is Test, TerraConfig {
         vm.warp(vm.getBlockTimestamp() + 2 hours);
         for (uint256 i; i < 2; ++i) buyPons(alice, 0.05 ether, 0);
         stakeWif(alice, 0.02 ether); // JIT: staked in the same epoch as the distribute
-        d.feePool.distribute(1);
+        d.feePool.distribute();
         (, uint256 pa) = d.staking.pending(alice);
         (, uint256 pb) = d.staking.pending(bob);
         assertEq(pa, 0, "JIT stake earns nothing this epoch");
@@ -2177,29 +2222,29 @@ contract TerraFirmaTest is Test, TerraConfig {
         // next epoch: still not active (placed in e, active from e+2)
         vm.warp(vm.getBlockTimestamp() + 1 hours);
         buyPons(bob, 0.05 ether, 0);
-        d.feePool.distribute(1);
+        d.feePool.distribute();
         (, pa) = d.staking.pending(alice);
         assertEq(pa, 0, "not active one epoch later");
         // epoch e+2: active and earns
         vm.warp(vm.getBlockTimestamp() + 1 hours);
         buyPons(bob, 0.05 ether, 0);
-        d.feePool.distribute(1);
+        d.feePool.distribute();
         (, pa) = d.staking.pending(alice);
         assertGt(pa, 0, "earns after activation");
     }
 
     function test_distributeOncePerEpoch() public {
         buyPons(alice, 0.05 ether, 0);
-        d.feePool.distribute(1);
+        d.feePool.distribute();
         buyPons(alice, 0.05 ether, 0);
         vm.expectRevert(FeePool.EpochNotElapsed.selector);
-        d.feePool.distribute(1);
+        d.feePool.distribute();
     }
 
     function test_noStakersCarriesStockHalf() public {
         buyPons(alice, 0.05 ether, 0);
         uint256 bal = address(d.feePool).balance;
-        d.feePool.distribute(1);
+        d.feePool.distribute();
         assertGt(d.feePool.totalWifBurned(), 0);
         assertEq(address(d.feePool).balance, bal - bal / 2, "stock half carried");
     }
@@ -2207,10 +2252,11 @@ contract TerraFirmaTest is Test, TerraConfig {
     function test_burnFailureEmitsAndCarries() public {
         buyPons(alice, 0.05 ether, 0);
         uint256 bal = address(d.feePool).balance;
-        // force the WIF swap to fail: an absurd minOut makes the hooked-pool swap revert inside try/catch
+        // force the WIF swap to fail (a third-party hook/pool revert with a reason) inside try/catch
+        vm.mockCallRevert(UR, IUniversalRouter.execute.selector, abi.encodeWithSignature("Error(string)", "hook"));
         vm.expectEmit(true, false, false, false, address(d.feePool));
         emit FeePool.BurnSkipped(d.feePool.epoch(), 0, "");
-        d.feePool.distribute(type(uint128).max);
+        d.feePool.distribute();
         assertEq(d.feePool.totalWifBurned(), 0, "nothing burned");
         assertEq(address(d.feePool).balance, bal, "all ETH carried (no stakers, burn failed)");
     }
@@ -2225,7 +2271,7 @@ contract TerraFirmaTest is Test, TerraConfig {
         stakeWif(alice, 0.02 ether);
         vm.warp(st + (e + 1) * 1 hours + 1); // first second of the next epoch
         buyPons(bob, 0.05 ether, 0);
-        d.feePool.distribute(1);
+        d.feePool.distribute();
         (, uint256 pa) = d.staking.pending(alice);
         (, uint256 pb) = d.staking.pending(bob);
         assertEq(pa, 0, "boundary stake captures nothing");
@@ -2238,7 +2284,7 @@ contract TerraFirmaTest is Test, TerraConfig {
         stakeWif(bob, 0.005 ether);
         vm.warp(vm.getBlockTimestamp() + 2 hours);
         buyPons(bob, 0.05 ether, 0);
-        d.feePool.distribute(1);
+        d.feePool.distribute();
         (, uint256 acc) = d.staking.pending(alice);
         assertGt(acc, 0);
         vm.startPrank(alice);
@@ -2257,7 +2303,7 @@ contract TerraFirmaTest is Test, TerraConfig {
         buyPons(alice, 0.05 ether, 0);
         uint256 last = d.feePool.lastEpoch();
         for (uint256 g = 120_000; g <= 900_000; g += 60_000) {
-            try d.feePool.distribute{gas: g}(1) {
+            try d.feePool.distribute{gas: g}() {
                 assertGt(d.feePool.totalWifBurned(), 0, "a successful distribute must burn");
                 return;
             } catch {
@@ -2272,7 +2318,7 @@ contract TerraFirmaTest is Test, TerraConfig {
         vm.warp(vm.getBlockTimestamp() + 2 hours);
         vm.deal(address(d.feePool), 1 ether);
         vm.recordLogs();
-        d.feePool.distribute(1);
+        d.feePool.distribute();
         assertEq(address(d.feePool).balance, 1 ether - 2 * d.feePool.MAX_WIF_BUY_ETH(), "two equal capped legs");
         assertEq(d.feePool.totalEthToStock(), d.feePool.MAX_WIF_BUY_ETH(), "stock leg == burn leg");
     }
@@ -2351,6 +2397,1029 @@ contract URProbeTest is Test {
     function test_v3_explicit_withHopArray() public { _go(hex"0b00", abi.encode(address(this), uint256(0.001 ether), uint256(1), abi.encodePacked(WETH, uint24(3000), PONS), false, new uint256[](0))); }
     function test_v2_cb_withHopArray() public { address[] memory p = new address[](2); p[0]=WETH; p[1]=PONS; _go(hex"0b08", abi.encode(address(this), uint256(1<<255), uint256(1), p, false, new uint256[](0))); }
     function test_v2_explicit_withHopArray() public { address[] memory p = new address[](2); p[0]=WETH; p[1]=PONS; _go(hex"0b08", abi.encode(address(this), uint256(0.001 ether), uint256(1), p, false, new uint256[](0))); }
+}
+```
+
+#### File: contracts/test/debug-p2-reentrancy.t.sol
+[ASSUMED] — Source: see header comment
+```solidity
+// SPDX-License-Identifier: MIT
+// File: contracts/test/debug-p2-reentrancy.t.sol
+// hackathon-debug Phase 2 (known risk: no dedicated reentrancy test; T5 relied on OZ nonReentrant alone). FORK tests on
+// Robinhood Chain mainnet 4663. Every external entry point that hands control to a third party is attacked:
+//   - TerraRouter.sell: the ETH send-back to msg.sender re-enters buy / sell / deposit / convert (real deployment)
+//   - TerraRouter.sell / convert: a hostile meme token's transferFrom callback re-enters the router (real deployment)
+//   - Jar.withdraw: a hostile token's transfer hook re-enters withdraw (isolated Jar; real Jars only ever hold curated
+//     Stock Tokens, because credit() is depositor-only and backed, so this proves the guard, not a live path)
+//   - WifStaking.withdraw / stake: a hostile $WIF-like token re-enters withdraw / claim (isolated instance, same reason)
+//   - FeePool.distribute: a hostile staking hook (rollAll) re-enters distribute after the real $WIF burn leg ran
+// Each re-entry must fail with ReentrancyGuardReentrantCall.
+// Run: RPC_URL=... scripts/forge.sh test --match-path test/debug-p2-reentrancy.t.sol -vv
+pragma solidity 0.8.26;
+
+import "forge-std/Test.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {TerraConfig} from "../script/TerraConfig.sol";
+import {TerraRouter} from "../src/TerraRouter.sol";
+import {StockOracle} from "../src/StockOracle.sol";
+import {Jar} from "../src/Jar.sol";
+import {WifStaking} from "../src/WifStaking.sol";
+import {FeePool, IWifStakingPool} from "../src/FeePool.sol";
+import {IUniversalRouter, IWIF, PoolKey} from "../src/interfaces/IExternal.sol";
+
+bytes4 constant REENTRANT = bytes4(keccak256("ReentrancyGuardReentrantCall()"));
+
+function selectorOf(bytes memory err) pure returns (bytes4 s) {
+    if (err.length >= 4) s = bytes4(err);
+}
+
+interface IHook {
+    function onTokenHook() external;
+}
+
+/// ERC20 that calls `onTokenHook()` on a registered hook contract during every transfer / transferFrom.
+contract HookToken is ERC20 {
+    address public hook;
+
+    constructor() ERC20("Hook", "HOOK") {}
+
+    function mint(address to, uint256 amt) external {
+        _mint(to, amt);
+    }
+
+    function setHook(address h) external {
+        hook = h;
+    }
+
+    function _update(address from, address to, uint256 value) internal override {
+        super._update(from, to, value);
+        if (hook != address(0) && from != address(0)) IHook(hook).onTokenHook();
+    }
+}
+
+/// Malicious seller: re-enters TerraRouter from receive() when the router sends sale proceeds back.
+contract EthReentrant {
+    TerraRouter immutable router;
+    address immutable meme;
+    uint8 public mode; // 1 buy, 2 sell, 3 deposit, 4 convert
+    bytes4 public seen;
+    bool armed;
+
+    constructor(TerraRouter r, address meme_) {
+        router = r;
+        meme = meme_;
+    }
+
+    function arm(uint8 m) external {
+        mode = m;
+        armed = true;
+    }
+
+    function route(bool isBuy) public view returns (TerraRouter.Route memory r) {
+        r.kind = 2;
+        r.v3Path = isBuy
+            ? abi.encodePacked(address(0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73), uint24(3000), meme)
+            : abi.encodePacked(meme, uint24(3000), address(0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73));
+    }
+
+    function buyMeme() external payable returns (uint256 got) {
+        (got,) = router.buy{value: msg.value}(route(true), meme, 0, 0, 1, 0);
+        IERC20(meme).approve(address(router), type(uint256).max);
+    }
+
+    function sellAll() external returns (uint256 ethOut) {
+        (ethOut,) = router.sell(route(false), meme, IERC20(meme).balanceOf(address(this)), 0, 0, 0, 0);
+    }
+
+    receive() external payable {
+        if (!armed) return;
+        armed = false;
+        if (mode == 1) {
+            try router.buy{value: msg.value / 2}(route(true), meme, 0, 0, 1, 0) {} catch (bytes memory e) { seen = selectorOf(e); }
+        } else if (mode == 2) {
+            try router.sell(route(false), meme, 1, 0, 0, 0, 0) {} catch (bytes memory e) { seen = selectorOf(e); }
+        } else if (mode == 3) {
+            try router.deposit{value: msg.value / 2}(0, 0) {} catch (bytes memory e) { seen = selectorOf(e); }
+        } else {
+            TerraRouter.Route[] memory rs = new TerraRouter.Route[](1);
+            rs[0] = route(false);
+            address[] memory ts = new address[](1);
+            ts[0] = meme;
+            uint256[] memory am = new uint256[](1);
+            am[0] = 1;
+            try router.convert(rs, ts, am, 0, 0) {} catch (bytes memory e) { seen = selectorOf(e); }
+        }
+    }
+}
+
+/// Hook that re-enters TerraRouter.deposit from inside a hostile token's transferFrom (no catch: the revert bubbles).
+contract RouterHook is IHook {
+    TerraRouter immutable router;
+
+    constructor(TerraRouter r) payable {
+        router = r;
+    }
+
+    function onTokenHook() external {
+        router.deposit{value: 1e14}(0, 0);
+    }
+}
+
+/// Hook that re-enters a target with `data` and records the revert selector (state survives: it catches).
+contract RecordingHook is IHook {
+    address public target;
+    bytes public data;
+    bytes4 public seen;
+    bool public armed;
+
+    function set(address t, bytes calldata d) external {
+        target = t;
+        data = d;
+        armed = true;
+    }
+
+    function onTokenHook() external {
+        if (!armed) return;
+        armed = false;
+        (bool ok, bytes memory e) = target.call(data);
+        if (!ok) seen = selectorOf(e);
+    }
+}
+
+/// Staking stand-in whose rollAll() re-enters FeePool.distribute.
+contract ReentrantStaking is IWifStakingPool {
+    FeePool public pool;
+
+    function setPool(FeePool p) external {
+        pool = p;
+    }
+
+    function rollAll() external {
+        pool.distribute();
+    }
+
+    function activeStake(uint8) external pure returns (uint256) {
+        return 0;
+    }
+
+    function notifyReward(uint8, uint256) external {}
+}
+
+contract DebugP2Reentrancy is Test, TerraConfig {
+    address constant PONS = 0x39dBED3a2bd333467115dE45665cC57F813C4571;
+    Deployment d;
+
+    function setUp() public {
+        vm.createSelectFork(vm.envString("RPC_URL"), vm.envOr("FORK_BLOCK", uint256(111155803)));
+        d = deployAll(address(this));
+    }
+
+    // ------------------------------------------------------------------ TerraRouter: ETH send-back path
+
+    function _sellWithReentry(uint8 mode) internal returns (EthReentrant atk, uint256 ethOut) {
+        atk = new EthReentrant(d.router, PONS);
+        vm.deal(address(atk), 1 ether);
+        atk.buyMeme{value: 0.01 ether}();
+        atk.arm(mode);
+        uint256 bal0 = address(atk).balance;
+        ethOut = atk.sellAll();
+        assertGt(ethOut, 0, "sale paid out");
+        assertEq(address(atk).balance - bal0, ethOut, "re-entry did nothing; proceeds intact");
+        assertEq(atk.seen(), REENTRANT, "re-entry rejected by nonReentrant");
+        assertEq(address(d.router).balance, 0, "no ETH stuck in router");
+    }
+
+    function test_sellEthSendBack_reenterBuy() public {
+        _sellWithReentry(1);
+    }
+
+    function test_sellEthSendBack_reenterSell() public {
+        _sellWithReentry(2);
+    }
+
+    function test_sellEthSendBack_reenterDeposit() public {
+        _sellWithReentry(3);
+    }
+
+    function test_sellEthSendBack_reenterConvert() public {
+        _sellWithReentry(4);
+    }
+
+    // ------------------------------------------------------------------ TerraRouter: hostile token callback
+
+    function _hostileRoute(address tok) internal pure returns (TerraRouter.Route memory r) {
+        r.kind = 2;
+        r.v3Path = abi.encodePacked(tok, uint24(3000), WETH);
+    }
+
+    function test_sellHostileTokenCallbackReverts() public {
+        HookToken tok = new HookToken();
+        RouterHook hook = new RouterHook{value: 1 ether}(d.router);
+        tok.mint(address(this), 1e18);
+        tok.approve(address(d.router), 1e18);
+        tok.setHook(address(hook));
+        vm.expectRevert(REENTRANT);
+        d.router.sell(_hostileRoute(address(tok)), address(tok), 1e18, 0, 0, 0, 0);
+    }
+
+    function test_convertHostileTokenCallbackReverts() public {
+        HookToken tok = new HookToken();
+        RouterHook hook = new RouterHook{value: 1 ether}(d.router);
+        tok.mint(address(this), 1e18);
+        tok.approve(address(d.router), 1e18);
+        tok.setHook(address(hook));
+        TerraRouter.Route[] memory rs = new TerraRouter.Route[](1);
+        rs[0] = _hostileRoute(address(tok));
+        address[] memory ts = new address[](1);
+        ts[0] = address(tok);
+        uint256[] memory am = new uint256[](1);
+        am[0] = 1e18;
+        vm.expectRevert(REENTRANT);
+        d.router.convert(rs, ts, am, 0, 0);
+    }
+
+    // ------------------------------------------------------------------ Jar.withdraw
+
+    function test_jarWithdrawReentry() public {
+        HookToken tok = new HookToken();
+        RecordingHook atk = new RecordingHook();
+        Jar jar = new Jar(address(this), address(0)); // this test is the depositor
+        tok.mint(address(jar), 10e18);
+        jar.credit(address(atk), address(tok), 10e18, 4);
+        tok.setHook(address(atk));
+        atk.set(address(jar), abi.encodeCall(Jar.withdraw, (address(tok), 5e18)));
+        vm.prank(address(atk));
+        jar.withdraw(address(tok), 5e18);
+        assertEq(atk.seen(), REENTRANT, "re-entrant withdraw rejected");
+        assertEq(tok.balanceOf(address(atk)), 5e18, "only the outer withdraw paid");
+        assertEq(jar.balanceOf(address(atk), address(tok)), 5e18, "ledger debited once");
+        assertEq(jar.totalHeld(address(tok)), tok.balanceOf(address(jar)), "still fully backed");
+    }
+
+    // ------------------------------------------------------------------ WifStaking.withdraw / stake
+
+    function _hostileStaking() internal returns (HookToken w, WifStaking s, RecordingHook atk) {
+        w = new HookToken();
+        StockOracle o = new StockOracle(ETH_USD, USDG_USD, stocks());
+        address pStaking = vm.computeCreateAddress(address(this), vm.getNonce(address(this)) + 1);
+        Jar j = new Jar(address(0xdead), pStaking);
+        s = new WifStaking(IERC20(address(w)), o, j, address(this), block.timestamp);
+        atk = new RecordingHook();
+        w.mint(address(atk), 100e18);
+        vm.prank(address(atk));
+        w.approve(address(s), type(uint256).max);
+    }
+
+    function test_stakingWithdrawReentry() public {
+        (HookToken w, WifStaking s, RecordingHook atk) = _hostileStaking();
+        vm.startPrank(address(atk));
+        s.stake(100e18, 0);
+        s.requestUnstake(100e18);
+        vm.stopPrank();
+        vm.warp(block.timestamp + 24 hours);
+        w.setHook(address(atk));
+        atk.set(address(s), abi.encodeCall(WifStaking.withdraw, ()));
+        vm.prank(address(atk));
+        s.withdraw();
+        assertEq(atk.seen(), REENTRANT, "re-entrant withdraw rejected");
+        assertEq(w.balanceOf(address(atk)), 100e18, "paid exactly once");
+        assertEq(w.balanceOf(address(s)), 0);
+    }
+
+    function test_stakingStakeReentersClaim() public {
+        (HookToken w, WifStaking s, RecordingHook atk) = _hostileStaking();
+        w.setHook(address(atk));
+        atk.set(address(s), abi.encodeCall(WifStaking.claim, ()));
+        vm.prank(address(atk));
+        s.stake(50e18, 0);
+        assertEq(atk.seen(), REENTRANT, "claim re-entered from stake's transferFrom rejected");
+        (, , uint256 pend,,,,,) = s.stakers(address(atk));
+        assertEq(pend, 50e18, "stake recorded once");
+    }
+
+    // ------------------------------------------------------------------ FeePool.distribute
+
+    function test_feePoolDistributeReentry() public {
+        ReentrantStaking evil = new ReentrantStaking();
+        FeePool fp = new FeePool(IUniversalRouter(UR), IWIF(WIF), d.oracle, evil, wifKey(), block.timestamp);
+        evil.setPool(fp);
+        vm.deal(address(fp), 0.01 ether);
+        vm.expectRevert(REENTRANT); // the real $WIF burn leg runs first, then rollAll() re-enters
+        fp.distribute();
+        assertEq(fp.lastEpoch(), 0, "reverted distribute did not advance the epoch");
+    }
+}
+```
+
+#### File: contracts/test/debug-p2-staking-invariant.t.sol
+[ASSUMED] — Source: see header comment
+```solidity
+// SPDX-License-Identifier: MIT
+// File: contracts/test/debug-p2-staking-invariant.t.sol
+// hackathon-debug Phase 2 (known risk: WifStaking accounting is original [ASSUMED] logic). FORK tests on Robinhood
+// Chain mainnet 4663 with the real $WIF and real Stock Tokens. The staking contract is deployed with this test as its
+// FeePool so rewards can be notified exactly the way FeePool does (rollAll, weigh by activeStake, send, notify).
+//   1. test_topUpAcrossEpochs_*: deterministic repros of a top-up placed one epoch after an earlier, still-pending stake.
+//   2. testFuzz_stakingAccounting: seeded random stake / top-up / switch / unstake / claim / withdraw sequences over
+//      3 users and many epochs with distributes in between. Checks after every step:
+//        - no inflation: per pool, claimed + pending over all users <= total reward notified to that pool
+//        - solvency: the contract holds every user's pending reward and every staked/unstaking $WIF
+//        - no early earning: a user whose whole live stake was placed in epoch >= E-1 earns nothing from epoch E's notify
+//        - no lock: claim / requestUnstake / withdraw never revert for a user acting within their balance
+// Run: RPC_URL=... scripts/forge.sh test --match-path test/debug-p2-staking-invariant.t.sol -vv
+pragma solidity 0.8.26;
+
+import "forge-std/Test.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {TerraConfig} from "../script/TerraConfig.sol";
+import {StockOracle} from "../src/StockOracle.sol";
+import {Jar} from "../src/Jar.sol";
+import {WifStaking} from "../src/WifStaking.sol";
+
+contract DebugP2StakingInvariant is Test, TerraConfig {
+    WifStaking st;
+    Jar jar;
+    StockOracle oracle;
+    address[3] users = [address(0xA11CE), address(0xB0B), address(0xCA7)];
+    uint8 constant POOLS = 2; // NVDA, TSLA: enough to exercise switching without six-way bookkeeping
+
+    uint256[POOLS] notified; // total reward notified per pool
+    mapping(address => uint256) liveSince; // epoch of the first stake since the user's live stake was last zero
+    mapping(address => uint256) staked; // test-side mirror of active + pending
+    mapping(address => uint256) unstaking;
+
+    function setUp() public {
+        vm.createSelectFork(vm.envString("RPC_URL"), vm.envOr("FORK_BLOCK", uint256(111155803)));
+        uint256 start = block.timestamp - (block.timestamp % 1 hours);
+        oracle = new StockOracle(ETH_USD, USDG_USD, stocks());
+        address pStaking = vm.computeCreateAddress(address(this), vm.getNonce(address(this)) + 1);
+        jar = new Jar(address(0xdead), pStaking);
+        st = new WifStaking(IERC20(WIF), oracle, jar, address(this), start);
+        require(address(st) == pStaking, "predict");
+        for (uint256 i; i < 3; ++i) {
+            deal(WIF, users[i], 1_000_000e18);
+            vm.prank(users[i]);
+            IERC20(WIF).approve(address(st), type(uint256).max);
+        }
+    }
+
+    // ------------------------------------------------------------------ helpers
+
+    function _epoch() internal view returns (uint256) {
+        return st.currentEpoch();
+    }
+
+    function _nextEpoch() internal {
+        vm.warp(block.timestamp + 1 hours);
+    }
+
+    function _stake(address u, uint256 amt, uint8 pool) internal {
+        if (staked[u] == 0) liveSince[u] = _epoch();
+        vm.prank(u);
+        st.stake(amt, pool);
+        staked[u] += amt;
+    }
+
+    /// FeePool._streamToStakers semantics: roll, weigh by activeStake, send the stock, notify (only pools with stake).
+    function _distribute(uint256 reward) internal {
+        st.rollAll();
+        for (uint8 i; i < POOLS; ++i) {
+            if (st.activeStake(i) == 0) continue;
+            address tok = oracle.token(i);
+            deal(tok, address(st), IERC20(tok).balanceOf(address(st)) + reward);
+            st.notifyReward(i, reward);
+            notified[i] += reward;
+        }
+    }
+
+    function _pending(address u) internal view returns (uint8 sid, uint256 amt) {
+        (sid, amt) = st.pending(u);
+    }
+
+    // ------------------------------------------------------------------ 1. deterministic repros
+
+    /// Stake A in epoch e, top up B in e+1, unstake B in e+1. Bucket e+1 is now empty, so it is never rolled and
+    /// rollAccPlusOne[pool][e+1] stays 0; every later _touch computes 0 - 1 and panics: the user's A $WIF is locked.
+    function test_topUpAcrossEpochs_thenUnstakeTopUp_doesNotLock() public {
+        address a = users[0];
+        _stake(a, 100e18, 0);
+        _nextEpoch();
+        _stake(a, 50e18, 0);
+        vm.prank(a);
+        st.requestUnstake(50e18);
+        vm.warp(block.timestamp + 3 hours);
+        vm.prank(a);
+        st.claim(); // must not revert
+        vm.prank(a);
+        st.requestUnstake(100e18); // the remaining stake must still be withdrawable
+        vm.warp(block.timestamp + 24 hours);
+        vm.prank(a);
+        st.withdraw();
+        assertEq(IERC20(WIF).balanceOf(a), 1_000_000e18, "all $WIF returned");
+    }
+
+    /// Stake A in epoch e, top up B in e+1. In e+2 the pool activates A (bucket e matured), but the staker's pending
+    /// epoch was overwritten to e+1, so the staker does not earn on A: a reward notified in e+2 is stranded forever.
+    function test_topUpAcrossEpochs_rewardNotStranded() public {
+        address a = users[0];
+        _stake(a, 100e18, 0);
+        _nextEpoch();
+        _stake(a, 50e18, 0);
+        _nextEpoch(); // e+2
+        _distribute(1e18);
+        vm.warp(block.timestamp + 2 hours);
+        _distribute(1e18);
+        (, uint256 p) = _pending(a);
+        assertApproxEqAbs(p, notified[0], 1e6, "sole staker earns every notified reward");
+    }
+
+    /// A top-up must not let another user's pending bucket be drained: bob's stake must activate and stay unlockable.
+    function test_topUpAcrossEpochs_switchDoesNotLockOthers() public {
+        address a = users[0];
+        address b = users[1];
+        _stake(a, 100e18, 0);
+        _nextEpoch();
+        _stake(a, 50e18, 0);
+        _stake(b, 150e18, 0);
+        vm.prank(a);
+        st.switchStock(1);
+        vm.warp(block.timestamp + 3 hours);
+        vm.prank(b);
+        st.claim(); // must not revert
+        assertEq(st.activeOf(b), 150e18, "bob's stake is active");
+        vm.prank(b);
+        st.requestUnstake(150e18);
+        vm.warp(block.timestamp + 24 hours);
+        vm.prank(b);
+        st.withdraw();
+        assertEq(IERC20(WIF).balanceOf(b), 1_000_000e18, "bob's $WIF returned");
+    }
+
+    // ------------------------------------------------------------------ 2. seeded sequence fuzz
+
+    /// forge-config: default.fuzz.runs = 48
+    function testFuzz_stakingAccounting(uint256 seed) public {
+        for (uint256 step; step < 36; ++step) {
+            uint256 r = uint256(keccak256(abi.encode(seed, step)));
+            address u = users[r % 3];
+            uint256 op = (r >> 8) % 7;
+            if (op == 0 || op == 1) _opStake(u, r);
+            else if (op == 2) _opSwitch(u, r);
+            else if (op == 3) _opUnstake(u, r);
+            else if (op == 4) _opClaim(u);
+            else if (op == 5) _opWithdraw(u);
+            else _opDistribute(r);
+            if ((r >> 40) % 3 == 0) _nextEpoch();
+            _checkNoInflation();
+        }
+        _drainAll();
+    }
+
+    function _opStake(address u, uint256 r) internal {
+        uint256 amt = 1e18 + (r >> 16) % 50_000e18;
+        uint8 pool = staked[u] > 0 ? _poolOf(u) : uint8((r >> 80) % POOLS);
+        _stake(u, amt, pool);
+    }
+
+    function _opSwitch(address u, uint256 r) internal {
+        if (staked[u] == 0) return;
+        uint8 to = uint8((r >> 80) % POOLS);
+        vm.prank(u);
+        st.switchStock(to); // must not revert for a user with live stake
+        liveSince[u] = _epoch(); // a switch restarts activation in the new pool
+    }
+
+    function _opUnstake(address u, uint256 r) internal {
+        if (staked[u] == 0) return;
+        uint256 amt = 1 + (r >> 16) % staked[u];
+        vm.prank(u);
+        st.requestUnstake(amt); // must not revert within the user's balance
+        staked[u] -= amt;
+        unstaking[u] += amt;
+    }
+
+    function _opClaim(address u) internal {
+        (uint8 sid, uint256 want) = _pending(u);
+        uint256 jar0 = jar.balanceOf(u, oracle.token(sid));
+        vm.prank(u);
+        uint256 got = st.claim(); // must never revert
+        assertEq(got, want, "claim pays exactly pending()");
+        assertEq(jar.balanceOf(u, oracle.token(sid)) - jar0, got, "claim credited to the Jar");
+    }
+
+    function _opWithdraw(address u) internal {
+        if (unstaking[u] == 0) return;
+        vm.warp(block.timestamp + 24 hours);
+        uint256 bal0 = IERC20(WIF).balanceOf(u);
+        vm.prank(u);
+        st.withdraw();
+        assertEq(IERC20(WIF).balanceOf(u) - bal0, unstaking[u], "withdraw returns every unstaked $WIF");
+        unstaking[u] = 0;
+    }
+
+    function _opDistribute(uint256 r) internal {
+        uint256 reward = 1e12 + (r >> 120) % 1e18;
+        uint256 e = _epoch();
+        uint256[3] memory before;
+        for (uint256 i; i < 3; ++i) (, before[i]) = _pending(users[i]);
+        _distribute(reward);
+        for (uint256 i; i < 3; ++i) {
+            address u = users[i];
+            if (staked[u] == 0 || liveSince[u] + 2 <= e) continue;
+            (, uint256 nowP) = _pending(u);
+            assertEq(nowP, before[i], "stake placed in epoch >= E-1 earned from epoch E's distribute");
+        }
+    }
+
+    function _poolOf(address u) internal view returns (uint8 sid) {
+        (sid,,,,,,,) = st.stakers(u);
+    }
+
+    function _checkNoInflation() internal view {
+        uint256 wifOwed;
+        uint256[POOLS] memory owed;
+        for (uint256 i; i < 3; ++i) {
+            address u = users[i];
+            (uint8 sid, uint256 p) = _pending(u);
+            owed[sid] += p;
+            wifOwed += staked[u] + unstaking[u];
+        }
+        for (uint8 k; k < POOLS; ++k) {
+            address tok = oracle.token(k);
+            uint256 claimed;
+            for (uint256 i; i < 3; ++i) claimed += jar.balanceOf(users[i], tok);
+            assertLe(claimed + owed[k], notified[k], "rewards claimed + pending exceed rewards notified");
+            assertGe(IERC20(tok).balanceOf(address(st)), owed[k], "staking cannot pay pending rewards");
+        }
+        assertEq(IERC20(WIF).balanceOf(address(st)), wifOwed, "staked + unstaking $WIF == contract balance");
+    }
+
+    /// Everyone exits: claims and full withdrawals must all succeed and leave no $WIF behind.
+    function _drainAll() internal {
+        vm.warp(block.timestamp + 3 hours);
+        for (uint256 i; i < 3; ++i) {
+            address u = users[i];
+            _opClaim(u);
+            if (staked[u] > 0) {
+                vm.prank(u);
+                st.requestUnstake(staked[u]);
+                unstaking[u] += staked[u];
+                staked[u] = 0;
+            }
+        }
+        vm.warp(block.timestamp + 24 hours);
+        for (uint256 i; i < 3; ++i) _opWithdraw(users[i]);
+        assertEq(IERC20(WIF).balanceOf(address(st)), 0, "no $WIF left locked in staking");
+    }
+}
+```
+
+#### File: contracts/test/debug-p2-weekend-staleness.t.sol
+[ASSUMED] — Source: see header comment
+```solidity
+// SPDX-License-Identifier: MIT
+// File: contracts/test/debug-p2-weekend-staleness.t.sol
+// hackathon-debug Phase 2 (known risk SURVIVOR-11: SPY/QQQ market-hours feeds go stale over the weekend). FORK tests on
+// Robinhood Chain mainnet 4663. Time is warped past the real SPY feed's updatedAt + MAX_AGE (25h); ETH/USD and the NVDA
+// live feed are kept fresh with vm.mockCall returning their own real round data at the new timestamp, so SPY is the
+// only stale input. Expected: router.deposit(SPY) reverts StaleOracle(SPY feed) while deposit(NVDA) still works, and
+// FeePool.distribute skips sub-pool 4 silently (no buy attempted, no StockBuySkipped, no reward) and carries its ETH.
+// Run: RPC_URL=... scripts/forge.sh test --match-path test/debug-p2-weekend-staleness.t.sol -vv
+pragma solidity 0.8.26;
+
+import "forge-std/Test.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {TerraConfig} from "../script/TerraConfig.sol";
+import {TerraRouter} from "../src/TerraRouter.sol";
+import {StockOracle} from "../src/StockOracle.sol";
+import {FeePool} from "../src/FeePool.sol";
+import {WifStaking} from "../src/WifStaking.sol";
+import {IAggregatorV3} from "../src/interfaces/IExternal.sol";
+
+contract DebugP2WeekendStaleness is Test, TerraConfig {
+    address constant PONS = 0x39dBED3a2bd333467115dE45665cC57F813C4571;
+    uint8 constant SPY_ID = 4;
+    Deployment d;
+    address bob = address(0xB0B); // NVDA staker
+    address carol = address(0xCA201); // SPY staker
+    address alice = address(0xA11CE); // trader
+
+    function setUp() public {
+        vm.createSelectFork(vm.envString("RPC_URL"), vm.envOr("FORK_BLOCK", uint256(111155803)));
+        d = deployAll(address(this));
+        vm.deal(alice, 1 ether);
+        vm.deal(bob, 1 ether);
+        vm.deal(carol, 1 ether);
+    }
+
+    function _spyFeed() internal view returns (address) {
+        return d.oracle.stock(SPY_ID).liveFeed;
+    }
+
+    /// Re-serve `feed`'s real latest round with updatedAt = now (the feed kept updating; only SPY did not).
+    function _keepFresh(address feed) internal {
+        (uint80 id, int256 answer, uint256 startedAt,, uint80 answeredIn) = IAggregatorV3(feed).latestRoundData();
+        vm.mockCall(
+            feed,
+            abi.encodeWithSelector(IAggregatorV3.latestRoundData.selector),
+            abi.encode(id, answer, startedAt, block.timestamp, answeredIn)
+        );
+    }
+
+    function _warpPastSpyStaleness() internal {
+        (,,, uint256 spyUpdated,) = IAggregatorV3(_spyFeed()).latestRoundData();
+        vm.warp(spyUpdated + d.oracle.MAX_AGE() + 1);
+        _keepFresh(ETH_USD);
+        _keepFresh(d.oracle.stock(0).liveFeed);
+        assertFalse(d.oracle.isFresh(SPY_ID), "SPY stale");
+        assertTrue(d.oracle.isFresh(0), "NVDA fresh");
+    }
+
+    function _stake(address who, uint256 eth, uint8 stockId) internal returns (uint256 amount) {
+        TerraRouter.Route memory r;
+        r.kind = 3;
+        r.key = wifKey();
+        vm.startPrank(who);
+        (amount,) = d.router.buy{value: eth}(r, WIF, 0, 0, 1, 0);
+        IERC20(WIF).approve(address(d.staking), amount);
+        d.staking.stake(amount, stockId);
+        vm.stopPrank();
+    }
+
+    function test_spyDepositRevertsStaleOracle() public {
+        _warpPastSpyStaleness();
+        vm.prank(alice);
+        vm.expectRevert(abi.encodeWithSelector(StockOracle.StaleOracle.selector, _spyFeed()));
+        d.router.deposit{value: 0.001 ether}(SPY_ID, 0);
+        vm.prank(alice);
+        uint256 out = d.router.deposit{value: 0.001 ether}(0, 0); // control: NVDA still fills
+        assertGt(out, 0, "fresh stock still fills");
+    }
+
+    function test_feePoolSkipsStaleSpyAndCarries() public {
+        _stake(bob, 0.005 ether, 0);
+        _stake(carol, 0.005 ether, SPY_ID);
+        vm.warp(block.timestamp + 2 hours); // both stakes active
+        for (uint256 i; i < 2; ++i) {
+            TerraRouter.Route memory r;
+            r.kind = 2;
+            r.v3Path = abi.encodePacked(WETH, uint24(3000), PONS);
+            vm.prank(alice);
+            d.router.buy{value: 0.05 ether}(r, PONS, 0, 0, 1, 0);
+        }
+        _warpPastSpyStaleness();
+        assertGt(d.staking.activeStake(SPY_ID), 0, "SPY pool has active stake");
+
+        uint256 ethIn = address(d.feePool).balance;
+        uint256 leg = ethIn / 2 > d.feePool.MAX_WIF_BUY_ETH() ? d.feePool.MAX_WIF_BUY_ETH() : ethIn / 2;
+        vm.recordLogs();
+        d.feePool.distribute();
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+
+        bytes32 skipped = FeePool.StockBuySkipped.selector;
+        bytes32 notified = WifStaking.RewardNotified.selector;
+        bool burnSkipped;
+        for (uint256 i; i < logs.length; ++i) {
+            if (logs[i].topics[0] == skipped) assertTrue(uint256(logs[i].topics[2]) != SPY_ID, "no buy attempted for stale SPY");
+            if (logs[i].topics[0] == notified) assertTrue(uint256(logs[i].topics[1]) != SPY_ID, "no SPY reward");
+            if (logs[i].topics[0] == FeePool.BurnSkipped.selector) burnSkipped = true;
+        }
+        (, uint256 pc) = d.staking.pending(carol);
+        (, uint256 pb) = d.staking.pending(bob);
+        assertEq(pc, 0, "SPY staker earns nothing while SPY is stale");
+        assertGt(pb, 0, "NVDA staker earns");
+        assertEq(d.feePool.totalEthToStock(), leg, "whole stock leg went to the fresh pool (SPY weight excluded)");
+        uint256 burnt = burnSkipped ? 0 : leg;
+        assertEq(address(d.feePool).balance, ethIn - burnt - leg, "everything else carries to the next epoch");
+    }
+}
+```
+
+#### File: contracts/test/debug-p6-crossepoch-lock.t.sol
+[ASSUMED] — Source: see header comment
+```solidity
+// SPDX-License-Identifier: MIT
+// File: contracts/test/debug-p6-crossepoch-lock.t.sol
+// hackathon-debug Phase 6 (critique M-1 regression). Port of the Phase-5 critique repro (scratchpad stk/test/Lock.t.sol),
+// inverted to assert the FIXED behaviour of WifStaking._addPending: a top-up one epoch after an unmatured stake re-dates
+// the older pending into the new bucket, so (1) another staker of that epoch is never locked by the first staker's
+// unstake, and (2) no matured bucket is left without an owner (no stranded rewards, sum(activeOf) == activeTotal).
+// Local (non-fork) test: a mintable $WIF stand-in, a real Jar and a one-function oracle stand-in for claim().
+// Run: scripts/forge.sh test --match-path test/debug-p6-crossepoch-lock.t.sol -vv
+pragma solidity 0.8.26;
+
+import "forge-std/Test.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {WifStaking} from "../src/WifStaking.sol";
+import {StockOracle} from "../src/StockOracle.sol";
+import {Jar} from "../src/Jar.sol";
+
+contract MintableToken is ERC20 {
+    constructor(string memory s) ERC20(s, s) {}
+
+    function mint(address a, uint256 x) external {
+        _mint(a, x);
+    }
+}
+
+/// Only WifStaking._claim's `oracle.token(id)` is reached in these tests.
+contract TokenOracle {
+    address public stockToken;
+
+    constructor(address t) {
+        stockToken = t;
+    }
+
+    function token(uint8) external view returns (address) {
+        return stockToken;
+    }
+}
+
+contract DebugP6CrossEpochLock is Test {
+    MintableToken wif;
+    MintableToken nvda;
+    WifStaking st;
+    Jar jar;
+    address alice = address(0xA);
+    address bob = address(0xB);
+
+    function setUp() public {
+        vm.warp(1_000_000 * 3600);
+        wif = new MintableToken("W");
+        nvda = new MintableToken("N");
+        TokenOracle o = new TokenOracle(address(nvda));
+        address pStaking = vm.computeCreateAddress(address(this), vm.getNonce(address(this)) + 1);
+        jar = new Jar(address(0xdead), pStaking);
+        st = new WifStaking(IERC20(address(wif)), StockOracle(address(o)), jar, address(this), block.timestamp);
+        require(address(st) == pStaking, "predict");
+        wif.mint(alice, 1000e18);
+        wif.mint(bob, 1000e18);
+        vm.prank(alice);
+        wif.approve(address(st), type(uint256).max);
+        vm.prank(bob);
+        wif.approve(address(st), type(uint256).max);
+    }
+
+    /// FeePool semantics: roll, send the stock to staking, notify.
+    function _notify(uint256 reward) internal {
+        st.rollAll();
+        nvda.mint(address(st), reward);
+        st.notifyReward(0, reward);
+    }
+
+    function test_crossEpochPendingDoesNotLockOtherStaker() public {
+        vm.prank(alice);
+        st.stake(100e18, 0); // epoch e
+        vm.warp(block.timestamp + 1 hours); // e+1
+        vm.prank(alice);
+        st.stake(1e18, 0); // older 100 re-dated into bucket e+1 with the top-up
+        vm.prank(bob);
+        st.stake(100e18, 0); // bucket e+1 = 201
+        vm.prank(alice);
+        st.requestUnstake(101e18); // removes only alice's 101
+        vm.warp(block.timestamp + 3 hours); // e+4: bob's batch matured
+        _notify(1e18);
+        (uint256 act,,) = st.poolInfo(0);
+        assertEq(act, 100e18, "only bob is active");
+        assertEq(st.activeOf(bob), act, "sum(activeOf) == activeTotal");
+        (, uint256 pb) = st.pending(bob);
+        assertApproxEqAbs(pb, 1e18, 1, "bob owns the whole reward: nothing stranded");
+        vm.startPrank(bob);
+        assertApproxEqAbs(st.claim(), 1e18, 1, "claim works");
+        st.switchStock(1); // no underflow lock
+        st.requestUnstake(100e18); // no underflow lock
+        vm.stopPrank();
+        assertApproxEqAbs(jar.balanceOf(bob, address(nvda)), 1e18, 1, "reward in Jar");
+        vm.warp(block.timestamp + 24 hours);
+        vm.prank(alice);
+        st.withdraw();
+        vm.prank(bob);
+        st.withdraw();
+        assertEq(wif.balanceOf(alice), 1000e18, "alice exits whole");
+        assertEq(wif.balanceOf(bob), 1000e18, "bob exits whole");
+    }
+
+    function test_selfTwoStakesNoPhantomActiveAtE2() public {
+        vm.prank(alice);
+        st.stake(100e18, 0);
+        vm.warp(block.timestamp + 1 hours);
+        vm.prank(alice);
+        st.stake(1e18, 0);
+        vm.warp(block.timestamp + 1 hours); // e+2: the re-dated 101 activates at e+3, never a bucket nobody owns
+        st.rollAll();
+        (uint256 act, uint256 waiting,) = st.poolInfo(0);
+        assertEq(act, 0, "no phantom active stake");
+        assertEq(waiting, 101e18, "all of alice's stake waits together");
+        assertEq(st.activeOf(alice), act);
+        vm.prank(alice);
+        st.requestUnstake(101e18); // no Insufficient self-lock
+        vm.warp(block.timestamp + 1 hours); // e+3
+        vm.prank(bob);
+        st.stake(10e18, 0);
+        vm.warp(block.timestamp + 2 hours);
+        _notify(5e17);
+        (act,,) = st.poolInfo(0);
+        assertEq(act, st.activeOf(alice) + st.activeOf(bob), "sum(activeOf) == activeTotal");
+        (, uint256 pb) = st.pending(bob);
+        assertApproxEqAbs(pb, 5e17, 1, "no stranded reward");
+    }
+}
+```
+
+#### File: contracts/test/debug-p6-feepool.t.sol
+[ASSUMED] — Source: see header comment
+```solidity
+// SPDX-License-Identifier: MIT
+// File: contracts/test/debug-p6-feepool.t.sol
+// hackathon-debug Phase 6 (critique S-1, S-2). FORK tests on Robinhood Chain mainnet 4663.
+//   S-1: distribute() takes no caller-chosen $WIF minimum, so a griefer cannot force BurnSkipped with an absurd one.
+//   S-2: out-of-gas is detected by gas left (63/64 rule), not by empty revert data. An EMPTY revert with gas to spare
+//        (burn leg or stock leg) skips and carries instead of bricking distribute; a swap that exhausts its gas reverts
+//        InsufficientGas and the epoch does not advance.
+// Run: RPC_URL=... scripts/forge.sh test --match-path test/debug-p6-feepool.t.sol -vv
+pragma solidity 0.8.26;
+
+import "forge-std/Test.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {TerraConfig} from "../script/TerraConfig.sol";
+import {TerraRouter} from "../src/TerraRouter.sol";
+import {FeePool, IWifStakingPool} from "../src/FeePool.sol";
+import {PoolKey, IWIF, IUniversalRouter} from "../src/interfaces/IExternal.sol";
+import {URCodec} from "../src/lib/URCodec.sol";
+
+/// Universal Router stand-in whose execute burns every unit of gas it is given.
+contract GasBurnerUR {
+    uint256 public sink;
+
+    function execute(bytes calldata, bytes[] calldata, uint256) external payable {
+        while (true) {
+            ++sink;
+        }
+    }
+}
+
+/// Universal Router stand-in whose execute reverts with no data right away.
+contract EmptyRevertUR {
+    function execute(bytes calldata, bytes[] calldata, uint256) external payable {
+        assembly {
+            revert(0, 0)
+        }
+    }
+}
+
+contract DebugP6FeePool is Test, TerraConfig {
+    address constant PONS = 0x39dBED3a2bd333467115dE45665cC57F813C4571;
+    Deployment d;
+    address alice = address(0xA11CE);
+    address bob = address(0xB0B);
+
+    function setUp() public {
+        vm.createSelectFork(vm.envString("RPC_URL"), vm.envOr("FORK_BLOCK", uint256(111155803)));
+        d = deployAll(address(this));
+        vm.deal(alice, 1 ether);
+        vm.deal(bob, 1 ether);
+    }
+
+    function _buyPons(address who, uint256 eth) internal {
+        TerraRouter.Route memory r;
+        r.kind = 2;
+        r.v3Path = abi.encodePacked(WETH, uint24(3000), PONS);
+        vm.prank(who);
+        d.router.buy{value: eth}(r, PONS, 0, 0, 1, 0);
+    }
+
+    function _stakeWif(address who, uint256 eth) internal {
+        TerraRouter.Route memory r;
+        r.kind = 3;
+        r.key = wifKey();
+        vm.startPrank(who);
+        (uint256 amount,) = d.router.buy{value: eth}(r, WIF, 0, 0, 1, 0);
+        IERC20(WIF).approve(address(d.staking), amount);
+        d.staking.stake(amount, 0);
+        vm.stopPrank();
+    }
+
+    function _poolWith(address ur) internal returns (FeePool fp) {
+        fp = new FeePool(IUniversalRouter(ur), IWIF(WIF), d.oracle, IWifStakingPool(address(d.staking)), wifKey(), block.timestamp);
+        vm.deal(address(fp), 0.01 ether);
+    }
+
+    // ------------------------------------------------------------------ S-1
+
+    function test_highWifMinOutCannotSkipBurn() public {
+        _buyPons(alice, 0.05 ether);
+        (bool ok,) = address(d.feePool).call(abi.encodeWithSignature("distribute(uint256)", type(uint128).max));
+        assertFalse(ok, "the caller-chosen minOut entry point no longer exists");
+        assertEq(d.feePool.lastEpoch(), 0, "epoch not advanced");
+        vm.prank(bob); // any caller: the burn always runs
+        d.feePool.distribute();
+        assertGt(d.feePool.totalWifBurned(), 0, "griefer cannot switch the burn off");
+    }
+
+    // ------------------------------------------------------------------ S-2
+
+    function test_emptyRevertBurnSkipsAndCarries() public {
+        _buyPons(alice, 0.05 ether);
+        uint256 bal = address(d.feePool).balance;
+        vm.mockCallRevert(UR, IUniversalRouter.execute.selector, "");
+        vm.expectEmit(true, false, false, true, address(d.feePool));
+        emit FeePool.BurnSkipped(d.feePool.epoch(), bal / 2, "");
+        d.feePool.distribute();
+        assertEq(d.feePool.lastEpoch(), d.feePool.epoch() + 1, "epoch advanced (liveness)");
+        assertEq(d.feePool.totalWifBurned(), 0, "nothing burned");
+        assertEq(address(d.feePool).balance, bal, "all ETH carried (no stakers, burn skipped)");
+    }
+
+    function test_emptyRevertUrContractSkipsNotBricks() public {
+        FeePool fp = _poolWith(address(new EmptyRevertUR()));
+        vm.expectEmit(true, false, false, true, address(fp));
+        emit FeePool.BurnSkipped(0, 0.005 ether, "");
+        fp.distribute();
+        assertEq(fp.lastEpoch(), 1, "epoch advanced");
+        assertEq(address(fp).balance, 0.01 ether, "ETH carried");
+    }
+
+    function test_emptyRevertStockLegSkipsAndCarries() public {
+        _stakeWif(bob, 0.005 ether);
+        vm.warp(vm.getBlockTimestamp() + 2 hours); // bob active
+        _buyPons(alice, 0.05 ether);
+        uint256 bal = address(d.feePool).balance;
+        uint256 leg = bal / 2 > d.feePool.MAX_WIF_BUY_ETH() ? d.feePool.MAX_WIF_BUY_ETH() : bal / 2;
+        bytes memory stockLeg = URCodec.v3(address(d.staking), d.oracle.minStockOut(0, leg), d.oracle.path(0));
+        bytes memory call_ = abi.encodeCall(
+            IUniversalRouter.execute,
+            (URCodec.two(URCodec.WRAP_ETH, URCodec.V3_SWAP_EXACT_IN), URCodec.inputs2(URCodec.wrap(leg), stockLeg), block.timestamp)
+        );
+        vm.mockCallRevert(UR, call_, ""); // exact match: only the NVDA stock leg fails, the burn leg is real
+        vm.expectEmit(true, true, false, true, address(d.feePool));
+        emit FeePool.StockBuySkipped(d.feePool.epoch(), 0, leg, "");
+        d.feePool.distribute();
+        assertGt(d.feePool.totalWifBurned(), 0, "burn leg ran");
+        assertEq(d.feePool.totalEthToStock(), 0, "stock leg skipped");
+        assertEq(address(d.feePool).balance, bal - leg, "stock ETH carried");
+    }
+
+    function test_outOfGasSwapRevertsNotSkips() public {
+        FeePool fp = _poolWith(address(new GasBurnerUR()));
+        vm.expectRevert(FeePool.InsufficientGas.selector);
+        fp.distribute{gas: 2_000_000}();
+        assertEq(fp.lastEpoch(), 0, "a starved swap never advances the epoch");
+        assertEq(address(fp).balance, 0.01 ether, "ETH untouched");
+    }
+}
+```
+
+#### File: contracts/test/debug-p6-hindsight-phase.t.sol
+[ASSUMED] — Source: see header comment
+```solidity
+// SPDX-License-Identifier: MIT
+// File: contracts/test/debug-p6-hindsight-phase.t.sol
+// hackathon-debug Phase 6 (critique S-3). FORK test: at a Chainlink phase boundary the last round of the old phase has
+// no rid + 1 (getRoundData returns updatedAt == 0), so it must not "bracket" any later ts. Simulated with vm.mockCall on
+// the real ETH/USD feed: phase-1 round 549 becomes the last of its phase and latest is phase-2 round 1.
+// Run: RPC_URL=... scripts/forge.sh test --match-path test/debug-p6-hindsight-phase.t.sol -vv
+pragma solidity 0.8.26;
+
+import "forge-std/Test.sol";
+import {TerraConfig} from "../script/TerraConfig.sol";
+import {HindsightLens} from "../src/HindsightLens.sol";
+import {IAggregatorV3} from "../src/interfaces/IExternal.sol";
+
+contract DebugP6HindsightPhase is Test, TerraConfig {
+    uint80 constant BASE = uint80(1 << 64);
+    Deployment d;
+
+    function setUp() public {
+        vm.createSelectFork(vm.envString("RPC_URL"), vm.envOr("FORK_BLOCK", uint256(111155803)));
+        d = deployAll(address(this));
+    }
+
+    function _buy(uint64 ts) internal pure returns (HindsightLens.Buy[] memory b) {
+        b = new HindsightLens.Buy[](1);
+        b[0] = HindsightLens.Buy({
+            payKind: 0, payStockId: 0, amountPaid: 1 ether, payRoundId: BASE + 549, stockRoundId: BASE + 24, ts: ts
+        });
+    }
+
+    function test_phaseBoundaryRoundRejectedForLaterTs() public {
+        address feed = address(d.oracle.ethUsdFeed());
+        d.lens.recompute(_buy(1782222600), 0); // control: a normal in-phase bracket is accepted
+        uint80 phase2First = uint80(2 << 64) + 1;
+        vm.mockCall(
+            feed,
+            abi.encodeCall(IAggregatorV3.latestRoundData, ()),
+            abi.encode(phase2First, int256(165768649010), uint256(1782300000), uint256(1782300000), phase2First)
+        );
+        vm.mockCall(
+            feed,
+            abi.encodeCall(IAggregatorV3.getRoundData, (BASE + 550)),
+            abi.encode(BASE + 550, int256(0), uint256(0), uint256(0), uint80(0))
+        );
+        vm.expectRevert(abi.encodeWithSelector(HindsightLens.BadRound.selector, feed, BASE + 549));
+        d.lens.recompute(_buy(1782222600), 0);
+    }
 }
 ```
 
@@ -2486,24 +3555,68 @@ function providers(calls: RpcCall[] = []): string[] {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/** Per-POST timeout, and the total time one rpcBatch may spend retrying, so a card fails as JSON 503 inside maxDuration 60. */
+const FETCH_TIMEOUT_MS = 8_000;
+const BATCH_BUDGET_MS = 40_000;
+
+/**
+ * Token bucket: `rate` tokens/s, at most `burst` banked. take(n) reserves n tokens (one per call inside a JSON-RPC batch)
+ * and resolves when they are available. Tokens can go negative, so a large batch waits instead of starving forever.
+ */
+export function createTokenBucket(rate: number, burst: number, now = () => Date.now()) {
+  let tokens = burst;
+  let at = now();
+  return {
+    /** Milliseconds the caller must wait before sending n calls. */
+    reserve(n: number): number {
+      const t = now();
+      tokens = Math.min(burst, tokens + ((t - at) / 1000) * rate);
+      at = t;
+      tokens -= n;
+      return tokens >= 0 ? 0 : Math.ceil((-tokens / rate) * 1000);
+    },
+  };
+}
+
+/**
+ * Process-wide budget for the public RPC, per POST: the spike's 429 threshold is ~4-5 requests/s sustained, and the
+ * heavy-wallet live run (~400 calls in small batches, < 20 s) shows batched calls are not charged one token each
+ * (charging per call at 4/s made that card take 106 s). Shared by every route so concurrent cards cannot double the rate.
+ */
+const publicBucket = createTokenBucket(5, 10);
+
+async function postOnce(url: string, body: string): Promise<Response> {
+  if (url === PUBLIC_RPC) {
+    const wait = publicBucket.reserve(1);
+    if (wait > 0) await sleep(wait);
+  }
+  return fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json", "user-agent": "terra-firma/1.0" },
+    body,
+    cache: "no-store",
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+  });
+}
+
 /** POST a JSON-RPC batch with provider failover and exponential backoff on 429/5xx. Results keep call order. */
 export async function rpcBatch(calls: RpcCall[]): Promise<(unknown | RpcError)[]> {
   if (calls.length === 0) return [];
   const body = JSON.stringify(calls.map((c, i) => ({ jsonrpc: "2.0", id: i, method: c.method, params: c.params })));
+  const deadline = Date.now() + BATCH_BUDGET_MS;
   let lastErr: unknown;
   for (const url of providers(calls)) {
-    for (let attempt = 0; attempt < 5; attempt++) {
+    for (let attempt = 0; attempt < 5 && Date.now() < deadline; attempt++) {
       try {
-        const res = await fetch(url, {
-          method: "POST",
-          headers: { "content-type": "application/json", "user-agent": "terra-firma/1.0" },
-          body,
-          cache: "no-store",
-        });
+        const res = await postOnce(url, body);
         if (res.status === 429 || res.status >= 500) {
           lastErr = new RpcError(res.status, `HTTP ${res.status}`);
           await sleep(800 * 2 ** attempt);
           continue;
+        }
+        if (!res.ok) {
+          lastErr = new RpcError(res.status, `HTTP ${res.status}`);
+          break; // other 4xx will not succeed on retry: try the next provider
         }
         const json = (await res.json()) as (RpcOk | RpcErr)[] | RpcOk | RpcErr;
         const arr = Array.isArray(json) ? json : [json];
@@ -2522,10 +3635,16 @@ export async function rpcBatch(calls: RpcCall[]): Promise<(unknown | RpcError)[]
   throw lastErr instanceof Error ? lastErr : new Error("all RPC providers failed");
 }
 
+/** A batch result as data: throws on a per-call RpcError or a null/absent result (never read an error as 0 or "none"). */
+export function unwrap<T>(r: unknown, what = "rpc result"): T {
+  if (r instanceof RpcError) throw r;
+  if (r === null || r === undefined) throw new RpcError(-2, `${what}: null result`);
+  return r as T;
+}
+
 export async function rpc<T>(method: string, params: unknown[]): Promise<T> {
   const [r] = await rpcBatch([{ method, params }]);
-  if (r instanceof RpcError) throw r;
-  return r as T;
+  return unwrap<T>(r, method);
 }
 
 /** Run batches in chunks of `size` with at most `parallel` POSTs in flight. */
@@ -2542,6 +3661,14 @@ export async function rpcChunked(calls: RpcCall[], size = 36, parallel = 3): Pro
   }
   await Promise.all(Array.from({ length: Math.min(parallel, chunks.length) }, worker));
   return out.flat();
+}
+
+/** QuickNode endpoint: QUICKNODE_RPC, or `${QUICKNODE_BASE}/${QUICKNODE_TOKEN}/` (the names .env.local uses). */
+export function quicknodeUrl(env: Record<string, string | undefined> = process.env): string | null {
+  if (env.QUICKNODE_RPC) return env.QUICKNODE_RPC;
+  const base = env.QUICKNODE_BASE?.replace(/\/+$/, "");
+  const token = env.QUICKNODE_TOKEN?.replace(/^\/+|\/+$/g, "");
+  return base && token ? `${base}/${token}/` : null;
 }
 
 export const hex = (n: number | bigint) => `0x${n.toString(16)}`;
@@ -2667,15 +3794,15 @@ Card construction from logs, txs, receipts and Chainlink round tables.
 [VERIFIED] — Source: fork-tested / live-probed
 ```typescript
 // File: web/app/api/hindsight/route.ts
-// [VERIFIED] contract: PRD §5 GET /api/hindsight. 5-minute in-memory cache per (wallet, stock).
+// [VERIFIED] contract: PRD §5 GET /api/hindsight. Cards come from the shared cache (lib/card-cache: 5-min TTL per
+// (wallet, stock), in-flight de-duplication, bounded size, global build concurrency cap).
 import { NextResponse } from "next/server";
 import { isAddress, getAddress } from "viem";
-import { buildCard, type Card } from "@/lib/hindsight";
+import { cardFailure, getCard } from "@/lib/card-cache";
 import { stockBySymbol, type StockId } from "@/lib/config";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
-const cache = new Map<string, { at: number; card: Card }>();
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
@@ -2683,18 +3810,15 @@ export async function GET(req: Request) {
   const stock = stockBySymbol(url.searchParams.get("stock") ?? "NVDA");
   if (!isAddress(addr)) return NextResponse.json({ error: "bad_address" }, { status: 400 });
   if (!stock) return NextResponse.json({ error: "bad_stock" }, { status: 400 });
-  const key = `${addr.toLowerCase()}:${stock.id}`;
-  const hit = cache.get(key);
-  if (hit && Date.now() - hit.at < 300_000) return NextResponse.json(hit.card);
   const t0 = Date.now();
   try {
-    const card = await buildCard(getAddress(addr), stock.id as StockId);
-    cache.set(key, { at: Date.now(), card });
-    console.log(JSON.stringify({ route: "hindsight", ms: Date.now() - t0, memes: card.memes.length }));
+    const card = await getCard(getAddress(addr), stock.id as StockId);
+    console.log(JSON.stringify({ route: "hindsight", ms: Date.now() - t0, memes: card.memes.length, partial: card.partial }));
     return NextResponse.json(card);
   } catch (e) {
     console.error(JSON.stringify({ route: "hindsight", ms: Date.now() - t0, error: String(e) }));
-    return NextResponse.json({ error: "rpc_unavailable", retryAfter: 5 }, { status: 503 });
+    const f = cardFailure(e);
+    return NextResponse.json(f.body, { status: f.status, headers: f.headers });
   }
 }
 ```
@@ -2707,12 +3831,12 @@ export async function GET(req: Request) {
 // Universal Router calls, receipts only when value == 0). Receipt path VERIFIED by scripts/test-hindsight.ts on two
 // real txs (WETH-paid 0x9965...6ab0, USDG-paid 0x2ac2...28db) and an end-to-end card for 0x3fDB...b09E in 5.6s.
 import "server-only";
-import { decodeEventLog, decodeFunctionResult, encodeFunctionData, getAddress, type Address, type Hex } from "viem";
+import { decodeEventLog, decodeFunctionResult, encodeFunctionData, getAddress, zeroAddress, type Address, type Hex } from "viem";
 import { erc20Abi, terraRouterAbi } from "./abi";
 import { ADDR, STOCKS, type StockId } from "./config";
 import { REGISTRY, type Meme } from "./registry";
-import { bestQuote } from "./quote";
-import { RpcError, TOO_MANY_LOGS, hex, rpc, rpcBatch, rpcChunked } from "./rpc";
+import { QuoteUnavailable, bestQuote } from "./quote";
+import { RpcError, TOO_MANY_LOGS, hex, rpc, rpcBatch, rpcChunked, unwrap } from "./rpc";
 import { latestPrice8, loadTable, roundAtLive } from "./rounds";
 import { TF } from "./config";
 import { hypersyncEnabled, transfersTo } from "./hypersync";
@@ -2742,7 +3866,10 @@ export interface CardMeme {
   token: Address;
   symbol: string;
   usdPaid8: string;
-  usdToday8: string;
+  /** Sell-quote value of the holding now; null when no quote is available (never a fabricated $0). */
+  usdToday8: string | null;
+  /** Why usdToday8 is null ("no liquid pool" / "quote unavailable (RPC error)"); null when priced. */
+  todayReason: string | null;
   usdCounterfactual8: string;
   holding: string;
   buys: CardBuy[];
@@ -2752,25 +3879,52 @@ export interface Card {
   wallet: Address;
   stock: (typeof STOCKS)[number]["symbol"];
   asOfBlock: number;
-  totals: { usdPaid8: string; usdToday8: string; usdCounterfactual8: string; shares18: string };
+  /**
+   * usdToday8 sums only memes with a quote; usdPaidQuoted8 is usdPaid8 over those same memes, so today-vs-paid is
+   * like for like. usdPaid8 / usdCounterfactual8 / shares18 cover every priced buy.
+   */
+  totals: { usdPaid8: string; usdPaidQuoted8: string; usdToday8: string; usdCounterfactual8: string; shares18: string };
   memes: CardMeme[];
   unpriced: { token: Address; symbol: string; tx: Hex; reason: string }[];
+  /** Worst today-vs-paid among quoted memes only. */
   worst: { symbol: string; pct: number } | null;
+  /** True when any number above is incomplete: some held meme is unquoted or a history scan was cut short. */
+  partial: boolean;
+  /** Held memes whose usdToday8 is null, with the reason. */
+  unquoted: { token: Address; symbol: string; reason: string }[];
+  /** Block ranges whose Transfer history could not be read completely (buys there may be missing). */
+  scanGaps: { token: Address; symbol: string; fromBlock: number; toBlock: number }[];
 }
 
 type Log = { address: Address; topics: Hex[]; data: Hex; blockNumber: Hex; transactionHash: Hex };
 type Tx = { from: Address; to: Address | null; value: Hex; blockNumber: Hex; hash: Hex };
-type Receipt = { logs: Log[] };
+export type Receipt = { logs: (Log & { blockTimestamp?: Hex })[] };
+/** Block time from a receipt's logs (Nitro includes blockTimestamp there; eth_getLogs reports "0x0", never used). */
+const receiptTs = (rc: Receipt | undefined) => {
+  const ts = Number(rc?.logs[0]?.blockTimestamp ?? 0);
+  return ts > 0 ? ts : undefined;
+};
+
+/**
+ * Addresses whose outgoing meme transfers count as a purchase. TerraRouter forwards the meme it receives from the
+ * Universal Router to the buyer, so router buys arrive with from = TerraRouter (memes.json is built pre-deploy).
+ */
+export function purchaseSources(registrySources: readonly string[], router: string = TF.TerraRouter): Set<string> {
+  const all = [...registrySources, ...(router && router.toLowerCase() !== zeroAddress ? [router] : [])];
+  return new Set(all.map((a) => a.toLowerCase()));
+}
+
+type ScanGap = Card["scanGaps"][number];
 
 /** Step 1-2: every Transfer(to = wallet) of each registry meme, per-token, 10M-block spans, split on overflow. */
-async function scanBuys(wallet: Address, head: number, memes: Meme[]): Promise<Log[]> {
-  if (memes.length === 0) return [];
-  const sources = new Set(REGISTRY.sources.map((s) => s.toLowerCase()));
+async function scanBuys(wallet: Address, head: number, memes: Meme[]): Promise<{ logs: Log[]; gaps: ScanGap[] }> {
+  if (memes.length === 0) return { logs: [], gaps: [] };
+  const sources = purchaseSources(REGISTRY.sources);
   if (hypersyncEnabled()) {
     try {
       const from = Math.min(...memes.map((m) => m.firstBlock));
       const hs = (await transfersTo(wallet, memes.map((m) => m.token), from)) as Log[];
-      return hs.filter((l) => Number(l.blockNumber) <= head && sources.has(topicAddr(l.topics[1]).toLowerCase()));
+      return { logs: hs.filter((l) => Number(l.blockNumber) <= head && sources.has(topicAddr(l.topics[1]).toLowerCase())), gaps: [] };
     } catch (e) {
       console.warn(JSON.stringify({ route: "hindsight", hypersync: "fallback", error: String(e) }));
     }
@@ -2804,18 +3958,20 @@ async function scanBuys(wallet: Address, head: number, memes: Meme[]): Promise<L
     });
     queue = retry;
   }
-  return logs.filter((l) => sources.has(topicAddr(l.topics[1]).toLowerCase()));
+  // Split rounds exhausted: report the unread ranges instead of returning a silently truncated history.
+  const gaps = queue.map((q) => ({ token: q.meme.token, symbol: q.meme.symbol, fromBlock: q.from, toBlock: q.to }));
+  return { logs: logs.filter((l) => sources.has(topicAddr(l.topics[1]).toLowerCase())), gaps };
 }
 
-type Payment = { payKind: 0 | 1 | 2; payStockId: number; amount: bigint; block: number };
+type Payment = { payKind: 0 | 1 | 2; payStockId: number; amount: bigint; block: number; ts?: number };
 type Unpriced = { unpriced: string };
 
 /** Meme leg of a buy through Terra Firma's own router: tx.value minus the protocol fee and the sweep (from its events). */
-function routerMemeLeg(rc: Receipt | undefined, value: bigint): bigint | null {
+export function routerMemeLeg(rc: Receipt | undefined, value: bigint, router: Address = TF.TerraRouter): bigint | null {
   let fee: bigint | null = null;
   let sweep = 0n;
   for (const l of rc?.logs ?? []) {
-    if (l.address.toLowerCase() !== TF.TerraRouter.toLowerCase()) continue;
+    if (l.address.toLowerCase() !== router.toLowerCase()) continue;
     try {
       const ev = decodeEventLog({ abi: terraRouterAbi, data: l.data, topics: l.topics as [Hex, ...Hex[]] });
       if (ev.eventName === "Traded") fee = (ev.args as { fee: bigint }).fee;
@@ -2830,16 +3986,17 @@ function routerMemeLeg(rc: Receipt | undefined, value: bigint): bigint | null {
 /** Step 3-4: what the wallet paid in each buy tx (ETH from tx.value, else outgoing WETH/USDG/stock in the receipt). */
 async function payments(wallet: Address, hashes: Hex[]) {
   const me = wallet.toLowerCase();
-  const txs = (await rpcChunked(hashes.map((h) => ({ method: "eth_getTransactionByHash", params: [h] })), 10)) as Tx[];
+  const txRes = await rpcChunked(hashes.map((h) => ({ method: "eth_getTransactionByHash", params: [h] })), 10);
+  const txs = txRes.map((r, i) => unwrap<Tx>(r, `tx ${hashes[i]}`));
   const viaRouter = (t: Tx) => !!t.to && t.to.toLowerCase() === TF.TerraRouter.toLowerCase();
-  const needReceipt = txs.filter((t) => t && t.from.toLowerCase() === me && (BigInt(t.value) === 0n || viaRouter(t)));
-  const receipts = (await rpcChunked(needReceipt.map((t) => ({ method: "eth_getTransactionReceipt", params: [t.hash] })), 10)) as Receipt[];
+  const needReceipt = txs.filter((t) => t.from.toLowerCase() === me && (BigInt(t.value) === 0n || viaRouter(t)));
+  const rcRes = await rpcChunked(needReceipt.map((t) => ({ method: "eth_getTransactionReceipt", params: [t.hash] })), 10);
+  const receipts = rcRes.map((r, i) => unwrap<Receipt>(r, `receipt ${needReceipt[i].hash}`));
   const receiptByHash = new Map(needReceipt.map((t, i) => [t.hash, receipts[i]]));
   const stockIdx = new Map(STOCKS.map((x) => [x.token.toLowerCase(), x.id]));
   const payable = new Set([ADDR.weth.toLowerCase(), ADDR.usdg.toLowerCase(), ...stockIdx.keys()]);
   const out = new Map<Hex, Payment | Unpriced>();
   for (const t of txs) {
-    if (!t) continue;
     if (t.from.toLowerCase() !== me) {
       out.set(t.hash, { unpriced: "received, not bought by this wallet" });
       continue;
@@ -2848,7 +4005,7 @@ async function payments(wallet: Address, hashes: Hex[]) {
     const value = BigInt(t.value);
     if (value > 0n) {
       const leg = viaRouter(t) ? routerMemeLeg(receiptByHash.get(t.hash), value) : value;
-      out.set(t.hash, leg === null ? { unpriced: "router tx without a Traded event" } : { payKind: 0, payStockId: 0, amount: leg, block });
+      out.set(t.hash, leg === null ? { unpriced: "router tx without a Traded event" } : { payKind: 0, payStockId: 0, amount: leg, block, ts: receiptTs(receiptByHash.get(t.hash)) });
       continue;
     }
     const outgoing = (receiptByHash.get(t.hash)?.logs ?? []).filter(
@@ -2862,23 +4019,67 @@ async function payments(wallet: Address, hashes: Hex[]) {
     }
     const tok = paid.address.toLowerCase();
     const amount = BigInt(paid.data);
-    if (tok === ADDR.weth.toLowerCase()) out.set(t.hash, { payKind: 0, payStockId: 0, amount, block });
-    else if (tok === ADDR.usdg.toLowerCase()) out.set(t.hash, { payKind: 1, payStockId: 0, amount, block });
-    else out.set(t.hash, { payKind: 2, payStockId: stockIdx.get(tok)!, amount, block });
+    const ts = receiptTs(receiptByHash.get(t.hash));
+    if (tok === ADDR.weth.toLowerCase()) out.set(t.hash, { payKind: 0, payStockId: 0, amount, block, ts });
+    else if (tok === ADDR.usdg.toLowerCase()) out.set(t.hash, { payKind: 1, payStockId: 0, amount, block, ts });
+    else out.set(t.hash, { payKind: 2, payStockId: stockIdx.get(tok)!, amount, block, ts });
   }
   return out;
 }
 
+/** A block timestamp from an RPC result; throws on an error, a null block or a non-positive/NaN time. */
+export function blockTs(r: unknown, block: number): number {
+  const ts = Number(unwrap<{ timestamp: Hex }>(r, `block ${block}`).timestamp);
+  if (!Number.isFinite(ts) || ts <= 0) throw new RpcError(-2, `block ${block}: bad timestamp`);
+  return ts;
+}
+
 async function blockTimes(blocks: number[]): Promise<Map<number, number>> {
   const uniq = [...new Set(blocks)];
-  const res = (await rpcChunked(uniq.map((b) => ({ method: "eth_getBlockByNumber", params: [hex(b), false] })), 20)) as { timestamp: Hex }[];
-  return new Map(uniq.map((b, i) => [b, Number(res[i].timestamp)]));
+  const res = await rpcChunked(uniq.map((b) => ({ method: "eth_getBlockByNumber", params: [hex(b), false] })), 20);
+  return new Map(uniq.map((b, i) => [b, blockTs(res[i], b)]));
+}
+
+/** balanceOf results; a failed call throws (an unreadable balance is not a zero balance). */
+export function decodeBalances(res: unknown[], tokens: readonly Address[]): bigint[] {
+  return res.map((r, i) => decodeFunctionResult({ abi: erc20Abi, functionName: "balanceOf", data: unwrap<Hex>(r, `balanceOf ${tokens[i]}`) }));
 }
 
 async function balances(wallet: Address, tokens: Address[]): Promise<bigint[]> {
   const data = encodeFunctionData({ abi: erc20Abi, functionName: "balanceOf", args: [wallet] });
-  const res = await rpcBatch(tokens.map((t) => ({ method: "eth_call", params: [{ to: t, data }, "latest"] })));
-  return res.map((r) => (r instanceof RpcError ? 0n : decodeFunctionResult({ abi: erc20Abi, functionName: "balanceOf", data: r as Hex })));
+  return decodeBalances(await rpcBatch(tokens.map((t) => ({ method: "eth_call", params: [{ to: t, data }, "latest"] }))), tokens);
+}
+
+/** Sell-quote value of `held` in USD8, or null with the reason when no quote exists right now. */
+async function valueToday(token: Address, held: bigint, ethUsd8: bigint): Promise<{ usd8: bigint | null; reason: string | null }> {
+  if (held === 0n) return { usd8: 0n, reason: null };
+  try {
+    const q = await bestQuote(token, "sell", held);
+    return q ? { usd8: (q.amountOut * ethUsd8) / 10n ** 18n, reason: null } : { usd8: null, reason: "no liquid pool" };
+  } catch (e) {
+    if (!(e instanceof QuoteUnavailable || e instanceof RpcError)) throw e;
+    return { usd8: null, reason: "quote unavailable (RPC error)" };
+  }
+}
+
+/** Card totals, `worst` and `partial` from finished meme rows (pure; nulls never count as $0). */
+export function summarize(memes: CardMeme[], gaps: ScanGap[]) {
+  const sum = (rows: CardMeme[], f: (m: CardMeme) => string) => rows.reduce((s, m) => s + BigInt(f(m)), 0n).toString();
+  const quoted = memes.filter((m) => m.usdToday8 !== null);
+  const unquoted = memes.filter((m) => m.usdToday8 === null).map((m) => ({ token: m.token, symbol: m.symbol, reason: m.todayReason ?? "unquoted" }));
+  const worst =
+    quoted
+      .filter((m) => BigInt(m.usdPaid8) > 0n)
+      .map((m) => ({ symbol: m.symbol, pct: (Number(m.usdToday8) / Number(m.usdPaid8) - 1) * 100 }))
+      .sort((a, b) => a.pct - b.pct)[0] ?? null;
+  const totals = {
+    usdPaid8: sum(memes, (m) => m.usdPaid8),
+    usdPaidQuoted8: sum(quoted, (m) => m.usdPaid8),
+    usdToday8: sum(quoted, (m) => m.usdToday8 as string),
+    usdCounterfactual8: sum(memes, (m) => m.usdCounterfactual8),
+    shares18: memes.reduce((s, m) => s + m.buys.reduce((x, b) => x + BigInt(b.shares18), 0n), 0n).toString(),
+  };
+  return { totals, worst, unquoted, partial: unquoted.length > 0 || gaps.length > 0 };
 }
 
 /** Build a wallet's Hindsight card against `stockId` (default NVDA). $WIF, stables, WETH and stocks are never memes. */
@@ -2889,11 +4090,15 @@ export async function buildCard(wallet: Address, stockId: StockId = 0): Promise<
   // then scan history only for held memes. Cuts a card from ~158 getLogs calls to ~5 per held meme.
   const allBal = await balances(wallet, REGISTRY.memes.map((m) => m.token));
   const heldMemes = REGISTRY.memes.filter((_, i) => allBal[i] > 0n);
-  const logs = await scanBuys(wallet, head, heldMemes);
+  const { logs, gaps } = await scanBuys(wallet, head, heldMemes);
   const hashes = [...new Set(logs.map((l) => l.transactionHash))];
-  const [pay, times, ethT, usdgT, histT, nowStock, nowEth] = await Promise.all([
-    payments(wallet, hashes),
-    blockTimes(logs.map((l) => Number(l.blockNumber))),
+  // payments() runs alone first: overlapping it with blockTimes() put ~8 POSTs in flight and drew a 429 storm with
+  // multi-second backoffs on the public RPC (heavy wallet 29s, debug-results/phase-2-known-risks.md). Only priced txs
+  // need a block timestamp, and those with a receipt already carry it, so blockTimes() fetches only the rest.
+  const pay = await payments(wallet, hashes);
+  const untimed = logs.filter((l) => { const p = pay.get(l.transactionHash); return p && !("unpriced" in p) && p.ts === undefined; });
+  const [times, ethT, usdgT, histT, nowStock, nowEth] = await Promise.all([
+    blockTimes(untimed.map((l) => Number(l.blockNumber))),
     loadTable(ADDR.ethUsd),
     loadTable(ADDR.usdgUsd),
     loadTable(stock.historyFeed),
@@ -2921,9 +4126,11 @@ export async function buildCard(wallet: Address, stockId: StockId = 0): Promise<
       continue;
     }
     const meme = memesInTx[0];
-    const ts = times.get(Number(txLogs[0].blockNumber))!;
+    const ts = p.ts ?? times.get(Number(txLogs[0].blockNumber));
+    if (ts === undefined || !Number.isFinite(ts)) throw new Error(`no block time for ${tx}`); // never price with NaN ts
     const payTable = p.payKind === 0 ? ethT : p.payKind === 1 ? usdgT : await loadTable(STOCKS[p.payStockId].historyFeed);
-    const [payRound, stockRound] = await Promise.all([roundAtLive(payTable, ts), roundAtLive(histT, ts)]);
+    const payLatest = p.payKind === 0 ? nowEth : undefined;
+    const [payRound, stockRound] = await Promise.all([roundAtLive(payTable, ts, payLatest), roundAtLive(histT, ts, nowStock)]);
     if (!payRound || !stockRound) {
       skip("before Chainlink price history");
       continue;
@@ -2933,7 +4140,7 @@ export async function buildCard(wallet: Address, stockId: StockId = 0): Promise<
     const shares18 = (usdPaid8 * 10n ** 18n) / stockRound.price8;
     const entry =
       byMeme.get(meme.token) ??
-      ({ token: meme.token, symbol: meme.symbol, usdPaid8: "0", usdToday8: "0", usdCounterfactual8: "0", holding: "0", buys: [] } as CardMeme);
+      ({ token: meme.token, symbol: meme.symbol, usdPaid8: "0", usdToday8: null, todayReason: null, usdCounterfactual8: "0", holding: "0", buys: [] } as CardMeme);
     entry.buys.push({
       tx,
       block: Number(txLogs[0].blockNumber),
@@ -2957,33 +4164,26 @@ export async function buildCard(wallet: Address, stockId: StockId = 0): Promise<
   await Promise.all(
     memes.map(async (m, i) => {
       m.holding = held[i].toString();
-      const q = held[i] > 0n ? await bestQuote(m.token, "sell", held[i]) : null;
-      m.usdToday8 = q ? ((q.amountOut * nowEth.price8) / 10n ** 18n).toString() : "0";
+      const today = await valueToday(m.token, held[i], nowEth.price8);
+      m.usdToday8 = today.usd8 === null ? null : today.usd8.toString();
+      m.todayReason = today.reason;
       const shares = m.buys.reduce((s, b) => s + BigInt(b.shares18), 0n);
       m.usdCounterfactual8 = ((shares * nowStock.price8) / 10n ** 18n).toString();
     }),
   );
 
-  const sum = (f: (m: CardMeme) => string) => memes.reduce((s, m) => s + BigInt(f(m)), 0n);
-  const shares18 = memes.reduce((s, m) => s + m.buys.reduce((x, b) => x + BigInt(b.shares18), 0n), 0n);
-  const worst = memes
-    .filter((m) => BigInt(m.usdPaid8) > 0n)
-    .map((m) => ({ symbol: m.symbol, pct: (Number(m.usdToday8) / Number(m.usdPaid8) - 1) * 100 }))
-    .sort((a, b) => a.pct - b.pct)[0] ?? null;
-
+  const { totals, worst, unquoted, partial } = summarize(memes, gaps);
   return {
     wallet,
     stock: stock.symbol,
     asOfBlock: head,
-    totals: {
-      usdPaid8: sum((m) => m.usdPaid8).toString(),
-      usdToday8: sum((m) => m.usdToday8).toString(),
-      usdCounterfactual8: sum((m) => m.usdCounterfactual8).toString(),
-      shares18: shares18.toString(),
-    },
+    totals,
     memes: memes.sort((a, b) => Number(BigInt(b.usdPaid8) - BigInt(a.usdPaid8))),
     unpriced,
     worst,
+    partial,
+    unquoted,
+    scanGaps: gaps,
   };
 }
 ```
@@ -3011,12 +4211,17 @@ interface HsResponse {
 
 export const hypersyncEnabled = () => typeof process.env.ENVIO_API_TOKEN === "string" && process.env.ENVIO_API_TOKEN.length > 0;
 
-/** All Transfer(*, wallet) logs of `tokens` from `fromBlock`, paginated until HyperSync reports no more data. */
+const MAX_PAGES = 50;
+
+/**
+ * All Transfer(*, wallet) logs of `tokens` from `fromBlock`, paginated until HyperSync reports no more data.
+ * Throws (never returns a truncated list) if MAX_PAGES is reached first; the caller then falls back to eth_getLogs.
+ */
 export async function transfersTo(wallet: Address, tokens: Address[], fromBlock: number): Promise<HsLog[]> {
   const padded = `0x000000000000000000000000${wallet.slice(2).toLowerCase()}`;
   const out: HsLog[] = [];
   let from = fromBlock;
-  for (let page = 0; page < 50; page++) {
+  for (let page = 0; page < MAX_PAGES; page++) {
     const res = await fetch(URL_QUERY, {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${process.env.ENVIO_API_TOKEN}` },
@@ -3026,6 +4231,7 @@ export async function transfersTo(wallet: Address, tokens: Address[], fromBlock:
         field_selection: { log: ["address", "topic0", "topic1", "topic2", "topic3", "data", "block_number", "transaction_hash"] },
       }),
       cache: "no-store",
+      signal: AbortSignal.timeout(10_000),
     });
     if (!res.ok) throw new Error(`hypersync HTTP ${res.status}`);
     const j = (await res.json()) as HsResponse;
@@ -3040,10 +4246,10 @@ export async function transfersTo(wallet: Address, tokens: Address[], fromBlock:
         });
       }
     }
-    if (!j.next_block || (j.archive_height !== undefined && j.next_block >= j.archive_height) || j.next_block <= from) break;
+    if (!j.next_block || (j.archive_height !== undefined && j.next_block >= j.archive_height) || j.next_block <= from) return out;
     from = j.next_block;
   }
-  return out;
+  throw new Error(`hypersync: page cap ${MAX_PAGES} reached at block ${from}`);
 }
 ```
 
@@ -3134,7 +4340,19 @@ const getRoundAbi = [
   },
 ] as const;
 
+/** Historic rounds never change once written, so a round with updatedAt != 0 is memoized (binary searches overlap). */
+const roundMemo = new Map<string, { price8: bigint; updatedAt: number }>();
+
 async function roundData(feed: Address, n: number): Promise<{ price8: bigint; updatedAt: number }> {
+  const key = `${feed.toLowerCase()}:${n}`;
+  const hit = roundMemo.get(key);
+  if (hit) return hit;
+  const r = await fetchRoundData(feed, n);
+  if (r.updatedAt !== 0) roundMemo.set(key, r);
+  return r;
+}
+
+async function fetchRoundData(feed: Address, n: number): Promise<{ price8: bigint; updatedAt: number }> {
   const data = encodeFunctionData({ abi: getRoundAbi, functionName: "getRoundData", args: [PHASE_BASE + BigInt(n)] });
   const raw = await rpc<`0x${string}`>("eth_call", [{ to: feed, data }, "latest"]);
   const [, answer, , updatedAt] = decodeFunctionResult({ abi: getRoundAbi, functionName: "getRoundData", data: raw });
@@ -3146,7 +4364,8 @@ async function roundData(feed: Address, n: number): Promise<{ price8: bigint; up
  * are read live (binary search between the last table round and the latest round), so HindsightLens.recompute on the
  * same inputs never reverts BadRound for a recent buy. Returns null when `ts` precedes the feed (row goes "unpriced").
  */
-export async function roundAtLive(t: RoundTable, ts: number) {
+export async function roundAtLive(t: RoundTable, ts: number, latestRound?: Awaited<ReturnType<typeof latestPrice8>>) {
+  if (!Number.isFinite(ts)) throw new Error(`roundAtLive: bad timestamp ${ts}`); // NaN would select the last round
   const rows = t.rounds;
   if (rows.length === 0 || rows[0][2] > ts) return null;
   const last = rows[rows.length - 1];
@@ -3157,9 +4376,9 @@ export async function roundAtLive(t: RoundTable, ts: number) {
     return { ...r, price8: normalize8(t.feed, nOf(r.roundId), r.price8) };
   }
   // Case 2: no newer round exists onchain, or the latest round is not after ts.
-  const latest = await latestPrice8(t.feed);
+  const latest = latestRound ?? (await latestPrice8(t.feed)); // caller may pass this feed's latest round, read once per card
   const latestN = nOf(latest.roundId);
-  if (latestN <= last[0]) return { roundId: PHASE_BASE + BigInt(last[0]), price8: BigInt(last[1]), updatedAt: last[2] };
+  if (latestN <= last[0]) return { roundId: PHASE_BASE + BigInt(last[0]), price8: normalize8(t.feed, last[0], BigInt(last[1])), updatedAt: last[2] };
   if (latest.updatedAt <= ts) return { roundId: latest.roundId, price8: normalize8(t.feed, latestN, latest.price8), updatedAt: latest.updatedAt };
   // Case 3: binary-search the live rounds between the table's last row and the latest round.
   let lo = last[0];
@@ -3170,7 +4389,7 @@ export async function roundAtLive(t: RoundTable, ts: number) {
     if (r.updatedAt !== 0 && r.updatedAt <= ts) lo = mid;
     else hi = mid - 1;
   }
-  const r = lo === last[0] ? { price8: BigInt(last[1]), updatedAt: last[2] } : await roundData(t.feed, lo);
+  const r = lo === last[0] ? { price8: normalize8(t.feed, lo, BigInt(last[1])), updatedAt: last[2] } : await roundData(t.feed, lo);
   return { roundId: PHASE_BASE + BigInt(lo), price8: normalize8(t.feed, lo, r.price8), updatedAt: r.updatedAt };
 }
 
@@ -3206,22 +4425,26 @@ Registry, best-pool quoting, Chainlink min-outs.
 // [VERIFIED] contract: PRD §5 GET /api/quote. Fee/sweep math mirrors TerraRouter (bps of ETH notional).
 import { NextResponse } from "next/server";
 import { isAddress, getAddress } from "viem";
-import { bestQuote, oracleMinStock, quoteStock } from "@/lib/quote";
+import { QuoteUnavailable, bestQuote, oracleMinStock, quoteStock } from "@/lib/quote";
 import { ADDR, FEE_BPS, stockBySymbol, type StockId } from "@/lib/config";
 import { memeByToken } from "@/lib/registry";
 
 export const runtime = "nodejs";
 const SLIP_BPS = 150n; // meme-leg default slippage 1.5%
+const MAX_AMOUNT = 2n ** 128n - 1n; // V4Quoter exactAmount is uint128
+const SIDES = ["buy", "sell", "convert"] as const;
+type Side = (typeof SIDES)[number];
 
 export async function GET(req: Request) {
   const u = new URL(req.url);
   const token = u.searchParams.get("token") ?? "";
-  const side = (u.searchParams.get("side") ?? "buy") as "buy" | "sell" | "convert";
+  const side = (u.searchParams.get("side") ?? "buy") as Side;
+  if (!SIDES.includes(side)) return NextResponse.json({ error: "bad_side" }, { status: 400 });
   const num = (k: string, d: string) => (/^\d{1,78}$/.test(u.searchParams.get(k) ?? d) ? BigInt(u.searchParams.get(k) ?? d) : -1n);
   const amount = num("amount", "0");
   const sweepBps = num("sweepBps", "200");
   const feeBps = num("feeBps", String(FEE_BPS));
-  if (amount < 0n || sweepBps < 0n || sweepBps > 1000n || (feeBps !== 30n && feeBps !== 50n)) return NextResponse.json({ error: "bad_request" }, { status: 400 });
+  if (amount < 0n || amount > MAX_AMOUNT || sweepBps < 0n || sweepBps > 1000n || (feeBps !== 30n && feeBps !== 50n)) return NextResponse.json({ error: "bad_request" }, { status: 400 });
   const stock = stockBySymbol(u.searchParams.get("stock") ?? "NVDA");
   if (!isAddress(token) || !stock || amount <= 0n) return NextResponse.json({ error: "bad_request" }, { status: 400 });
   if (side !== "buy" && getAddress(token) === getAddress(ADDR.wif)) return NextResponse.json({ error: "wif_not_sellable" }, { status: 422 });
@@ -3236,7 +4459,7 @@ export async function GET(req: Request) {
       if (!q) return NextResponse.json({ error: "no_route" }, { status: 404 });
       const [stockOut, o] = await Promise.all([quoteStock(sid, sweep), oracleMinStock(sid, sweep)]);
       if (!o.fresh && sweep > 0n) return NextResponse.json({ error: "oracle_stale", stock: stock.symbol }, { status: 409 });
-      return NextResponse.json(json({ token, symbol: meme?.symbol, route: q.route, amountIn: amount, tokenOut: q.amountOut, ethToStock: sweep, stockOut, fee, minTokenOut: (q.amountOut * (10_000n - SLIP_BPS)) / 10_000n, minStockOut: o.min, oracle: o }));
+      return NextResponse.json(json({ token, symbol: meme?.symbol, route: q.route, amountIn: amount, tokenOut: q.amountOut, ethToStock: sweep, stockOut, fee, minTokenOut: (q.amountOut * (10_000n - SLIP_BPS)) / 10_000n, minStockOut: o.min, oracle: o, ...band(stockOut, o.min) }));
     }
     const q = await bestQuote(getAddress(token), "sell", amount);
     if (!q) return NextResponse.json({ error: "no_route" }, { status: 404 });
@@ -3245,11 +4468,17 @@ export async function GET(req: Request) {
     const ethOut = side === "convert" ? 0n : q.amountOut - fee - toStock;
     const [stockOut, o] = await Promise.all([quoteStock(sid, toStock), oracleMinStock(sid, toStock)]);
     if (!o.fresh && toStock > 0n) return NextResponse.json({ error: "oracle_stale", stock: stock.symbol }, { status: 409 });
-    return NextResponse.json(json({ token, symbol: meme?.symbol, route: q.route, amountIn: amount, ethFromSale: q.amountOut, ethOut, minEthOut: (ethOut * (10_000n - SLIP_BPS)) / 10_000n, ethToStock: toStock, stockOut, fee, minStockOut: o.min, oracle: o }));
+    return NextResponse.json(json({ token, symbol: meme?.symbol, route: q.route, amountIn: amount, ethFromSale: q.amountOut, ethOut, minEthOut: (ethOut * (10_000n - SLIP_BPS)) / 10_000n, ethToStock: toStock, stockOut, fee, minStockOut: o.min, oracle: o, ...band(stockOut, o.min) }));
   } catch (e) {
-    return NextResponse.json({ error: "quote_failed", detail: String(e) }, { status: 503 });
+    console.error(JSON.stringify({ route: "quote", error: String(e) })); // detail stays server-side (M-02)
+    const error = e instanceof QuoteUnavailable ? "quote_unavailable" : "quote_failed";
+    return NextResponse.json({ error, retryAfter: 5 }, { status: 503, headers: { "retry-after": "5" } });
   }
 }
+
+/** The stock leg reverts on-chain when the pool returns less than the Chainlink floor: say so before the user signs. */
+const band = (stockOut: bigint, minStockOut: bigint) =>
+  stockOut >= minStockOut ? { bandOk: true, warning: null } : { bandOk: false, warning: "outside_oracle_band" };
 
 /** bigint-safe JSON body. */
 const json = (o: unknown) => JSON.parse(JSON.stringify(o, (_, v) => (typeof v === "bigint" ? v.toString() : v)));
@@ -3420,24 +4649,39 @@ export interface BestQuote {
   amountOut: bigint;
 }
 
-/** Quote every registry pool for `token` in one JSON-RPC batch and return the best output. */
-export async function bestQuote(token: Address, side: "buy" | "sell", amountIn: bigint): Promise<BestQuote | null> {
-  const meme = token.toLowerCase() === ADDR.wif.toLowerCase() ? WIF_MEME : memeByToken(token);
-  if (!meme || meme.pools.length === 0 || amountIn === 0n) return null;
-  if (meme === WIF_MEME && side !== "buy") return null; // $WIF is never sold (INVARIANT 1)
-  const calls = meme.pools.map((p) => ({ method: "eth_call", params: [quoteCall(p, token, side, amountIn), "latest"] }));
-  const res = await rpcBatch(calls);
+/** Thrown when every pool quote for a token failed at the RPC layer: "try again", not "no route". */
+export class QuoteUnavailable extends Error {}
+
+/**
+ * Best output across `pools` given their raw quoter results (same order). Returns null when no pool gave a usable quote
+ * (reverted / undecodable / zero liquidity); throws QuoteUnavailable when every result is an RPC error.
+ */
+export function pickBestQuote(pools: PoolEntry[], results: unknown[], token: Address, side: "buy" | "sell"): BestQuote | null {
+  const errors = results.filter((r) => r instanceof RpcError && !isRevert(r)).length;
+  if (pools.length > 0 && errors === pools.length) throw new QuoteUnavailable(`all ${errors} quote calls failed`);
   let best: BestQuote | null = null;
-  res.forEach((r, i) => {
-    if (r instanceof RpcError || typeof r !== "string") return;
+  results.forEach((r, i) => {
+    if (typeof r !== "string") return;
     try {
-      const out = decodeQuote(meme.pools[i], r as Hex);
-      if (!best || out > best.amountOut) best = { route: routeFor(meme.pools[i], token, side), pool: meme.pools[i], amountOut: out };
+      const out = decodeQuote(pools[i], r as Hex);
+      if (out > 0n && (!best || out > best.amountOut)) best = { route: routeFor(pools[i], token, side), pool: pools[i], amountOut: out };
     } catch {
       /* undecodable quote: skip this pool */
     }
   });
   return best;
+}
+
+/** eth_call execution reverted (JSON-RPC code 3 / "execution reverted"): the pool cannot fill, an answer, not an outage. */
+const isRevert = (e: RpcError) => e.code === 3 || /revert/i.test(e.message);
+
+/** Quote every registry pool for `token` in one JSON-RPC batch and return the best output (see pickBestQuote). */
+export async function bestQuote(token: Address, side: "buy" | "sell", amountIn: bigint): Promise<BestQuote | null> {
+  const meme = token.toLowerCase() === ADDR.wif.toLowerCase() ? WIF_MEME : memeByToken(token);
+  if (!meme || meme.pools.length === 0 || amountIn === 0n) return null;
+  if (meme === WIF_MEME && side !== "buy") return null; // $WIF is never sold (INVARIANT 1)
+  const calls = meme.pools.map((p) => ({ method: "eth_call", params: [quoteCall(p, token, side, amountIn), "latest"] }));
+  return pickBestQuote(meme.pools, await rpcBatch(calls), token, side);
 }
 
 /** ETH -> stock quote along the same packed path TerraRouter uses (StockOracle path). */
@@ -3587,7 +4831,7 @@ export const runtime = "edge";
 export function GET(req: Request) {
   const country = req.headers.get("x-vercel-ip-country") ?? "UNKNOWN";
   const list = (restricted as { countries: string[] }).countries;
-  return NextResponse.json({ country, restricted: list.includes(country), unknown: country === "UNKNOWN", list: (restricted as { fetchedAt: string }).fetchedAt });
+  return NextResponse.json({ country, restricted: list.includes(country), unknown: country === "UNKNOWN", list: (restricted as { fetchedAt: string }).fetchedAt }, { headers: { "cache-control": "private, no-store" } });
 }
 ```
 
@@ -3604,10 +4848,12 @@ import { rpc } from "@/lib/rpc";
 export const runtime = "nodejs";
 
 export async function GET() {
+  // Pre-deploy TF.FeePool is the zero address; its balance is not the FeePool's, so report null instead.
+  const deployed = (TF as unknown as { deployed?: boolean }).deployed !== false;
   try {
     const [block, feePoolWei, ...feeds] = await Promise.all([
       rpc<string>("eth_blockNumber", []),
-      rpc<string>("eth_getBalance", [TF.FeePool, "latest"]),
+      deployed ? rpc<string>("eth_getBalance", [TF.FeePool, "latest"]) : null,
       latestPrice8(ADDR.ethUsd),
       ...STOCKS.map((s) => latestPrice8(s.liveFeed)),
     ]);
@@ -3615,9 +4861,10 @@ export async function GET() {
     const fresh = Object.fromEntries(
       [["ETH", feeds[0]], ...STOCKS.map((s, i) => [s.symbol, feeds[i + 1]] as const)].map(([k, f]) => [k, now - (f as { updatedAt: number }).updatedAt < 25 * 3600]),
     );
-    return NextResponse.json({ rpc: "ok", block: Number(block), deployed: (TF as unknown as { deployed?: boolean }).deployed !== false, feeds: fresh, feePoolWei: BigInt(feePoolWei).toString() });
+    return NextResponse.json({ rpc: "ok", block: Number(block), deployed, feeds: fresh, feePoolWei: feePoolWei === null ? null : BigInt(feePoolWei).toString() });
   } catch (e) {
-    return NextResponse.json({ rpc: "degraded", error: String(e) }, { status: 503 });
+    console.error(JSON.stringify({ route: "health", error: String(e) })); // detail stays server-side (M-02)
+    return NextResponse.json({ rpc: "degraded", error: "rpc_unavailable" }, { status: 503 });
   }
 }
 ```
@@ -3632,6 +4879,7 @@ export async function GET() {
 import { NextResponse } from "next/server";
 import { erc20Abi } from "@/lib/abi";
 import { STOCKS, TF } from "@/lib/config";
+import { quicknodeUrl } from "@/lib/rpc";
 import { DEPLOYED, publicClient } from "@/lib/ui-chain";
 
 export const runtime = "nodejs";
@@ -3646,7 +4894,7 @@ function rowsOf(result: unknown): QnRow[] {
 }
 
 export async function GET() {
-  const url = process.env.QUICKNODE_RPC;
+  const url = quicknodeUrl(); // QUICKNODE_RPC, or QUICKNODE_BASE + QUICKNODE_TOKEN
   if (!url || !DEPLOYED) return NextResponse.json({ enabled: false });
   try {
     const res = await fetch(url, {
@@ -3654,6 +4902,7 @@ export async function GET() {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "qn_getStockTokenBalances", params: [{ wallet: TF.Jar }] }),
       cache: "no-store",
+      signal: AbortSignal.timeout(8_000),
     });
     const body = (await res.json()) as { result?: unknown; error?: unknown };
     if (!res.ok || body.error || body.result === undefined) return NextResponse.json({ enabled: false });
@@ -3666,10 +4915,12 @@ export async function GET() {
       allowFailure: false,
       contracts: STOCKS.map((s) => ({ address: s.token, abi: erc20Abi, functionName: "balanceOf", args: [TF.Jar] }) as const),
     });
+    // A balance that is not an integer string (e.g. decimal-formatted) is an unknown format, not a disagreement.
+    if ([...qn.values()].some((q) => !/^\d+$/.test(String(q)))) return NextResponse.json({ enabled: false });
     const checks = STOCKS.map((s, i) => {
       const q = qn.get(s.token.toLowerCase());
       const d = direct[i] as bigint;
-      return { symbol: s.symbol, direct: d.toString(), quicknode: q ?? null, match: q === undefined ? d === 0n : (() => { try { return BigInt(q) === d; } catch { return false; } })() };
+      return { symbol: s.symbol, direct: d.toString(), quicknode: q ?? null, match: q === undefined ? d === 0n : BigInt(q) === d };
     });
     if (qn.size === 0 && checks.some((c) => c.direct !== "0")) return NextResponse.json({ enabled: false });
     return NextResponse.json({ enabled: true, agreement: checks.every((c) => c.match), checks });
@@ -3684,23 +4935,30 @@ export async function GET() {
 ```typescript
 // File: web/app/api/stream/route.ts
 // [UNVERIFIED] GetBlock WSS eth_subscribe("logs") on RH 4663 - endpoint answers JSON-RPC (chainId 0x1237 verified);
-// subscription behaviour is tested by livetest. Falls back to eth_getLogs polling if the socket fails.
+// subscription behaviour is tested by livetest. Falls back to eth_getLogs polling if the socket fails or closes.
 // The shared GetBlock URL never leaves the server: browsers receive Server-Sent Events only.
+// Lifecycle (H-01/M5): one cleanup() bound to client abort, socket close/error and the 55 s deadline closes the
+// socket, timers and the controller exactly once; nothing is enqueued after close; at most 20 streams per instance.
 import { decodeEventLog, type Hex } from "viem";
 import { TF } from "@/lib/config";
 import { feePoolAbi, hindsightLensAbi, jarAbi, terraRouterAbi } from "@/lib/abi";
+import { Busy, streamSlots } from "@/lib/concurrency";
 import { hex, rpc } from "@/lib/rpc";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
-type Log = { address: Hex; topics: Hex[]; data: Hex; transactionHash: Hex; blockNumber: Hex };
+type Log = { address: Hex; topics: Hex[]; data: Hex; transactionHash: Hex; blockNumber: Hex; removed?: boolean };
 const ABIS = [terraRouterAbi, feePoolAbi, jarAbi, hindsightLensAbi] as const;
 const WATCH = [TF.TerraRouter, TF.FeePool, TF.Jar, TF.HindsightLens];
-const KINDS: Record<string, string> = { Traded: "traded", Swept: "swept", Converted: "converted", Distributed: "distributed", Credited: "credited", CardMinted: "cardMinted" };
+const KINDS: Record<string, string> = { Traded: "traded", Swept: "swept", Deposited: "deposited", Converted: "converted", Distributed: "distributed", Credited: "credited", CardMinted: "cardMinted" };
+const LIFETIME_MS = 55_000;
+const POLL_MS = 5_000;
+const PING_MS = 15_000;
 
 function toEvent(l: Log) {
+  if (l.removed) return null; // reorged out
   for (const abi of ABIS) {
     try {
       const ev = decodeEventLog({ abi, data: l.data, topics: l.topics as [Hex, ...Hex[]] });
@@ -3716,59 +4974,119 @@ function toEvent(l: Log) {
 }
 
 export async function GET(req: Request) {
-  const enc = new TextEncoder();
-  const stream = new ReadableStream({
-    async start(controller) {
-      const send = (o: unknown) => controller.enqueue(enc.encode(`data: ${JSON.stringify(o)}\n\n`));
-      const stopAt = Date.now() + 55_000;
-      let closed = false;
-      const close = () => {
-        if (closed) return;
-        closed = true;
-        controller.close();
-      };
-      req.signal.addEventListener("abort", close);
-      send({ type: "hello", at: Date.now() });
-
-      const wss = process.env.GETBLOCK_WSS_FRA;
-      if (wss && typeof WebSocket !== "undefined") {
-        const ws = new WebSocket(wss);
-        ws.onopen = () => ws.send(JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_subscribe", params: ["logs", { address: WATCH }] }));
-        ws.onmessage = (m) => {
-          const msg = JSON.parse(String(m.data));
-          const ev = msg.params?.result ? toEvent(msg.params.result as Log) : null;
-          if (ev) send(ev);
-        };
-        ws.onerror = () => poll();
-        setTimeout(() => {
-          ws.close();
-          close();
-        }, stopAt - Date.now());
-        return;
-      }
-      await poll();
-
-      async function poll() {
-        let from = Number(await rpc<Hex>("eth_blockNumber", [])) - 20;
-        while (!closed && Date.now() < stopAt) {
-          const head = Number(await rpc<Hex>("eth_blockNumber", []));
-          if (head >= from) {
-            const logs = await rpc<Log[]>("eth_getLogs", [{ address: WATCH, fromBlock: hex(from), toBlock: hex(head) }]);
-            for (const l of logs) {
-              const ev = toEvent(l);
-              if (ev) send(ev);
-            }
-            from = head + 1;
-          }
-          await new Promise((r) => setTimeout(r, 5000));
-        }
-        close();
-      }
+  let release: () => void;
+  try {
+    release = await streamSlots.acquire();
+  } catch (e) {
+    const retryAfter = e instanceof Busy ? e.retryAfter : 10;
+    return Response.json({ error: "busy", retryAfter }, { status: 503, headers: { "retry-after": String(retryAfter) } });
+  }
+  let stop = () => {};
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      stop = runStream(req.signal, controller, release);
+    },
+    cancel() {
+      stop(); // consumer went away without an abort signal
     },
   });
   return new Response(stream, {
     headers: { "content-type": "text/event-stream", "cache-control": "no-cache, no-transform", connection: "keep-alive" },
   });
+}
+
+/** Starts the WS subscription (or polling fallback) and returns the idempotent cleanup. */
+function runStream(signal: AbortSignal, controller: ReadableStreamDefaultController<Uint8Array>, release: () => void): () => void {
+  const enc = new TextEncoder();
+  const timers: ReturnType<typeof setTimeout>[] = [];
+  let ws: WebSocket | null = null;
+  let closed = false;
+  let polling = false;
+
+  const write = (chunk: string) => {
+    if (closed) return;
+    try {
+      controller.enqueue(enc.encode(chunk));
+    } catch {
+      cleanup(); // controller already closed underneath us
+    }
+  };
+  const send = (o: unknown) => write(`data: ${JSON.stringify(o)}\n\n`);
+  function cleanup() {
+    if (closed) return;
+    closed = true;
+    timers.forEach(clearTimeout);
+    signal.removeEventListener("abort", cleanup);
+    try {
+      ws?.close();
+    } catch {
+      /* already closed */
+    }
+    try {
+      controller.close();
+    } catch {
+      /* already closed */
+    }
+    release();
+  }
+
+  signal.addEventListener("abort", cleanup);
+  timers.push(setTimeout(cleanup, LIFETIME_MS));
+  const ping = setInterval(() => write(": ping\n\n"), PING_MS);
+  timers.push(ping as unknown as ReturnType<typeof setTimeout>);
+  send({ type: "hello", at: Date.now() });
+
+  const startPolling = () => {
+    if (closed || polling) return;
+    polling = true;
+    void poll();
+  };
+
+  async function poll() {
+    let from: number | null = null;
+    while (!closed) {
+      try {
+        const head = Number(await rpc<Hex>("eth_blockNumber", []));
+        from ??= head - 20;
+        if (head >= from) {
+          const logs = await rpc<Log[]>("eth_getLogs", [{ address: WATCH, fromBlock: hex(from), toBlock: hex(head) }]);
+          for (const l of logs) {
+            const ev = toEvent(l);
+            if (ev) send(ev);
+          }
+          from = head + 1;
+        }
+      } catch (e) {
+        console.error(JSON.stringify({ route: "stream", poll: "error", error: String(e) }));
+        send({ type: "error", error: "rpc_unavailable" }); // keep the stream; retry next tick
+      }
+      await new Promise<void>((r) => timers.push(setTimeout(r, POLL_MS)));
+    }
+  }
+
+  const wss = process.env.GETBLOCK_WSS_FRA;
+  try {
+    if (wss && typeof WebSocket !== "undefined") ws = new WebSocket(wss);
+  } catch {
+    ws = null;
+  }
+  if (!ws) {
+    startPolling();
+    return cleanup;
+  }
+  ws.onopen = () => ws?.send(JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_subscribe", params: ["logs", { address: WATCH }] }));
+  ws.onmessage = (m) => {
+    try {
+      const msg = JSON.parse(String(m.data)) as { params?: { result?: Log } };
+      const ev = msg.params?.result ? toEvent(msg.params.result) : null;
+      if (ev) send(ev);
+    } catch {
+      /* non-JSON or unexpected frame: ignore */
+    }
+  };
+  ws.onerror = () => startPolling();
+  ws.onclose = () => startPolling();
+  return cleanup;
 }
 ```
 
@@ -3803,6 +5121,7 @@ All pages, OG images and components.
 - `web/app/stake/page.tsx`
 - `web/app/trade/[token]/page.tsx`
 - `web/app/trade/page.tsx`
+- `web/components/address-lookup.tsx`
 - `web/components/app-home.tsx`
 - `web/components/board-view.tsx`
 - `web/components/card-actions.tsx`
@@ -3827,14 +5146,27 @@ All pages, OG images and components.
 - `web/components/trade-terminal.tsx`
 - `web/components/tx-status.tsx`
 - `web/components/ui.tsx`
+- `web/lib/api-hindsight.test.ts`
+- `web/lib/api-quote.test.ts`
+- `web/lib/api-stream.test.ts`
+- `web/lib/api-validation.test.ts`
+- `web/lib/card-cache.test.ts`
+- `web/lib/card-cache.ts`
+- `web/lib/concurrency.ts`
+- `web/lib/hindsight.test.ts`
 - `web/lib/quote.test.ts`
 - `web/lib/rounds.integration.ts`
 - `web/lib/rounds.test.ts`
+- `web/lib/rpc.test.ts`
 - `web/lib/stock-paths.integration.ts`
 - `web/lib/ui-chain.ts`
+- `web/lib/ui-errors.test.ts`
 - `web/lib/ui-errors.ts`
+- `web/lib/ui-format.test.ts`
 - `web/lib/ui-format.ts`
+- `web/lib/ui-logs.test.ts`
 - `web/lib/ui-logs.ts`
+- `web/lib/ui-report.test.ts`
 - `web/lib/ui-report.ts`
 - `web/lib/wagmi.ts`
 
@@ -3846,37 +5178,32 @@ All pages, OG images and components.
 // File: web/app/api/card-check/route.ts
 // [VERIFIED] reuses buildCard (VERIFIED end to end on a real wallet). Answers: does a minted card's usdPaid8 match the
 // card re-derived from chain logs for that wallet? HindsightLens proves pricing arithmetic only; this proves provenance.
+// The derived card comes from the shared cache keyed (wallet, stock) only; the claimed value is compared afterwards,
+// so varying usdPaid8 can neither bypass the cache nor grow it.
 import { NextResponse } from "next/server";
 import { getAddress, isAddress } from "viem";
-import { STOCKS, type StockId } from "@/lib/config";
-import { buildCard } from "@/lib/hindsight";
+import { cardFailure, getCard, matchesClaim } from "@/lib/card-cache";
+import type { StockId } from "@/lib/config";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
-const cache = new Map<string, { at: number; verified: boolean; derived: string }>();
 
 export async function GET(req: Request) {
   const u = new URL(req.url);
   const addr = u.searchParams.get("addr") ?? "";
   const claimed = u.searchParams.get("usdPaid8") ?? "";
-  const sid = Number(u.searchParams.get("stockId") ?? "0");
-  if (!isAddress(addr) || !/^\d{1,40}$/.test(claimed) || !(sid >= 0 && sid < STOCKS.length)) {
+  const sid = u.searchParams.get("stockId") ?? "0";
+  if (!isAddress(addr) || !/^\d{1,40}$/.test(claimed) || !/^[0-5]$/.test(sid)) {
     return NextResponse.json({ error: "bad_request" }, { status: 400 });
   }
-  const key = `${addr.toLowerCase()}:${claimed}:${sid}`;
-  const hit = cache.get(key);
-  if (hit && Date.now() - hit.at < 600_000) return NextResponse.json(hit);
   try {
-    const card = await buildCard(getAddress(addr), sid as StockId);
+    const card = await getCard(getAddress(addr), Number(sid) as StockId);
     const derived = BigInt(card.totals.usdPaid8);
-    const c = BigInt(claimed);
-    // within 1%: the minted card may predate a later buy; a fabricated amount will not match
-    const verified = derived > 0n && (c > derived ? c - derived : derived - c) * 100n <= derived;
-    const res = { at: Date.now(), verified, derived: derived.toString() };
-    cache.set(key, res);
-    return NextResponse.json(res);
-  } catch {
-    return NextResponse.json({ error: "rpc_unavailable" }, { status: 503 });
+    return NextResponse.json({ verified: matchesClaim(derived, BigInt(claimed)), derived: derived.toString() });
+  } catch (e) {
+    console.error(JSON.stringify({ route: "card-check", error: String(e) }));
+    const f = cardFailure(e);
+    return NextResponse.json(f.body, { status: f.status, headers: f.headers });
   }
 }
 ```
@@ -3966,7 +5293,7 @@ export default function Loading() {
 // File: web/app/card/[addr]/opengraph-image.tsx
 import { ImageResponse } from "next/og";
 import { getAddress, isAddress } from "viem";
-import { buildCard } from "@/lib/hindsight";
+import { getCard } from "@/lib/card-cache";
 import { short, usd8 } from "@/lib/ui-format";
 
 export const runtime = "nodejs";
@@ -4004,7 +5331,7 @@ export default async function Image({ params }: { params: Promise<{ addr: string
     return new ImageResponse(<Shell><div style={{ display: "flex", marginTop: 120, fontSize: 56 }}>Your memes, in real stock.</div></Shell>, size);
   }
   try {
-    const card = await buildCard(getAddress(addr), 0);
+    const card = await getCard(getAddress(addr), 0);
     const empty = card.memes.length === 0;
     return new ImageResponse(
       <Shell>
@@ -4048,7 +5375,8 @@ import { getAddress, isAddress } from "viem";
 import { CardView } from "@/components/card-view";
 import { PageHeader } from "@/components/ui";
 import { stockBySymbol, type StockId } from "@/lib/config";
-import { buildCard, type Card } from "@/lib/hindsight";
+import { getCard } from "@/lib/card-cache";
+import type { Card } from "@/lib/hindsight";
 import { short, usd8 } from "@/lib/ui-format";
 
 export const dynamic = "force-dynamic";
@@ -4059,7 +5387,7 @@ type Props = { params: Promise<{ addr: string }>; searchParams: Promise<{ stock?
 const load = cache(async (addr: string, stock: string): Promise<{ card: Card | null; error: string | null }> => {
   const s = stockBySymbol(stock) ?? stockBySymbol("NVDA")!;
   try {
-    return { card: await buildCard(getAddress(addr), s.id as StockId), error: null };
+    return { card: await getCard(getAddress(addr), s.id as StockId), error: null };
   } catch {
     return { card: null, error: "The chain is busy. Try again in a few seconds." };
   }
@@ -4266,7 +5594,7 @@ export default function Loading() {
 // File: web/app/jar/report/[addr]/opengraph-image.tsx
 import { ImageResponse } from "next/og";
 import { isAddress } from "viem";
-import { short, sig4, usd } from "@/lib/ui-format";
+import { orDash, short, signedSig4, signedUsd, usd } from "@/lib/ui-format";
 import { jarReport } from "@/lib/ui-report";
 
 export const runtime = "nodejs";
@@ -4287,15 +5615,14 @@ export default async function Image({ params }: { params: Promise<{ addr: string
       <div style={{ display: "flex", flexDirection: "column" }}>
         <div style={{ display: "flex", marginTop: 24, fontSize: 28, color: C.muted }}>Weekly Jar report · {short(report.user)}</div>
         <div style={{ display: "flex", marginTop: 36, fontSize: 96, fontWeight: 800, color: C.accent }}>
-          {report.usdWeek >= 0 ? "+" : ""}
-          {usd(report.usdWeek)}
+          {signedUsd(report.usdWeek)}
         </div>
-        <div style={{ display: "flex", fontSize: 32, color: C.fg }}>added this week · Jar now {usd(report.usdNow)}</div>
+        <div style={{ display: "flex", fontSize: 32, color: C.fg }}>added this week · Jar now {orDash(report.usdNow, usd)}</div>
         <div style={{ display: "flex", gap: 16, marginTop: 36 }}>
           {report.rows.slice(0, 4).map((r) => (
             <div key={r.symbol} style={{ display: "flex", flexDirection: "column", padding: 20, borderRadius: 16, border: `2px solid ${C.line}`, background: C.surface, minWidth: 220 }}>
               <div style={{ fontSize: 26, color: C.muted }}>{r.symbol}</div>
-              <div style={{ fontSize: 36, fontWeight: 700 }}>+{sig4(r.sharesWeek)}</div>
+              <div style={{ fontSize: 36, fontWeight: 700 }}>{signedSig4(r.sharesWeek)}</div>
             </div>
           ))}
         </div>
@@ -4325,7 +5652,7 @@ import { isAddress } from "viem";
 import { ReportShare } from "@/components/report-share";
 import { AddrLink, Notice, PageHeader, Panel, Stat } from "@/components/ui";
 import { addrUrl, TF } from "@/lib/config";
-import { short, sig4, usd } from "@/lib/ui-format";
+import { orDash, short, sig4, signedSig4, signedUsd, usd } from "@/lib/ui-format";
 import { jarReport, type JarReport } from "@/lib/ui-report";
 
 export const dynamic = "force-dynamic";
@@ -4357,8 +5684,8 @@ export default async function ReportPage({ params }: Props) {
       ) : (
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-            <Stat label="Jar value now" value={usd(report.usdNow)} href={addrUrl(TF.Jar)} />
-            <Stat label="Added this week" value={`${report.usdWeek >= 0 ? "+" : ""}${usd(report.usdWeek)}`} sub={`${report.creditsWeek} credit${report.creditsWeek === 1 ? "" : "s"}`} />
+            <Stat label="Jar value now" value={orDash(report.usdNow, usd)} sub={report.usdNow === null ? "A live stock price is unavailable right now" : undefined} href={addrUrl(TF.Jar)} />
+            <Stat label="Added this week" value={signedUsd(report.usdWeek)} sub={`${report.creditsWeek} credit${report.creditsWeek === 1 ? "" : "s"}`} href={addrUrl(TF.Jar)} />
           </div>
           <Panel>
             {report.rows.length === 0 ? (
@@ -4373,17 +5700,17 @@ export default async function ReportPage({ params }: Props) {
                   {report.rows.map((r) => (
                     <tr key={r.symbol} className="border-t border-line">
                       <th scope="row" className="py-2.5 text-left font-semibold">{r.symbol}</th>
-                      <td className="num py-2.5 text-right">{sig4(r.sharesNow)}</td>
-                      <td className="num py-2.5 text-right text-accent">{r.sharesWeek >= 0 ? "+" : ""}{sig4(r.sharesWeek)}</td>
-                      <td className="num py-2.5 text-right">{usd(r.usdNow)}</td>
+                      <td className="num py-2.5 text-right">{orDash(r.sharesNow, sig4)}</td>
+                      <td className="num py-2.5 text-right text-accent">{signedSig4(r.sharesWeek)}</td>
+                      <td className="num py-2.5 text-right">{orDash(r.usdNow, usd)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             )}
-            <p className="mt-4 text-xs text-muted">As of block {report.asOfBlock}. Read from Jar events and Chainlink live feeds.</p>
+            <p className="mt-4 text-xs text-muted">As of block {report.asOfBlock}. Read from Jar events and Chainlink live feeds. &ldquo;—&rdquo; means that live price could not be read; it is never estimated.</p>
           </Panel>
-          <ReportShare addr={report.user} usdWeek={report.usdWeek} />
+          {report.usdWeek !== null && <ReportShare addr={report.user} usdWeek={report.usdWeek} />}
         </div>
       )}
     </>
@@ -4574,7 +5901,7 @@ export const metadata: Metadata = { title: "Stake $WIF" };
 export default function StakePage() {
   return (
     <>
-      <PageHeader title="Stake $WIF, earn real stock" sub="Every hour, half the protocol fee buys and burns $WIF; the other half buys the stock each staker picked and streams it to their Jar." />
+      <PageHeader title="Stake $WIF, earn real stock" sub="Every hour, half the protocol fee buys and burns $WIF; the other half buys the stock each staker picked and lets them claim it to their Jar. A new stake placed in epoch e activates at the start of epoch e+2." />
       <StakeView />
     </>
   );
@@ -4629,6 +5956,57 @@ export default function TradePage() {
 }
 ```
 
+#### File: web/components/address-lookup.tsx
+[ASSUMED] — Source: see header comment
+```tsx
+// File: web/components/address-lookup.tsx
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { isAddress } from "viem";
+import { Button, inputCls } from "./ui";
+
+/** "Look up any wallet" (0x only, validated before any request). Used on /, /app and /card/[addr]. */
+export function AddressLookup({ id = "lookup", placeholder = "or look up any wallet: 0x…" }: { id?: string; placeholder?: string }) {
+  const router = useRouter();
+  const [v, setV] = useState("");
+  const [err, setErr] = useState(false);
+  const errId = `${id}-err`;
+  return (
+    <form
+      role="search"
+      aria-label="Look up a wallet"
+      className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap"
+      onSubmit={(e) => {
+        e.preventDefault();
+        const a = v.trim();
+        if (!isAddress(a)) return setErr(true);
+        router.push(`/card/${a}`);
+      }}
+    >
+      <label htmlFor={id} className="sr-only">Wallet address</label>
+      <input
+        id={id}
+        value={v}
+        onChange={(e) => {
+          setV(e.target.value);
+          setErr(false);
+        }}
+        placeholder={placeholder}
+        className={`${inputCls} font-mono text-sm sm:w-auto sm:flex-1`}
+        aria-invalid={err}
+        aria-describedby={err ? errId : undefined}
+        autoComplete="off"
+        spellCheck={false}
+      />
+      <Button type="submit" variant="secondary">Look up</Button>
+      {err && <p id={errId} role="alert" className="text-sm text-danger sm:basis-full">Enter a 0x address (42 characters).</p>}
+    </form>
+  );
+}
+```
+
 #### File: web/components/app-home.tsx
 [ASSUMED] — Source: see header comment
 ```tsx
@@ -4636,8 +6014,10 @@ export default function TradePage() {
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAccount } from "wagmi";
+import { HISTORY_ADDR } from "@/lib/ui-chain";
+import { AddressLookup } from "./address-lookup";
 import { ConvertPanel } from "./convert-panel";
 import { MintButton, RecomputeButton, ShareButton } from "./card-actions";
 import { CardSkeleton, HindsightCard } from "./hindsight-card";
@@ -4663,6 +6043,8 @@ export function AppHome() {
   const [stock, setStock] = useState(params.get("stock") ?? "NVDA");
   const card = useCard(address, stock);
   const [sheet, setSheet] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const onBusy = useCallback((b: boolean) => setBusy(b), []);
 
   const openConvert = () => {
     if (window.matchMedia("(min-width: 768px)").matches) setSheet(true);
@@ -4704,14 +6086,21 @@ export function AppHome() {
           </div>
         }
       />
-      <ConvertSheet open={sheet} onClose={() => setSheet(false)}>
-        <ConvertPanel card={c} initialStock={stock} onDone={() => setSheet(false)} />
+      <Panel aria-labelledby="lookup-title" className="mt-6 space-y-3">
+        <h2 id="lookup-title" className="font-semibold">Look up any wallet</h2>
+        <p className="text-sm text-muted">Every card is read live from chain. Try a wallet with years of real meme buys, or paste any address.</p>
+        <LinkButton href={`/card/${HISTORY_ADDR}`} variant="secondary">See a wallet with real history</LinkButton>
+        <AddressLookup id="app-lookup" />
+      </Panel>
+      <ConvertSheet open={sheet} locked={busy} onClose={() => setSheet(false)}>
+        <ConvertPanel card={c} initialStock={stock} onDone={() => setSheet(false)} onBusy={onBusy} />
       </ConvertSheet>
     </>
   );
 }
 
-function ConvertSheet({ open, onClose, children }: { open: boolean; onClose: () => void; children: React.ReactNode }) {
+/** Side sheet. While a transaction is in flight (`locked`) it cannot be closed, so its status and hashes stay visible (S4). */
+function ConvertSheet({ open, locked, onClose, children }: { open: boolean; locked: boolean; onClose: () => void; children: React.ReactNode }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const d = ref.current;
@@ -4722,15 +6111,17 @@ function ConvertSheet({ open, onClose, children }: { open: boolean; onClose: () 
   return (
     <dialog
       ref={ref}
-      onClose={onClose}
+      onCancel={(e) => locked && e.preventDefault()}
+      onClose={() => (locked ? ref.current?.showModal() : onClose())}
       aria-labelledby="convert-title"
       className="mb-0 ml-auto mr-0 mt-0 h-dvh max-h-none w-[min(34rem,100vw)] max-w-none overflow-y-auto border-l border-line bg-surface p-6 text-fg"
     >
       <div className="mb-6 flex items-center justify-between">
         <h2 id="convert-title" className="text-xl font-semibold">Convert memes to real stock</h2>
-        <Button variant="ghost" aria-label="Close" onClick={onClose} className="size-11 px-0">✕</Button>
+        <Button variant="ghost" aria-label={locked ? "Close (disabled while the transaction confirms)" : "Close"} onClick={onClose} disabled={locked} className="size-11 px-0">✕</Button>
       </div>
-      {open && children}
+      {locked && <p className="mb-4 text-sm text-muted" role="status">Keep this open until the transaction confirms.</p>}
+      {(open || locked) && children}
     </dialog>
   );
 }
@@ -4761,9 +6152,9 @@ import type { ReactNode } from "react";
 import { STOCKS } from "@/lib/config";
 import { DEPLOYED } from "@/lib/ui-chain";
 import { eth, pct, pctChange, usd, usd8 } from "@/lib/ui-format";
-import { only, type TfLogs } from "@/lib/ui-logs";
-import { usdOf, type StockQuote } from "@/lib/ui-report";
-import { useQueries } from "@tanstack/react-query";
+import { mapLimit, only, type TfLogs } from "@/lib/ui-logs";
+import { sumKnown, usdOf, type StockQuote } from "@/lib/ui-report";
+import { useQuery } from "@tanstack/react-query";
 import { useStockQuotes, useTfLogs } from "./hooks";
 import { AddrLink, Notice, Panel, Skeleton, TxLink } from "./ui";
 
@@ -4779,7 +6170,19 @@ function regretCandidates(logs: TfLogs) {
   return only(logs.lens, "CardMinted")
     .map((l) => ({ l, gap: l.args.usdNow8 - l.args.usdPaid8 }))
     .sort((a, b) => (b.gap > a.gap ? 1 : b.gap < a.gap ? -1 : 0))
-    .slice(0, 25);
+    .slice(0, 10);
+}
+
+/** Re-derive each minted card server-side, at most 3 at a time (each check is a full card build). */
+async function checkCards(cands: ReturnType<typeof regretCandidates>) {
+  const res = await mapLimit(cands, 3, async ({ l: m }) => {
+    const r = await fetch(`/api/card-check?addr=${m.args.wallet}&usdPaid8=${m.args.usdPaid8}&stockId=${m.args.stockId}`);
+    const j = (await r.json().catch(() => ({}))) as { verified?: boolean };
+    if (!r.ok) throw new Error("check failed");
+    return { tx: m.transactionHash, ok: j.verified === true };
+  });
+  const verified = new Set(res.flatMap((x) => (x.status === "fulfilled" && x.value.ok ? [x.value.tx] : [])));
+  return { verified, failed: res.filter((x) => x.status === "rejected").length };
 }
 
 function regret(cands: ReturnType<typeof regretCandidates>, verified: Set<string>): Row[] {
@@ -4810,8 +6213,11 @@ function jars(logs: TfLogs, quotes: StockQuote[]): Row[] {
     net.set(u, e);
   }
   return [...net.entries()]
-    .map(([who, e]) => ({ who, tx: e.tx, v: [...e.raw.entries()].reduce((a, [i, r]) => a + usdOf(r, quotes[i]), 0) }))
-    .filter((r) => r.v > 0)
+    // A wallet whose stock has no live price is left out of the ranking rather than valued at a guess.
+    .flatMap(([who, e]) => {
+      const v = sumKnown([...e.raw.entries()].map(([i, r]) => usdOf(r, quotes[i])));
+      return v !== null && v > 0 ? [{ who, tx: e.tx, v }] : [];
+    })
     .sort((a, b) => b.v - a.v)
     .slice(0, 10)
     .map((r) => ({ who: r.who, tx: r.tx, main: usd(r.v), sub: "at current Chainlink prices" }));
@@ -4833,12 +6239,13 @@ function fees(logs: TfLogs): Row[] {
     .map(([who, e]) => ({ who, tx: e.tx, main: `${eth(e.fee)} ETH`, sub: `${e.n} trade${e.n === 1 ? "" : "s"}` }));
 }
 
-function Board({ title, desc, rows, loading, empty }: { title: string; desc: string; rows: Row[]; loading: boolean; empty: string }) {
+function Board({ title, desc, rows, loading, empty, note }: { title: string; desc: string; rows: Row[]; loading: boolean; empty: string; note?: string }) {
   const id = title.replace(/\W+/g, "-").toLowerCase();
   return (
     <Panel aria-labelledby={id}>
       <h2 id={id} className="font-semibold">{title}</h2>
       <p className="mt-1 text-sm text-muted">{desc}</p>
+      {note && <p className="mt-2 text-xs text-warn">{note}</p>}
       {loading ? (
         <div className="mt-4 space-y-2">{[0, 1, 2].map((i) => <Skeleton key={i} w="100%" h="2.75rem" className="block" />)}</div>
       ) : rows.length === 0 ? (
@@ -4854,7 +6261,7 @@ function Board({ title, desc, rows, loading, empty }: { title: string; desc: str
               </div>
               <div className="flex flex-col items-end text-sm">
                 <AddrLink addr={r.who} />
-                <TxLink hash={r.tx} className="text-xs text-muted">tx</TxLink>
+                <TxLink hash={r.tx} className="inline-flex min-h-11 items-center text-xs text-muted">tx</TxLink>
               </div>
             </li>
           ))}
@@ -4868,27 +6275,25 @@ export function BoardView() {
   const logs = useTfLogs();
   const quotes = useStockQuotes();
   const cands = logs.data ? regretCandidates(logs.data) : [];
-  const checks = useQueries({
-    queries: cands.map(({ l: m }) => ({
-      queryKey: ["card-check", m.transactionHash],
-      staleTime: 600_000,
-      queryFn: async () => {
-        const r = await fetch(`/api/card-check?addr=${m.args.wallet}&usdPaid8=${m.args.usdPaid8}&stockId=${m.args.stockId}`);
-        const j = (await r.json()) as { verified?: boolean };
-        return { tx: m.transactionHash, ok: j.verified === true };
-      },
-    })),
+  const checks = useQuery({
+    queryKey: ["card-checks", cands.map((c) => c.l.transactionHash).join(",")],
+    enabled: cands.length > 0,
+    staleTime: 600_000,
+    retry: false,
+    queryFn: () => checkCards(cands),
   });
-  const verified = new Set(checks.flatMap((q) => (q.data?.ok ? [q.data.tx] : [])));
+  const verified = checks.data?.verified ?? new Set<string>();
+  const failed = checks.data?.failed ?? 0;
+  const pricesMissing = quotes.data?.some((q) => q.price8 === null || q.multiplier === null);
   if (!DEPLOYED) return <Notice tone="warn">Leaderboards fill from contract events once Terra Firma is live on mainnet.</Notice>;
   if (logs.error) return <Notice tone="danger">Couldn&apos;t read events from the chain. Retrying shortly.</Notice>;
   const l = logs.data;
   const loading = !l;
   return (
     <div className="grid gap-6 lg:grid-cols-3">
-      <Board title="Biggest regret" desc="Minted Hindsight cards, re-verified against chain logs: what was paid vs. what it would be in stock." rows={regret(cands, verified)} loading={loading || checks.some((q) => q.isLoading)} empty="No verified minted cards yet (each mint is re-derived from chain logs before it is ranked)." />
-      <Board title="Biggest Jars" desc="Credited minus withdrawn, per wallet." rows={l && quotes.data ? jars(l, quotes.data) : []} loading={loading || !quotes.data} empty="No Jars yet." />
-      <Board title="Most fees into the burn" desc="Sum of Traded.fee per wallet." rows={l ? fees(l) : []} loading={loading} empty="No routed trades yet." />
+      <Board title="Biggest regret" desc="Minted Hindsight cards, re-verified against chain logs: what was paid vs. what it would be in stock." rows={regret(cands, verified)} loading={loading || (cands.length > 0 && checks.isLoading)} empty="No verified minted cards yet (each mint is re-derived from chain logs before it is ranked)." note={failed > 0 ? `${failed} card check${failed === 1 ? "" : "s"} couldn't run right now; those cards are not ranked.` : undefined} />
+      <Board title="Biggest Jars" desc="Credited minus withdrawn, per wallet." note={pricesMissing ? "Some live stock prices are unavailable; wallets holding those stocks are left out until they read again." : undefined} rows={l && quotes.data ? jars(l, quotes.data) : []} loading={loading || !quotes.data} empty="No Jars yet." />
+      <Board title="Most fees paid" desc="Sum of Traded.fee per wallet (half buys and burns $WIF, half buys stakers' stock)." rows={l ? fees(l) : []} loading={loading} empty="No routed trades yet." />
     </div>
   );
 }
@@ -4934,7 +6339,7 @@ export function shareUrl(card: Card, origin: string) {
   const text =
     card.memes.length === 0
       ? "My Hindsight card: clean hands, no memes. Check yours on Terra Firma."
-      : `I put ${usd8(card.totals.usdPaid8)} into memes. Today: ${usd8(card.totals.usdToday8)}. In ${card.stock}: ${usd8(card.totals.usdCounterfactual8)}. Every number from Robinhood Chain + Chainlink.`;
+      : `I put ${usd8(card.totals.usdPaid8)} into memes. ${card.unquoted.length > 0 ? "" : `Today: ${usd8(card.totals.usdToday8)}. `}In ${card.stock}: ${usd8(card.totals.usdCounterfactual8)}. Every number from Robinhood Chain + Chainlink.`;
   const url = `${origin}/card/${card.wallet}`;
   return `https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
 }
@@ -5048,6 +6453,8 @@ export function MintButton({ card }: { card: Card }) {
 import { usePathname, useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { useAccount } from "wagmi";
+import { HISTORY_ADDR } from "@/lib/ui-chain";
+import { AddressLookup } from "./address-lookup";
 import type { Card } from "@/lib/hindsight";
 import { MintButton, RecomputeButton, ShareButton } from "./card-actions";
 import { ConnectButton } from "./connect-button";
@@ -5092,6 +6499,11 @@ export function CardView({ card, error }: { card: Card | null; error: string | n
         <p className="text-lg font-semibold">{own ? "This is your wallet." : "Connect to fix yours."}</p>
         {isConnected ? <LinkButton href="/app">Open your card</LinkButton> : <ConnectButton label="Connect to fix yours" onConnected={() => router.push("/app")} />}
       </Panel>
+      <Panel aria-labelledby="card-lookup-title" className="space-y-3">
+        <h2 id="card-lookup-title" className="font-semibold">Look up another wallet</h2>
+        {card.wallet.toLowerCase() !== HISTORY_ADDR.toLowerCase() && <LinkButton href={`/card/${HISTORY_ADDR}`} variant="secondary">See a wallet with real history</LinkButton>}
+        <AddressLookup id="card-lookup" placeholder="Wallet address: 0x…" />
+      </Panel>
     </div>
   );
 }
@@ -5105,8 +6517,9 @@ export function CardView({ card, error }: { card: Card | null; error: string | n
 
 import { useEffect, useRef, useState } from "react";
 import { useAccount, useConnect, useDisconnect, useSwitchChain } from "wagmi";
-import { CHAIN_ID } from "@/lib/config";
+import { CHAIN_ID, addrUrl } from "@/lib/config";
 import { short } from "@/lib/ui-format";
+import { HAS_WALLETCONNECT } from "@/lib/wagmi";
 import { useMounted } from "./hooks";
 import { Button, cx } from "./ui";
 
@@ -5126,18 +6539,64 @@ export function ConnectButton({ className, label = "Connect wallet", onConnected
           {switching ? "Switching…" : "Switch to Robinhood Chain"}
         </Button>
       );
-    return (
-      <Button variant="secondary" className={cx("font-mono", className)} onClick={() => disconnect()} aria-label={`Connected as ${address}. Disconnect`} title="Disconnect">
-        <span aria-hidden className="size-2 rounded-full bg-accent" />
-        {short(address)}
-      </Button>
-    );
+    return <AccountMenu address={address} className={className} onDisconnect={() => disconnect()} />;
   }
   return (
     <>
       <Button className={className} onClick={() => setOpen(true)}>{label}</Button>
       <WalletDialog open={open} onClose={() => setOpen(false)} onConnected={onConnected} />
     </>
+  );
+}
+
+/** Address pill opens a small menu; disconnecting is an explicit second click, never the pill itself (S8). */
+function AccountMenu({ address, className, onDisconnect }: { address: string; className?: string; onDisconnect: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const wrap = useRef<HTMLDivElement>(null);
+  const btn = useRef<HTMLButtonElement>(null);
+  const menuId = `acct-${address.slice(2, 8)}`;
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      btn.current?.focus();
+    };
+    const onDown = (e: PointerEvent) => !wrap.current?.contains(e.target as Node) && setOpen(false);
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("pointerdown", onDown);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("pointerdown", onDown);
+    };
+  }, [open]);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(address);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setCopied(false);
+    }
+  };
+  const item = "flex min-h-11 w-full items-center rounded-lg px-3 text-left text-sm hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent";
+  return (
+    <div ref={wrap} className={cx("relative", className)}>
+      <Button ref={btn} variant="secondary" className="w-full font-mono" aria-expanded={open} aria-controls={menuId} aria-label={`Connected as ${address}. Account options`} onClick={() => setOpen((o) => !o)}>
+        <span aria-hidden className="size-2 rounded-full bg-accent" />
+        {short(address)}
+        <span aria-hidden className="text-xs text-muted">▾</span>
+      </Button>
+      {open && (
+        <div id={menuId} className="absolute right-0 z-40 mt-2 w-60 rounded-xl border border-line bg-surface p-1.5 shadow-lg">
+          <button type="button" className={item} onClick={copy}>{copied ? "Copied" : "Copy address"}</button>
+          <a className={item} href={addrUrl(address)} target="_blank" rel="noopener noreferrer">View on explorer</a>
+          <button type="button" className={cx(item, "text-danger")} onClick={() => { setOpen(false); onDisconnect(); }}>Disconnect</button>
+          <span role="status" className="sr-only">{copied ? "Address copied" : ""}</span>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -5165,7 +6624,7 @@ function WalletDialog({ open, onClose, onConnected }: { open: boolean; onClose: 
       <h2 id="wallet-title" className="text-xl font-semibold">Connect a wallet</h2>
       <p className="mt-2 text-sm text-muted">Terra Firma runs on Robinhood Chain mainnet (chain 4663). Your wallet will be asked to switch.</p>
       <ul className="mt-5 space-y-2">
-        {list.length === 0 && <li className="text-sm text-muted">No wallet found. Install a browser wallet or use WalletConnect.</li>}
+        {list.length === 0 && <li className="text-sm text-muted">No wallet found. Install a browser wallet{HAS_WALLETCONNECT ? " or use WalletConnect" : ""}.</li>}
         {list.map((c) => (
           <li key={c.uid}>
             <Button
@@ -5190,6 +6649,7 @@ function WalletDialog({ open, onClose, onConnected }: { open: boolean; onClose: 
           </li>
         ))}
       </ul>
+      {!HAS_WALLETCONNECT && <p className="mt-3 text-xs text-muted">WalletConnect (mobile wallets) isn&apos;t configured on this deployment.</p>}
       {error && (
         <p role="alert" className="mt-4 text-sm text-danger">
           {/rejected|denied/i.test(error.message) ? "You cancelled in your wallet." : error.message.split("\n")[0]}
@@ -5211,7 +6671,7 @@ function WalletDialog({ open, onClose, onConnected }: { open: boolean; onClose: 
 
 // One-tap convert (PRD F3): pick memes -> per-meme convert quotes -> exact approvals -> TerraRouter.convert.
 import { useQueries, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { parseEventLogs, type Abi, type Address } from "viem";
 import { useAccount, useReadContract } from "wagmi";
 import { terraRouterAbi } from "@/lib/abi";
@@ -5219,9 +6679,9 @@ import { CHAIN_ID, FEE_BPS, STOCKS, TF } from "@/lib/config";
 import type { Card } from "@/lib/hindsight";
 import { memeByToken } from "@/lib/registry";
 import { DEPLOYED, WIF } from "@/lib/ui-chain";
-import { shares18, token as fmtToken, usd, usd8 } from "@/lib/ui-format";
+import { DASH, orDash, shares18, token as fmtToken, usd, usd8OrDash } from "@/lib/ui-format";
 import { sharesOf, usdOf } from "@/lib/ui-report";
-import { GEO_BLOCKED, useStockGate } from "./geo-gate";
+import { GEO_BLOCKED, GeoLoadingNote, useStockGate } from "./geo-gate";
 import { getJson, useApproveStep, useStockQuotes, useTx } from "./hooks";
 import { StockSelect } from "./stock-select";
 import { TxStatus } from "./tx-status";
@@ -5237,7 +6697,10 @@ interface ConvertQuote {
 
 const HALF_DOLLAR = 50_000_000n;
 
-export function ConvertPanel({ card, initialStock = "NVDA", onDone }: { card: Card; initialStock?: string; onDone?: () => void }) {
+/** Today's value of one meme; null when the server had no quote for it (Card.partial). */
+const todayOf = (m: Card["memes"][number]): bigint | null => (m.usdToday8 === null ? null : BigInt(m.usdToday8));
+
+export function ConvertPanel({ card, initialStock = "NVDA", onDone, onBusy }: { card: Card; initialStock?: string; onDone?: () => void; onBusy?: (busy: boolean) => void }) {
   const { address } = useAccount();
   const qc = useQueryClient();
   const [stock, setStock] = useState(initialStock);
@@ -5246,23 +6709,23 @@ export function ConvertPanel({ card, initialStock = "NVDA", onDone }: { card: Ca
     () => card.memes.filter((m) => BigInt(m.holding) > 0n && m.token.toLowerCase() !== WIF.toLowerCase()),
     [card],
   );
-  const [picked, setPicked] = useState<Set<string>>(() => new Set(candidates.filter((m) => BigInt(m.usdToday8) >= HALF_DOLLAR).map((m) => m.token)));
+  const [picked, setPicked] = useState<Set<string>>(() => new Set(candidates.filter((m) => (todayOf(m) ?? 0n) >= HALF_DOLLAR).map((m) => m.token)));
   const fee = useReadContract({ address: TF.TerraRouter, abi: terraRouterAbi, functionName: "feeBps", args: address ? [address] : undefined, chainId: CHAIN_ID, query: { enabled: DEPLOYED && !!address } });
   const feeBps = fee.data ?? FEE_BPS;
-  const quotes = useQueries({
-    queries: candidates.map((m) => ({
-      queryKey: ["quote", "convert", m.token, m.holding, stock, feeBps],
-      queryFn: () => getJson<ConvertQuote>(`/api/quote?token=${m.token}&side=convert&amount=${m.holding}&stock=${stock}&feeBps=${feeBps}`),
-      staleTime: 20_000,
-      retry: 1,
-    })),
+  const quoteOpts = (m: Card["memes"][number]) => ({
+    queryKey: ["quote", "convert", m.token, m.holding, stock, feeBps],
+    queryFn: () => getJson<ConvertQuote>(`/api/quote?token=${m.token}&side=convert&amount=${m.holding}&stock=${stock}&feeBps=${feeBps}`),
+    staleTime: 20_000,
+    retry: 1,
   });
+  const quotes = useQueries({ queries: candidates.map(quoteOpts) });
   const market = useStockQuotes();
   const sq = market.data?.find((q) => q.symbol === stock);
   const gate = useStockGate();
   const tx = useTx();
   const approve = useApproveStep();
   const [result, setResult] = useState<bigint | null>(null);
+  useEffect(() => onBusy?.(tx.busy), [tx.busy, onBusy]);
 
   const chosen = candidates.map((m, i) => ({ m, q: quotes[i] })).filter(({ m, q }) => picked.has(m.token) && q.data);
   const stockOut = chosen.reduce((s, c) => s + BigInt(c.q.data!.stockOut), 0n);
@@ -5279,13 +6742,23 @@ export function ConvertPanel({ card, initialStock = "NVDA", onDone }: { card: Ca
   const submit = () =>
     gate.gate(async () => {
       const steps = chosen.map(({ m }) => approve(m.token, TF.TerraRouter, BigInt(m.holding), m.symbol));
+      const memes = chosen.map((c) => c.m);
       steps.push({
         label: `Convert to ${stock}`,
-        call: {
-          address: TF.TerraRouter,
-          abi: terraRouterAbi as unknown as Abi,
-          functionName: "convert",
-          args: [chosen.map((c) => c.q.data!.route), chosen.map((c) => c.m.token), chosen.map((c) => BigInt(c.m.holding)), stockInfo.id, minStock],
+        // Re-quote every meme right before the convert signature (after approvals), so minStockOut is never stale (S2).
+        build: async () => {
+          const fresh = await Promise.all(memes.map((m) => qc.fetchQuery({ ...quoteOpts(m), staleTime: 0 })));
+          const min = fresh.reduce((a, f) => a + BigInt(f.minStockOut), 0n);
+          const minSh = sharesOf(min, sq);
+          return {
+            label: minSh === null ? `Convert to ${stock} (fresh minimum applied; live ${stock} price unavailable to display)` : `Convert to ${stock}, at least ${shares18(minSh)} ${stock}`,
+            call: {
+              address: TF.TerraRouter,
+              abi: terraRouterAbi as unknown as Abi,
+              functionName: "convert",
+              args: [fresh.map((f) => f.route), memes.map((m) => m.token), memes.map((m) => BigInt(m.holding)), stockInfo.id, min],
+            },
+          };
         },
       });
       const r = await tx.run(steps);
@@ -5302,7 +6775,7 @@ export function ConvertPanel({ card, initialStock = "NVDA", onDone }: { card: Ca
       <div className="space-y-4">
         <Notice tone="accent">
           <p className="text-lg font-semibold">
-            Done. You own {result !== null && sq ? <span className="num">{shares18(sharesOf(result, sq))}</span> : "new"} {stock}. It&apos;s in your Jar. Withdraw any time.
+            Done. You own {result !== null && sharesOf(result, sq) !== null ? <span className="num">{shares18(sharesOf(result, sq)!)}</span> : "new"} {stock}. It&apos;s in your Jar. Withdraw any time.
           </p>
         </Notice>
         <ul className="space-y-1 text-sm text-muted">
@@ -5337,10 +6810,10 @@ export function ConvertPanel({ card, initialStock = "NVDA", onDone }: { card: Ca
                     <input type="checkbox" className="size-5 accent-[var(--accent)]" disabled={disabled} checked={picked.has(m.token) && !disabled} onChange={() => toggle(m.token)} />
                     <span className="flex-1">
                       <span className="font-semibold">{m.symbol}</span>{" "}
-                      <span className="num text-sm text-muted">{fmtToken(m.holding)} · {usd8(m.usdToday8)}</span>
+                      <span className="num text-sm text-muted">{fmtToken(m.holding)} · {usd8OrDash(todayOf(m))}{todayOf(m) === null && <span className="ml-1 text-xs">(price unavailable)</span>}</span>
                     </span>
                     <span className="num text-right text-sm">
-                      {q.isLoading ? <Skeleton w="5rem" /> : err ? <span className="text-danger">{err.message === "No Uniswap route for this token." ? "no route" : err.message}</span> : sq ? `≈ ${shares18(sharesOf(BigInt(q.data!.stockOut), sq))} ${stock}` : null}
+                      {q.isLoading ? <Skeleton w="5rem" /> : err ? <span className="text-danger">{err.message === "No Uniswap route for this token." ? "no route" : err.message}</span> : `≈ ${orDash(sharesOf(BigInt(q.data!.stockOut), sq), shares18)} ${stock}`}
                     </span>
                   </label>
                 </li>
@@ -5355,12 +6828,15 @@ export function ConvertPanel({ card, initialStock = "NVDA", onDone }: { card: Ca
       {chosen.length > 0 && (
         <Notice>
           Sell {chosen.map((c) => c.m.symbol).join(", ")} → get ≈{" "}
-          <strong className="num">{sq ? shares18(sharesOf(stockOut, sq)) : "…"} {stock}</strong> {sq && <>(≈ <span className="num">{usd(usdOf(stockOut, sq))}</span>)</>}. Fee{" "}
-          {(Number(feeBps) / 100).toFixed(1)}%. Guaranteed at least <strong className="num">{sq ? shares18(sharesOf(minStock, sq)) : "…"} {stock}</strong> or nothing happens.
+          <strong className="num">{orDash(sharesOf(stockOut, sq), shares18)} {stock}</strong> (≈ <span className="num">{orDash(usdOf(stockOut, sq), usd)}</span>). Fee{" "}
+          {(Number(feeBps) / 100).toFixed(1)}%. Guaranteed at least <strong className="num">{orDash(sharesOf(minStock, sq), shares18)} {stock}</strong> or nothing happens.
+          {(sharesOf(stockOut, sq) === null || usdOf(stockOut, sq) === null) && <span className="mt-1 block text-xs text-muted">{DASH} = live {stock} price unavailable right now; the onchain minimum still applies.</span>}
+          <span className="mt-1 block text-xs text-muted">The quote is refreshed right before you sign, and the minimum you sign is shown in the wallet step.</span>
         </Notice>
       )}
 
       {gate.status === "restricted" && <Notice tone="warn">{GEO_BLOCKED}</Notice>}
+      <GeoLoadingNote status={gate.status} />
       {!DEPLOYED && <Notice tone="warn">Convert opens when the Terra Firma contracts are live on mainnet.</Notice>}
 
       <Button
@@ -5390,16 +6866,17 @@ import { keccak256, parseEventLogs, toBytes, type Abi, type Address } from "viem
 import { useAccount, useReadContracts } from "wagmi";
 import { friendJarAbi, stockOracleAbi } from "@/lib/abi";
 import { CHAIN_ID, STOCKS, TF } from "@/lib/config";
+import { orDash } from "@/lib/ui-format";
 import { DEPLOYED, publicClient } from "@/lib/ui-chain";
 import { parseAmount, shares18 } from "@/lib/ui-format";
 import { only } from "@/lib/ui-logs";
 import { sharesOf } from "@/lib/ui-report";
 import { ConnectButton } from "./connect-button";
-import { GEO_BLOCKED, useStockGate } from "./geo-gate";
+import { GEO_BLOCKED, GeoLoadingNote, useStockGate } from "./geo-gate";
 import { useMounted, useStockQuotes, useTfLogs, useTx } from "./hooks";
 import { StockSelect } from "./stock-select";
 import { TxStatus } from "./tx-status";
-import { Button, Notice, Panel, Skeleton, inputCls } from "./ui";
+import { AddrLink, Button, Notice, Panel, Skeleton, inputCls } from "./ui";
 
 const F = { address: TF.FriendJar, abi: friendJarAbi as unknown as Abi };
 
@@ -5510,16 +6987,20 @@ function JarCard({ id, user }: { id: bigint; user: Address }) {
     <Panel className="space-y-4">
       {gate.dialog}
       <h3 className="font-semibold">Friend Jar #{id.toString()} · {STOCKS[stockId]?.symbol}</h3>
-      <p className="num text-sm text-muted">Your share: {q ? `${shares18(sharesOf(myStock, q))} ${STOCKS[stockId]?.symbol}` : <Skeleton w="5rem" />} · whole Jar {pot !== undefined && q ? shares18(sharesOf(pot, q)) : "…"}</p>
+      <p className="num text-sm text-muted">
+        Your share: {quotes.data ? <AddrLink addr={TF.FriendJar}>{orDash(sharesOf(myStock, q), shares18)} {STOCKS[stockId]?.symbol}</AddrLink> : <Skeleton w="5rem" />} · whole Jar{" "}
+        {pot !== undefined && quotes.data ? <AddrLink addr={TF.FriendJar}>{orDash(sharesOf(pot, q), shares18)}</AddrLink> : "…"}
+      </p>
       {gate.status === "restricted" ? (
         <Notice tone="warn">{GEO_BLOCKED}</Notice>
       ) : (
         <div className="flex flex-col gap-2 sm:flex-row">
           <label htmlFor={`fj-amt-${id}`} className="sr-only">ETH to contribute</label>
           <input id={`fj-amt-${id}`} inputMode="decimal" value={amt} onChange={(e) => setAmt(e.target.value)} placeholder="ETH" className={`${inputCls} num sm:flex-1`} />
-          <Button disabled={!wei || tx.busy} onClick={contribute}>Contribute</Button>
+          <Button disabled={!wei || tx.busy || gate.status === "loading"} onClick={contribute}>Contribute</Button>
         </div>
       )}
+      <GeoLoadingNote status={gate.status} />
       <Button variant="secondary" className="w-full" disabled={!mine || tx.busy} onClick={async () => { await tx.run([{ label: "Exit Friend Jar", call: { ...F, functionName: "exit", args: [id] } }]); r.refetch(); }}>
         Exit with my share
       </Button>
@@ -5568,6 +7049,13 @@ let memo = false;
 
 export type StockAccess = "loading" | "restricted" | "needs-attest" | "ok";
 export const GEO_BLOCKED = "Stock purchases aren't available in your region. Your card still works.";
+export const GEO_LOADING = "Checking your region before stock actions… (a second or two)";
+
+/** Visible reason a stock-leg button is disabled while the region check runs (S3). */
+export function GeoLoadingNote({ status }: { status: StockAccess }) {
+  if (status !== "loading") return null;
+  return <p role="status" className="text-sm text-muted">{GEO_LOADING}</p>;
+}
 
 export function useStockAccess() {
   const geo = useQuery({
@@ -5690,9 +7178,9 @@ import { useState, type ReactNode } from "react";
 import { ADDR, EXPLORER, STOCKS } from "@/lib/config";
 import type { Card, CardBuy, CardMeme } from "@/lib/hindsight";
 import { REGISTRY } from "@/lib/registry";
-import { date, pct, pctChange, roundTail, shares18, token, usd8, usd8Label } from "@/lib/ui-format";
+import { DASH, date, pct, pctChange, roundTail, shares18, token, usd8, usd8Label } from "@/lib/ui-format";
 import { Guarantee } from "./guarantee";
-import { AddrLink, Badge, ExtLink, Panel, Skeleton, TxLink, cx } from "./ui";
+import { AddrLink, Badge, ExtLink, Notice, Panel, Skeleton, TxLink, cx } from "./ui";
 
 const payAsset = (b: CardBuy) =>
   b.payKind === 0
@@ -5731,15 +7219,31 @@ function MemeRow({ m, stock, worst }: { m: CardMeme; stock: (typeof STOCKS)[numb
           {m.symbol}
           {worst && <Badge tone="danger">worst trade</Badge>}
         </span>
-        <span className="num text-right text-sm sm:text-base" aria-label={`paid ${usd8Label(m.usdPaid8)}`}>
-          <span className="text-muted sm:hidden">paid </span>{usd8(m.usdPaid8)}
+        <span className="num text-right text-sm sm:text-base">
+          <span className="text-muted sm:hidden">paid </span>
+          <span aria-hidden>{usd8(m.usdPaid8)}</span>
+          <span className="sr-only">paid {usd8Label(m.usdPaid8)}</span>
         </span>
-        <span className="num text-sm sm:text-right sm:text-base" aria-label={`value today ${usd8Label(m.usdToday8)}`}>
-          <span className="text-muted sm:hidden">today </span>{usd8(m.usdToday8)}
+        <span className="num text-sm sm:text-right sm:text-base">
+          <span className="text-muted sm:hidden">today </span>
+          {m.usdToday8 === null ? (
+            <>
+              <span aria-hidden>{DASH}</span>
+              <span className="ml-1 text-xs text-muted">price unavailable</span>
+              <span className="sr-only">value today unavailable{m.todayReason ? `: ${m.todayReason}` : ""}</span>
+            </>
+          ) : (
+            <>
+              <span aria-hidden>{usd8(m.usdToday8)}</span>
+              <span className="sr-only">value today {usd8Label(m.usdToday8)}</span>
+            </>
+          )}
           {change !== null && <span className={cx("ml-1 text-xs", change < 0 ? "text-danger" : "text-accent")}>{pct(change)}</span>}
         </span>
-        <span className="num text-right text-sm font-semibold text-accent sm:text-base" aria-label={`in ${stock.symbol} ${usd8Label(m.usdCounterfactual8)}`}>
-          <span className="font-normal text-muted sm:hidden">in {stock.symbol} </span>{usd8(m.usdCounterfactual8)}
+        <span className="num text-right text-sm font-semibold text-accent sm:text-base">
+          <span className="font-normal text-muted sm:hidden">in {stock.symbol} </span>
+          <span aria-hidden>{usd8(m.usdCounterfactual8)}</span>
+          <span className="sr-only">in {stock.symbol} {usd8Label(m.usdCounterfactual8)}</span>
         </span>
         <span aria-hidden className={cx("col-span-2 text-xs text-muted transition-transform sm:col-span-1", open && "rotate-180")}>▾</span>
       </button>
@@ -5776,21 +7280,23 @@ export function HindsightCard({ card, owner = true, stockControl, actions }: { c
         </p>
       </div>
 
+      {card.partial && <PartialBanner card={card} />}
+
       {empty ? (
         <div className="py-6 text-center">
-          <p className="text-2xl font-semibold">None of the 21 memes we track are in this wallet.</p>
+          <p className="text-2xl font-semibold">None of the {REGISTRY.memes.length} memes we track are in this wallet.</p>
           {REGISTRY.memes.length === 0 && <p className="mt-2 text-sm text-muted">The meme registry is still being built, so no tokens were scanned yet.</p>}
         </div>
       ) : (
         <>
           <p className="text-xl font-semibold leading-snug sm:text-2xl">
-            {who} put <span className="num">{usd8(card.totals.usdPaid8)}</span> into memes still held. Today: <span className="num">{usd8(card.totals.usdToday8)}</span>. In {stock.symbol}:{" "}
+            {who} put <span className="num">{usd8(card.totals.usdPaid8)}</span> into memes still held. Today{card.unquoted.length > 0 ? " (priced memes only)" : ""}: <span className="num">{usd8(card.totals.usdToday8)}</span>. In {stock.symbol}:{" "}
             <span className="num text-accent">{usd8(card.totals.usdCounterfactual8)}</span>.
           </p>
           <p className="text-xs text-muted">Gross buys of memes this wallet still holds, priced with the Chainlink round at each buy. Sells and transfers out are not netted; this is not P&amp;L.</p>
           <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <Figure label="Paid" value={usd8(card.totals.usdPaid8)} aria={usd8Label(card.totals.usdPaid8)} />
-            <Figure label="Today" value={usd8(card.totals.usdToday8)} aria={usd8Label(card.totals.usdToday8)} />
+            <Figure label="Today" value={usd8(card.totals.usdToday8)} aria={usd8Label(card.totals.usdToday8)} sub={card.unquoted.length > 0 ? `${card.memes.filter((m) => m.usdToday8 !== null).length} of ${card.memes.length} memes priced; paid for those: ${usd8(card.totals.usdPaidQuoted8)}` : undefined} />
             <Figure label={`In ${stock.symbol}`} value={usd8(card.totals.usdCounterfactual8)} aria={usd8Label(card.totals.usdCounterfactual8)} sub={`${shares18(card.totals.shares18)} shares`} accent />
           </dl>
           {card.worst && (
@@ -5836,6 +7342,25 @@ export function HindsightCard({ card, owner = true, stockControl, actions }: { c
 
       <Guarantee addr={card.wallet} stock={card.stock} className="border-t border-line pt-4" />
     </Panel>
+  );
+}
+
+/** Server flagged the card incomplete: say exactly what is missing. Totals come from the server; nothing is filled in here. */
+function PartialBanner({ card }: { card: Card }) {
+  return (
+    <Notice tone="warn">
+      <p className="font-semibold">Partial card: some numbers could not be read right now.</p>
+      {card.unquoted.length > 0 && (
+        <p className="mt-1">
+          No price today for {card.unquoted.map((u) => `${u.symbol} (${u.reason})`).join(", ")}. Those show {DASH} and are left out of the Today total.
+        </p>
+      )}
+      {card.scanGaps.length > 0 && (
+        <p className="mt-1">
+          History for {[...new Set(card.scanGaps.map((g) => g.symbol))].join(", ")} could not be read completely, so some buys may be missing. Refresh to retry.
+        </p>
+      )}
+    </Notice>
   );
 }
 
@@ -5887,12 +7412,12 @@ import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
 import { type Abi, type Address, type Hex, type TransactionReceipt } from "viem";
 import { useAccount, useConfig } from "wagmi";
-import { readContract, simulateContract, waitForTransactionReceipt, writeContract } from "wagmi/actions";
+import { getAccount, readContract, simulateContract, switchChain, waitForTransactionReceipt, writeContract } from "wagmi/actions";
 import { erc20Abi } from "@/lib/abi";
 import { ADDR, CHAIN_ID } from "@/lib/config";
 import type { Card } from "@/lib/hindsight";
 import { aggregatorAbi, publicClient } from "@/lib/ui-chain";
-import { API_ERRORS, plainError } from "@/lib/ui-errors";
+import { API_ERRORS, WRONG_CHAIN, plainError } from "@/lib/ui-errors";
 import { scanLogs } from "@/lib/ui-logs";
 import { stockQuotes } from "@/lib/ui-report";
 
@@ -5962,13 +7487,29 @@ export interface WriteCall {
   functionName: string;
   args?: readonly unknown[];
   value?: bigint;
+  /** Explicit gas limit (FeePool.distribute needs ~3.1M with all six pools live; wallet estimates can under-shoot). */
+  gas?: bigint;
 }
 
 export interface TxStep {
   label: string;
-  call: WriteCall;
+  /** Static call, or `build` to compute it right before signing (fresh quote + min-out). One of the two is required. */
+  call?: WriteCall;
+  build?: () => Promise<{ call: WriteCall; label?: string }>;
   /** Return true to skip (e.g. allowance already sufficient). */
   skip?: () => Promise<boolean>;
+}
+
+/** Make sure the wallet is on 4663 before a write; ask it to switch if not. Throws a plain-language error. */
+async function ensureChain(config: Parameters<typeof getAccount>[0]) {
+  if (getAccount(config).chainId === CHAIN_ID) return;
+  try {
+    await switchChain(config, { chainId: CHAIN_ID });
+  } catch (e) {
+    const msg = plainError(e);
+    throw new Error(msg === "You cancelled in your wallet." ? `${WRONG_CHAIN} The switch was cancelled.` : WRONG_CHAIN);
+  }
+  if (getAccount(config).chainId !== CHAIN_ID) throw new Error(WRONG_CHAIN);
 }
 
 export type TxPhase = "idle" | "sign" | "pending" | "done" | "error";
@@ -5999,14 +7540,24 @@ export function useTx() {
         for (let i = 0; i < steps.length; i++) {
           const s = steps[i];
           if (s.skip && (await s.skip())) continue;
-          setState({ phase: "sign", step: i + 1, total: steps.length, label: s.label, hashes: [...hashes] });
+          await ensureChain(config);
+          let call = s.call;
+          let label = s.label;
+          if (s.build) {
+            setState({ phase: "sign", step: i + 1, total: steps.length, label: `${s.label}: refreshing the quote`, hashes: [...hashes] });
+            const b = await s.build();
+            call = b.call;
+            label = b.label ?? s.label;
+          }
+          if (!call) throw new Error("Nothing to sign.");
+          setState({ phase: "sign", step: i + 1, total: steps.length, label, hashes: [...hashes] });
           // One localized cast: the steps array mixes ABIs, so wagmi's per-ABI generics cannot be inferred here.
-          const { request } = await simulateContract(config, { ...s.call, account: address, chainId: CHAIN_ID } as never);
+          const { request } = await simulateContract(config, { ...call, account: address, chainId: CHAIN_ID } as never);
           const hash = await writeContract(config, request as never);
-          hashes.push({ label: s.label, hash });
-          setState({ phase: "pending", step: i + 1, total: steps.length, label: s.label, hash, hashes: [...hashes] });
+          hashes.push({ label, hash });
+          setState({ phase: "pending", step: i + 1, total: steps.length, label, hash, hashes: [...hashes] });
           last = await waitForTransactionReceipt(config, { hash, chainId: CHAIN_ID });
-          if (last.status !== "success") throw new Error(`${s.label} reverted onchain.`);
+          if (last.status !== "success") throw new Error(`${label} reverted onchain.`);
         }
         setState((p) => ({ ...p, phase: "done", hashes: [...hashes] }));
         return last;
@@ -6056,9 +7607,9 @@ import { useAccount, useReadContracts } from "wagmi";
 import { jarAbi } from "@/lib/abi";
 import { CHAIN_ID, STOCKS, TF, addrUrl } from "@/lib/config";
 import { DEPLOYED } from "@/lib/ui-chain";
-import { dateTime, shares18, sig4, usd } from "@/lib/ui-format";
-import { blockTimes, only } from "@/lib/ui-logs";
-import { sharesOf, usdOf, type StockQuote } from "@/lib/ui-report";
+import { DASH, dateTime, orDash, shares18, sig4, usd } from "@/lib/ui-format";
+import { blockTimes, only, savingEventsOf, streakDays } from "@/lib/ui-logs";
+import { sharesOf, sumKnown, usdOf, type StockQuote } from "@/lib/ui-report";
 import { ConnectButton } from "./connect-button";
 import { useMounted, useStockQuotes, useTfLogs, useTx } from "./hooks";
 import { TxStatus } from "./tx-status";
@@ -6087,22 +7638,17 @@ function useJarBalances(user: Address) {
   });
 }
 
-/** Consecutive UTC days (ending today, or yesterday if today has none yet) with a Swept or Converted event. */
+/** Consecutive UTC days (ending today, or yesterday if today has none yet) with a sweep, convert or deposit. */
 function useStreak(user: Address) {
   const logs = useTfLogs();
   return useQuery({
     queryKey: ["streak", user, logs.data?.head.toString()],
     enabled: !!logs.data,
     queryFn: async () => {
-      const mine = logs.data!.router.filter((l) => (l.eventName === "Swept" || l.eventName === "Converted") && l.args.user.toLowerCase() === user.toLowerCase());
+      const mine = savingEventsOf(logs.data!.router, user);
       if (mine.length === 0) return 0;
       const t = await blockTimes(mine.map((l) => l.blockNumber));
-      const days = new Set([...t.values()].map((s) => Math.floor(s / 86400)));
-      let d = Math.floor(Date.now() / 86_400_000);
-      if (!days.has(d)) d -= 1;
-      let n = 0;
-      while (days.has(d - n)) n++;
-      return n;
+      return streakDays([...t.values()], Date.now());
     },
   });
 }
@@ -6120,9 +7666,10 @@ function Jar({ user }: { user: Address }) {
   const rows = STOCKS.map((s, i) => {
     const raw = (bals.data?.[i]?.result as bigint | undefined) ?? 0n;
     const q = market.data?.[i];
-    return { s, raw, q, usd: q ? usdOf(raw, q) : 0 };
+    return { s, raw, q, usd: raw === 0n ? 0 : usdOf(raw, q) };
   });
-  const total = rows.reduce((a, r) => a + r.usd, 0);
+  // Unknown price on any held stock = unknown total. Never summed from a guess.
+  const total = sumKnown(rows.map((r) => r.usd));
   const loaded = !!bals.data && !!market.data;
   const empty = loaded && rows.every((r) => r.raw === 0n);
 
@@ -6133,7 +7680,7 @@ function Jar({ user }: { user: Address }) {
         <Link href={`/jar/report/${user}`} className="inline-flex min-h-11 items-center text-sm underline underline-offset-4 hover:text-accent">Weekly report</Link>
       </div>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-        <Stat label="Jar value" value={!DEPLOYED ? "Not live yet" : loaded ? usd(total) : <Skeleton w="6rem" h="1.6rem" />} sub="Chainlink live prices" href={DEPLOYED ? addrUrl(TF.Jar) : undefined} />
+        <Stat label="Jar value" value={!DEPLOYED ? "Not live yet" : loaded ? orDash(total, usd) : bals.error || market.error ? <span className="text-base font-normal text-danger">RPC unavailable</span> : <Skeleton w="6rem" h="1.6rem" />} sub={loaded && total === null ? "A live stock price is unavailable right now" : "Chainlink live prices"} href={DEPLOYED ? addrUrl(TF.Jar) : undefined} />
         <Stat label="Saving streak" value={!DEPLOYED ? "—" : streak.data === undefined ? <Skeleton w="3rem" h="1.6rem" /> : `${streak.data} day${streak.data === 1 ? "" : "s"}`} sub="UTC days with a sweep or convert" />
       </div>
       {!DEPLOYED && <Notice tone="warn">Your Jar opens when the Terra Firma contracts are live on mainnet.</Notice>}
@@ -6167,9 +7714,9 @@ function BalanceRow({ stock, raw, q, loaded, onDone }: { stock: (typeof STOCKS)[
   const [amt, setAmt] = useState("");
   const tx = useTx();
   const qc = useQueryClient();
-  const sharesRaw = q ? sharesOf(raw, q) : 0n;
+  const sharesRaw = sharesOf(raw, q);
   const toRaw = (s: string) => {
-    if (!q || !/^\d*\.?\d+$/.test(s.trim())) return null;
+    if (!q?.multiplier || !/^\d*\.?\d+$/.test(s.trim())) return null;
     const want = parseUnits(s.trim(), 18);
     const r = (want * 10n ** 18n) / q.multiplier;
     return r > raw ? null : r;
@@ -6190,9 +7737,9 @@ function BalanceRow({ stock, raw, q, loaded, onDone }: { stock: (typeof STOCKS)[
         <div>
           <p className="font-semibold">{stock.symbol} <span className="font-normal text-muted">{stock.name}</span></p>
           <p className="num text-sm text-muted">
-            {loaded && q ? (
+            {loaded ? (
               <>
-                {shares18(sharesRaw)} shares · <AddrLink addr={stock.liveFeed}>{usd(Number(formatUnits(q.price8, 8)))}</AddrLink> each
+                <AddrLink addr={TF.Jar}>{orDash(sharesRaw, shares18)} shares</AddrLink> · <AddrLink addr={stock.liveFeed}>{q?.price8 != null ? usd(Number(formatUnits(q.price8, 8))) : `${DASH} (price unavailable)`}</AddrLink> each
               </>
             ) : (
               <Skeleton w="10rem" />
@@ -6200,7 +7747,7 @@ function BalanceRow({ stock, raw, q, loaded, onDone }: { stock: (typeof STOCKS)[
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <span className="num text-lg font-semibold">{loaded && q ? usd(usdOf(raw, q)) : <Skeleton w="5rem" />}</span>
+          <span className="num text-lg font-semibold">{loaded ? orDash(usdOf(raw, q), usd) : <Skeleton w="5rem" />}</span>
           <Button variant="secondary" aria-expanded={open} aria-controls={`wd-${stock.symbol}`} onClick={() => setOpen((o) => !o)} disabled={raw === 0n}>Withdraw</Button>
         </div>
       </div>
@@ -6208,8 +7755,8 @@ function BalanceRow({ stock, raw, q, loaded, onDone }: { stock: (typeof STOCKS)[
         <div id={`wd-${stock.symbol}`} className="mt-3 space-y-2">
           <div className="flex flex-col gap-2 sm:flex-row">
             <label htmlFor={`wd-in-${stock.symbol}`} className="sr-only">Shares to withdraw</label>
-            <input id={`wd-in-${stock.symbol}`} inputMode="decimal" value={amt === "max" ? sig4(Number(formatUnits(sharesRaw, 18))) : amt} onChange={(e) => setAmt(e.target.value)} placeholder="Shares" className={`${inputCls} num sm:flex-1`} aria-invalid={amt !== "" && !amountRaw} />
-            <Button variant="secondary" onClick={() => setAmt("max")}>Max</Button>
+            <input id={`wd-in-${stock.symbol}`} inputMode="decimal" value={amt === "max" ? (sharesRaw === null ? "" : sig4(Number(formatUnits(sharesRaw, 18)))) : amt} onChange={(e) => setAmt(e.target.value)} placeholder="Shares" className={`${inputCls} num sm:flex-1`} aria-invalid={amt !== "" && !amountRaw} />
+            <Button variant="secondary" onClick={() => setAmt("max")} disabled={sharesRaw === null}>Max</Button>
             <Button onClick={withdraw} disabled={!amountRaw || tx.busy}>{tx.busy ? "Working…" : "Withdraw to wallet"}</Button>
           </div>
           <p className="text-xs text-muted">Sends the real {stock.symbol} Stock Token to your wallet.</p>
@@ -6226,11 +7773,12 @@ function History({ user }: { user: Address }) {
   const mine = (logs.data?.jar ?? []).filter((l) => l.args.user.toLowerCase() === user.toLowerCase()).reverse();
   const times = useQuery({ queryKey: ["jar-times", user, mine.length], enabled: mine.length > 0, queryFn: () => blockTimes(mine.slice(0, 30).map((l) => l.blockNumber)) });
   const credited = only(mine, "Credited");
-  const bySource = new Map<number, number>();
+  const bySource = new Map<number, number | null>();
   for (const c of credited) {
     const i = STOCKS.findIndex((s) => s.token.toLowerCase() === c.args.stock.toLowerCase());
-    const q = market.data?.[i];
-    if (q) bySource.set(c.args.source, (bySource.get(c.args.source) ?? 0) + usdOf(c.args.amount, q));
+    const v = usdOf(c.args.amount, market.data?.[i]);
+    const prev = bySource.get(c.args.source);
+    bySource.set(c.args.source, v === null || prev === null ? null : (prev ?? 0) + v);
   }
   if (!DEPLOYED) return null;
   return (
@@ -6246,7 +7794,7 @@ function History({ user }: { user: Address }) {
         <>
           <ul className="mt-3 flex flex-wrap gap-2">
             {[...bySource.entries()].map(([s, v]) => (
-              <li key={s}><Badge tone="accent">{SOURCE[s] ?? `source ${s}`}: {usd(v)} at today&apos;s price</Badge></li>
+              <li key={s}><Badge tone="accent">{SOURCE[s] ?? `source ${s}`}: {v === null ? `${DASH} (price unavailable)` : <>{usd(v)} at today&apos;s price</>}</Badge></li>
             ))}
           </ul>
           <ul className="mt-4 divide-y divide-line text-sm">
@@ -6258,11 +7806,11 @@ function History({ user }: { user: Address }) {
                 <li key={`${l.transactionHash}-${l.logIndex}`} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2.5">
                   <span>
                     {l.eventName === "Credited" ? `+ ${SOURCE[l.args.source] ?? "credit"}` : "− withdraw"}{" "}
-                    <span className="num font-semibold">{q ? shares18(sharesOf(l.args.amount, q)) : "…"} {s?.symbol}</span>
+                    <span className="num font-semibold">{market.data ? orDash(sharesOf(l.args.amount, q), shares18) : "…"} {s?.symbol}</span>
                   </span>
                   <span className="flex items-center gap-3 text-muted">
                     <span className="num text-xs">{ts ? dateTime(ts) : <Skeleton w="7rem" />}</span>
-                    <TxLink hash={l.transactionHash} />
+                    <TxLink hash={l.transactionHash} className="inline-flex min-h-11 items-center" />
                   </span>
                 </li>
               );
@@ -6303,19 +7851,20 @@ export function LandingConnect() {
 // File: web/components/landing-live.tsx
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { isAddress } from "viem";
+import { useEffect, useRef, useState } from "react";
 import { useReadContracts } from "wagmi";
 import { feePoolAbi } from "@/lib/abi";
 import { CHAIN_ID, STOCKS, TF, addrUrl } from "@/lib/config";
 import { DEPLOYED } from "@/lib/ui-chain";
 import { eth, short, token } from "@/lib/ui-format";
-import { only } from "@/lib/ui-logs";
+import { mergeTicker, only, parseFrame, toTickerEvents, type TfLogs, type TickerEvent } from "@/lib/ui-logs";
 import { useTfLogs } from "./hooks";
-import { Button, Skeleton, Stat, TxLink, inputCls } from "./ui";
+import { Skeleton, Stat, TxLink } from "./ui";
 
-/** Live protocol counters, each linking to the contract that holds the number. */
+const UNAVAILABLE = <span className="text-base font-normal text-danger">RPC unavailable</span>;
+const PRE = <span className="text-base font-normal text-muted">Not live yet</span>;
+
+/** Live protocol counters, each linking to the contract that holds the number. Errors show, never shimmer forever (S5). */
 export function Counters() {
   const reads = useReadContracts({
     contracts: [
@@ -6325,37 +7874,33 @@ export function Counters() {
     query: { enabled: DEPLOYED, refetchInterval: 30_000 },
   });
   const logs = useTfLogs();
-  const pre = <span className="text-base font-normal text-muted">Not live yet</span>;
-  const val = (ready: boolean, v: () => string) => (!DEPLOYED ? pre : ready ? v() : <Skeleton w="5rem" h="1.6rem" />);
   const [burned, toStock] = reads.data ?? [];
-  const trades = logs.data ? only(logs.data.router, "Traded").length : 0;
-  const jars = logs.data ? new Set(only(logs.data.jar, "Credited").map((l) => l.args.user.toLowerCase())).size : 0;
+  const readVal = (r: typeof burned, f: (v: bigint) => string) =>
+    !DEPLOYED ? PRE : r?.status === "success" ? f(r.result as bigint) : reads.error || r?.status === "failure" ? UNAVAILABLE : <Skeleton w="5rem" h="1.6rem" />;
+  const logVal = (f: (l: TfLogs) => number) =>
+    !DEPLOYED ? PRE : logs.data ? f(logs.data).toLocaleString("en-US") : logs.error ? UNAVAILABLE : <Skeleton w="5rem" h="1.6rem" />;
+  const href = (a: string) => (DEPLOYED ? addrUrl(a) : undefined);
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-      <Stat label="$WIF burned" href={addrUrl(TF.FeePool)} value={val(burned?.status === "success", () => token(burned!.result as bigint))} sub="FeePool.totalWifBurned" />
-      <Stat label="Stock streamed" href={addrUrl(TF.FeePool)} value={val(toStock?.status === "success", () => `${eth(toStock!.result as bigint)} ETH`)} sub="FeePool.totalEthToStock" />
-      <Stat label="Routed trades" href={addrUrl(TF.TerraRouter)} value={val(!!logs.data, () => trades.toLocaleString("en-US"))} sub="Traded events" />
-      <Stat label="Jars" href={addrUrl(TF.Jar)} value={val(!!logs.data, () => jars.toLocaleString("en-US"))} sub="Distinct wallets credited" />
+      <Stat label="$WIF burned" href={href(TF.FeePool)} value={readVal(burned, (v) => token(v))} sub="FeePool.totalWifBurned" />
+      <Stat label="Stock streamed" href={href(TF.FeePool)} value={readVal(toStock, (v) => `${eth(v)} ETH`)} sub="FeePool.totalEthToStock" />
+      <Stat label="Routed trades" href={href(TF.TerraRouter)} value={logVal((l) => only(l.router, "Traded").length)} sub="Traded events" />
+      <Stat label="Jars" href={href(TF.Jar)} value={logVal((l) => new Set(only(l.jar, "Credited").map((x) => x.args.user.toLowerCase())).size)} sub="Distinct wallets credited" />
     </div>
   );
 }
 
-interface StreamEvent {
-  type: "traded" | "swept" | "converted" | "distributed" | "credited" | "cardMinted";
-  tx: string;
-  block: number;
-  args: Record<string, string | boolean | string[]>;
-}
-
 const stockSym = (id?: string) => STOCKS[Number(id ?? 0)]?.symbol ?? "stock";
 
-function describe(e: StreamEvent): string {
+function describe(e: TickerEvent): string {
   const a = e.args;
   switch (e.type) {
     case "traded":
       return `${short(String(a.user))} ${a.isBuy ? "bought" : "sold"} a meme for ${eth(String(a.ethAmount))} ETH`;
     case "swept":
       return `${short(String(a.user))} swept ${eth(String(a.ethIn))} ETH into ${stockSym(String(a.stockId))}`;
+    case "deposited":
+      return `${short(String(a.user))} deposited ${eth(String(a.ethIn))} ETH into ${stockSym(String(a.stockId))}`;
     case "converted":
       return `${short(String(a.user))} converted ${a.memes} meme${a.memes === "1" ? "" : "s"} into ${stockSym(String(a.stockId))}`;
     case "distributed":
@@ -6367,37 +7912,55 @@ function describe(e: StreamEvent): string {
   }
 }
 
-/** Server-Sent Events from /api/stream (the RPC endpoint never reaches the browser). */
+/** Recent events from the incremental log scan: fills any gap the SSE stream missed across reconnects (S11). */
+function backfill(l: TfLogs | undefined): TickerEvent[] {
+  if (!l) return [];
+  return mergeTicker(toTickerEvents([...l.router, ...l.feePool, ...l.jar, ...l.lens]), [], 8);
+}
+
+/** Server-Sent Events from /api/stream (the RPC endpoint never reaches the browser), merged with the log backfill. */
 export function LiveTicker() {
-  const [events, setEvents] = useState<StreamEvent[]>([]);
-  const [live, setLive] = useState(false);
+  const [live, setLive] = useState<TickerEvent[]>([]);
+  const [status, setStatus] = useState<"connecting" | "live" | "reconnecting">("connecting");
+  const logs = useTfLogs();
+  const drop = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!DEPLOYED) return;
     const es = new EventSource("/api/stream");
-    es.onopen = () => setLive(true);
-    es.onerror = () => setLive(false);
-    es.onmessage = (m) => {
-      const e = JSON.parse(m.data) as StreamEvent | { type: "hello" };
-      if (e.type === "hello") return;
-      setEvents((prev) => (prev.some((p) => p.tx === (e as StreamEvent).tx && p.type === e.type) ? prev : [e as StreamEvent, ...prev].slice(0, 8)));
+    es.onopen = () => {
+      if (drop.current) clearTimeout(drop.current);
+      setStatus("live");
     };
-    return () => es.close();
+    // The server closes the stream every ~55 s and the browser reconnects in ~3 s: only flag a real outage.
+    es.onerror = () => {
+      if (drop.current) clearTimeout(drop.current);
+      drop.current = setTimeout(() => setStatus("reconnecting"), 8000);
+    };
+    es.onmessage = (m) => {
+      const e = parseFrame(m.data);
+      if (e) setLive((prev) => mergeTicker([e], prev, 8));
+    };
+    return () => {
+      if (drop.current) clearTimeout(drop.current);
+      es.close();
+    };
   }, []);
+  const events = mergeTicker(live, backfill(logs.data), 8);
   return (
     <section aria-labelledby="ticker-title" className="rounded-xl border border-line bg-surface p-4">
       <div className="flex items-center justify-between">
         <h2 id="ticker-title" className="text-sm font-semibold">Live from the chain</h2>
         <span className="flex items-center gap-2 text-xs text-muted">
-          <span aria-hidden className={`size-2 rounded-full ${live ? "bg-accent" : "bg-line"}`} />
-          {!DEPLOYED ? "Starts at deploy" : live ? "Streaming" : "Reconnecting"}
+          <span aria-hidden className={`size-2 rounded-full ${status === "live" ? "bg-accent" : "bg-line"}`} />
+          {!DEPLOYED ? "Starts at deploy" : status === "live" ? "Streaming" : status === "connecting" ? "Connecting" : "Reconnecting"}
         </span>
       </div>
-      <ul aria-live="polite" className="mt-3 space-y-2 text-sm">
+      <ul aria-live="polite" className="mt-3 space-y-1 text-sm">
         {events.length === 0 && <li className="text-muted">{DEPLOYED ? "Waiting for the next Terra Firma event…" : "No events until the contracts are live."}</li>}
         {events.map((e) => (
-          <li key={`${e.tx}-${e.type}`} className="flex flex-wrap items-baseline justify-between gap-x-3">
+          <li key={`${e.tx}-${e.type}`} className="flex flex-wrap items-center justify-between gap-x-3">
             <span>{describe(e)}</span>
-            <TxLink hash={e.tx} className="text-xs text-muted" />
+            <TxLink hash={e.tx} className="inline-flex min-h-11 items-center text-xs text-muted" />
           </li>
         ))}
       </ul>
@@ -6405,41 +7968,7 @@ export function LiveTicker() {
   );
 }
 
-/** "or look up any wallet" (0x only, validated before any request). */
-export function AddressLookup() {
-  const router = useRouter();
-  const [v, setV] = useState("");
-  const [err, setErr] = useState(false);
-  return (
-    <form
-      className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap"
-      onSubmit={(e) => {
-        e.preventDefault();
-        const a = v.trim();
-        if (!isAddress(a)) return setErr(true);
-        router.push(`/card/${a}`);
-      }}
-    >
-      <label htmlFor="lookup" className="sr-only">Wallet address</label>
-      <input
-        id="lookup"
-        value={v}
-        onChange={(e) => {
-          setV(e.target.value);
-          setErr(false);
-        }}
-        placeholder="or look up any wallet: 0x…"
-        className={`${inputCls} font-mono text-sm sm:flex-1 sm:w-auto`}
-        aria-invalid={err}
-        aria-describedby={err ? "lookup-err" : undefined}
-        autoComplete="off"
-        spellCheck={false}
-      />
-      <Button type="submit" variant="secondary">Look up</Button>
-      {err && <p id="lookup-err" role="alert" className="text-sm text-danger sm:basis-full">Enter a 0x address (42 characters).</p>}
-    </form>
-  );
-}
+export { AddressLookup } from "./address-lookup";
 ```
 
 #### File: web/components/proof-view.tsx
@@ -6456,7 +7985,8 @@ import evidence from "@/data/evidence.json";
 import { feePoolAbi, hindsightLensAbi } from "@/lib/abi";
 import { ADDR, CHAIN_ID, FEE_BPS, STAKER_FEE_BPS, DISCOUNT_STAKE, TF, addrUrl, stockBySymbol } from "@/lib/config";
 import type { Card } from "@/lib/hindsight";
-import { CONTRACTS, DEPLOYED, REPO_URL, publicClient } from "@/lib/ui-chain";
+import { DEPLOYED, REPO_URL, SHOWN_CONTRACTS, VERIFIED, publicClient } from "@/lib/ui-chain";
+import { classifyOwnerProbe, type OwnerProbe } from "@/lib/ui-errors";
 import { dateTime, eth, token } from "@/lib/ui-format";
 import { blockTimes, only, type TfLogs } from "@/lib/ui-logs";
 import { lensBuys, RecomputeResult, stockIdOf } from "./card-actions";
@@ -6543,7 +8073,7 @@ function RubricMap() {
           <Row k="Burn path: hooked WIF/ETH pool"><AddrLink addr={ADDR.wifHook} /></Row>
         </RubricCard>
         <RubricCard id="rb-built" title="Works and built well" claim="Ownerless contracts, a mainnet-fork test suite, and every card recomputable by eth_call.">
-          <Row k={`${CONTRACTS.length} ownerless contracts${DEPLOYED ? ", verified" : ""}`}>
+          <Row k={<OwnerlessClaim />}>
             {DEPLOYED ? <Jump to="contracts">Addresses</Jump> : <span className="text-muted">{PENDING}</span>}
           </Row>
           <Row k={`${evidence.forkTests} fork tests passing`}><Jump to="fork-tests">Command and output</Jump></Row>
@@ -6554,16 +8084,57 @@ function RubricMap() {
   );
 }
 
+const OWNER_SELECTOR = "0x8da5cb5b"; // owner()
+
+/** eth_call owner() on every shown contract. A revert or empty return = no owner function. RPC failure = no claim. */
+function useOwnerProbes() {
+  return useQuery({
+    queryKey: ["owner-probes"],
+    enabled: DEPLOYED,
+    staleTime: Infinity,
+    queryFn: async () => {
+      const out = await Promise.all(
+        SHOWN_CONTRACTS.map(async (c) => {
+          try {
+            const r = await publicClient.call({ to: c.address, data: OWNER_SELECTOR });
+            return [c.key, classifyOwnerProbe({ data: r.data })] as const;
+          } catch (error) {
+            return [c.key, classifyOwnerProbe({ error })] as const;
+          }
+        }),
+      );
+      return new Map<string, OwnerProbe>(out);
+    },
+  });
+}
+
+/** Rubric line built only from checks that ran: "N of M answer no owner()", plus verified count if recorded. */
+function OwnerlessClaim() {
+  const p = useOwnerProbes();
+  const n = SHOWN_CONTRACTS.length;
+  const verified = SHOWN_CONTRACTS.filter((c) => VERIFIED.has(c.address.toLowerCase())).length;
+  if (!DEPLOYED) return <>{n} contracts, no owner functions by design</>;
+  if (!p.data) return p.error ? <>{n} contracts (owner check unavailable)</> : <Skeleton w="12rem" />;
+  const ownerless = [...p.data.values()].filter((v) => v === "ownerless").length;
+  return <>{ownerless} of {n} contracts answer no owner(){verified > 0 ? `, ${verified} verified on Blockscout` : ""}</>;
+}
+
 function Contracts() {
+  const probes = useOwnerProbes();
   return (
     <Panel id="contracts" aria-labelledby="c-title" className="scroll-mt-24">
       <h2 id="c-title" className="font-semibold">Contracts</h2>
-      <p className="mt-1 text-sm text-muted">No owner, no pause, no upgrade, no admin withdraw (checked by the fork test <code className="font-mono">test_noOwnerFunctions</code>).</p>
+      <p className="mt-1 text-sm text-muted">No owner, no pause, no upgrade, no admin withdraw (checked by the fork test <code className="font-mono">test_noOwnerFunctions</code>). The &ldquo;ownerless&rdquo; badge appears only after a live <code className="font-mono">owner()</code> call on mainnet reverts.</p>
       <ul className="mt-4 divide-y divide-line">
-        {CONTRACTS.map((c) => (
+        {SHOWN_CONTRACTS.map((c) => (
           <li key={c.key} className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="flex items-center gap-2 font-semibold">{c.key} {DEPLOYED && <Badge tone="accent">ownerless</Badge>}</p>
+              <p className="flex flex-wrap items-center gap-2 font-semibold">
+                {c.key}
+                {probes.data?.get(c.key) === "ownerless" && <Badge tone="accent">ownerless</Badge>}
+                {probes.data?.get(c.key) === "has-owner" && <Badge tone="danger">has owner()</Badge>}
+                {VERIFIED.has(c.address.toLowerCase()) && <Badge tone="accent">verified</Badge>}
+              </p>
               <p className="text-sm text-muted">{c.role}</p>
             </div>
             {DEPLOYED ? <AddrLink addr={c.address} className="text-sm" /> : <span className="text-sm text-muted">deploying</span>}
@@ -6722,20 +8293,20 @@ function Distribute() {
       <h2 id="d-title" className="font-semibold">Run distribute</h2>
       <p className="mt-1 text-sm text-muted">Anyone can trigger the hourly epoch if the keeper hasn&apos;t: half buys and burns $WIF, half buys stakers&apos; stock.</p>
       <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
-        <div><dt className="text-muted">Fee pool balance</dt><dd className="num font-semibold">{!DEPLOYED ? "—" : bal.data !== undefined ? `${eth(bal.data)} ETH` : <Skeleton w="4rem" />}</dd></div>
+        <div><dt className="text-muted">Fee pool balance</dt><dd className="num font-semibold">{!DEPLOYED ? "—" : bal.data !== undefined ? <ExtLink href={addrUrl(TF.FeePool)}>{eth(bal.data)} ETH</ExtLink> : bal.error ? <span className="text-danger">RPC unavailable</span> : <Skeleton w="4rem" />}</dd></div>
         <div><dt className="text-muted">Current epoch</dt><dd className="num font-semibold">{!DEPLOYED ? "—" : can.data?.[1]?.result !== undefined ? String(can.data[1].result) : <Skeleton w="3rem" />}</dd></div>
       </dl>
       <Button
         className="mt-4 w-full"
         disabled={!DEPLOYED || !address || !ok || tx.busy}
         onClick={async () => {
-          await tx.run([{ label: "Distribute", call: { address: TF.FeePool, abi: feePoolAbi as unknown as Abi, functionName: "distribute", args: [0n] } }]);
+          await tx.run([{ label: "Distribute", call: { address: TF.FeePool, abi: feePoolAbi as unknown as Abi, functionName: "distribute", args: [], gas: 3_500_000n } }]);
           can.refetch();
         }}
       >
         {!DEPLOYED ? "Available after deploy" : !address ? "Connect a wallet to run it" : ok ? "Run distribute" : "Not due yet"}
       </Button>
-      <p className="mt-2 text-xs text-muted">wifMinOut = 0 is safe here: the $WIF buy is capped at 0.01 ETH per call, so price games can only shave dust.</p>
+      <p className="mt-2 text-xs text-muted"><code className="font-mono">distribute()</code> takes no arguments. The $WIF buy is capped at 0.01 ETH per epoch, so price games can only shave dust.</p>
       <TxStatus state={tx.state} onReset={tx.reset} success="Distributed. The burn and staker stream are onchain." />
     </Panel>
   );
@@ -6930,13 +8501,13 @@ import { useState } from "react";
 import { formatUnits, type Abi, type Address } from "viem";
 import { useAccount, useReadContract, useReadContracts } from "wagmi";
 import { erc20Abi, feePoolAbi, terraRouterAbi, wifStakingAbi } from "@/lib/abi";
-import { CHAIN_ID, DISCOUNT_STAKE, STAKER_FEE_BPS, STOCKS, TF, addrUrl } from "@/lib/config";
+import { CHAIN_ID, DISCOUNT_STAKE, EXPLORER, STAKER_FEE_BPS, STOCKS, TF, addrUrl } from "@/lib/config";
 import { DEPLOYED, WIF } from "@/lib/ui-chain";
-import { duration, parseAmount, shares18, token } from "@/lib/ui-format";
+import { DASH, duration, parseAmount, shares18, token } from "@/lib/ui-format";
 import { only } from "@/lib/ui-logs";
-import { sharesOf } from "@/lib/ui-report";
+import { sharesOf, type StockQuote } from "@/lib/ui-report";
 import { ConnectButton } from "./connect-button";
-import { GEO_BLOCKED, useStockGate } from "./geo-gate";
+import { GEO_BLOCKED, GeoLoadingNote, useStockGate } from "./geo-gate";
 import { useApproveStep, useMounted, useNow, useStockQuotes, useTfLogs, useTx } from "./hooks";
 import { StockSelect } from "./stock-select";
 import { TxStatus } from "./tx-status";
@@ -6996,7 +8567,7 @@ export function StakeView() {
                 <p className="num text-sm text-muted">
                   Last reward:{" "}
                   {last ? (
-                    <TxLink hash={last.transactionHash}>{q ? shares18(sharesOf(last.args.amount, q)) : token(last.args.amount)} {s.symbol}</TxLink>
+                    <TxLink hash={last.transactionHash}>{rewardText(last.args.amount, q, s.symbol)}</TxLink>
                   ) : (
                     <span>{DEPLOYED && logs.isLoading ? <Skeleton w="4rem" /> : "none yet"}</span>
                   )}
@@ -7007,12 +8578,12 @@ export function StakeView() {
         </ul>
       </Panel>
 
-      <YourStake nextAt={nextAt} now={now} />
+      <YourStake epoch={epoch} nextAt={nextAt} now={now} />
     </div>
   );
 }
 
-function YourStake({ nextAt, now }: { nextAt?: number; now: number }) {
+function YourStake({ epoch, nextAt, now }: { epoch?: bigint; nextAt?: number; now: number }) {
   const mounted = useMounted();
   const { address } = useAccount();
   if (!mounted) return <Skeleton w="100%" h="10rem" className="block" />;
@@ -7023,10 +8594,10 @@ function YourStake({ nextAt, now }: { nextAt?: number; now: number }) {
         <ConnectButton />
       </Panel>
     );
-  return <Staker user={address} nextAt={nextAt} now={now} />;
+  return <Staker user={address} epoch={epoch} nextAt={nextAt} now={now} />;
 }
 
-function Staker({ user, nextAt, now }: { user: Address; nextAt?: number; now: number }) {
+function Staker({ user, epoch, nextAt, now }: { user: Address; epoch?: bigint; nextAt?: number; now: number }) {
   const me = useReadContracts({
     contracts: [
       { ...S, functionName: "stakers", args: [user] },
@@ -7056,10 +8627,15 @@ function Staker({ user, nextAt, now }: { user: Address; nextAt?: number; now: nu
   const stakeSym = hasStake ? mySym : pick;
   const wei = parseAmount(amt);
   const unWei = parseAmount(unAmt);
-  const mins = nextAt ? Math.max(1, Math.ceil((nextAt - now) / 60)) : null;
+  const { label: activation, mins } = activationText(epoch, nextAt, now);
+  // `stakers().pendingStake` keeps matured buckets until the next interaction; activeOf() already counts them (S9).
+  const matured = activeOf !== undefined && activeOf > active ? activeOf - active : 0n;
+  const waiting = pendingStake > matured ? pendingStake - matured : 0n;
   const reward = pend?.[1] ?? 0n;
   const rq = market.data?.[pend?.[0] ?? stockId];
   const blocked = gate.status === "restricted";
+  const geoWait = gate.status === "loading";
+  const stakingUrl = addrUrl(TF.WifStaking);
   const after = (m: string) => () => {
     setMsg(m);
     me.refetch();
@@ -7071,7 +8647,7 @@ function Staker({ user, nextAt, now }: { user: Address; nextAt?: number; now: nu
       if (!wei) return;
       const id = STOCKS.find((s) => s.symbol === stakeSym)!.id;
       const r = await tx.run([approve(WIF, TF.WifStaking, wei, "$WIF"), { label: "Stake $WIF", call: { address: TF.WifStaking, abi: wifStakingAbi as unknown as Abi, functionName: "stake", args: [wei, id] } }]);
-      if (r) after(`Staked. You start earning ${stakeSym} from the next epoch${mins ? ` (in ${mins} min)` : ""}.`)();
+      if (r) after(`Staked. It ${activation}${mins ? ` (in about ${mins} min)` : ""} and earns ${stakeSym} from the first distribute after that.`)();
     });
   const call = (label: string, fn: string, args: readonly unknown[], done: string, stockLeg = false) => {
     const go = async () => {
@@ -7095,12 +8671,13 @@ function Staker({ user, nextAt, now }: { user: Address; nextAt?: number; now: nu
         )}
       </div>
       {blocked && <Notice tone="warn">{GEO_BLOCKED} Staking and claiming earn stock, so they are off in your region.</Notice>}
+      <GeoLoadingNote status={gate.status} />
 
       <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Fig k="Wallet $WIF" v={wifBal.data !== undefined ? token(wifBal.data) : undefined} />
-        <Fig k="Active" v={activeOf !== undefined ? token(activeOf) : undefined} sub={hasStake ? `earning ${mySym}` : undefined} />
-        <Fig k="Activating next epoch" v={st ? token(pendingStake) : undefined} />
-        <Fig k="Reward to claim" v={pend ? (rq ? `${shares18(sharesOf(reward, rq))} ${STOCKS[pend[0]]?.symbol}` : token(reward)) : undefined} accent />
+        <Fig k="Wallet $WIF" v={wifBal.data !== undefined ? token(wifBal.data) : undefined} href={`${EXPLORER}/address/${user}?tab=tokens`} />
+        <Fig k="Active" v={activeOf !== undefined ? token(activeOf) : undefined} sub={hasStake ? `earning ${mySym}` : undefined} href={stakingUrl} />
+        <Fig k="Activating" v={st && activeOf !== undefined ? token(waiting) : undefined} sub={waiting > 0n ? `earns from epoch ${epoch !== undefined ? (epoch + 2n).toString() : "e+2"}` : undefined} href={stakingUrl} />
+        <Fig k="Reward to claim" v={pend ? rewardText(reward, rq, STOCKS[pend[0]]?.symbol ?? "") : undefined} href={stakingUrl} accent />
       </dl>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -7112,19 +8689,19 @@ function Staker({ user, nextAt, now }: { user: Address; nextAt?: number; now: nu
             <input id="stake-amt" inputMode="decimal" value={amt} onChange={(e) => setAmt(e.target.value)} placeholder="$WIF amount" className={cx(inputCls, "num sm:flex-1")} aria-invalid={amt !== "" && !wei} />
             {wifBal.data !== undefined && <Button variant="secondary" onClick={() => setAmt(formatUnits(wifBal.data!, 18))}>Max</Button>}
           </div>
-          <Button className="w-full" disabled={!wei || blocked || tx.busy || (wifBal.data !== undefined && wei > wifBal.data)} onClick={stake}>Approve and stake</Button>
-          <p className="text-xs text-muted">New stake starts earning at the next epoch, so nobody can grab a payout by staking just before it.</p>
+          <Button className="w-full" disabled={!wei || blocked || geoWait || tx.busy || (wifBal.data !== undefined && wei > wifBal.data)} onClick={stake}>Approve and stake</Button>
+          <p className="text-xs text-muted">A stake placed now {activation}{mins ? ` (about ${mins} min)` : ""}, so nobody can grab a payout by staking just before a distribute.</p>
         </section>
 
         <section aria-labelledby="manage-h" className="space-y-4">
           <h3 id="manage-h" className="font-semibold">Manage</h3>
-          <Button className="w-full" disabled={reward === 0n || blocked || tx.busy} onClick={() => call("Claim to Jar", "claim", [], "Claimed. The reward stock is in your Jar.", true)}>
+          <Button className="w-full" disabled={reward === 0n || blocked || geoWait || tx.busy} onClick={() => call("Claim to Jar", "claim", [], "Claimed. The reward stock is in your Jar.", true)}>
             Claim to Jar
           </Button>
           {hasStake && (
             <div className="space-y-2">
               <StockSelect value={pick} onChange={setPick} label="Switch reward stock" name="switch-stock" />
-              <Button variant="secondary" className="w-full" disabled={pick === mySym || blocked || tx.busy} onClick={() => call(`Switch to ${pick}`, "switchStock", [STOCKS.find((s) => s.symbol === pick)!.id], `Switched. You earn ${pick} from the next epoch.`, true)}>
+              <Button variant="secondary" className="w-full" disabled={pick === mySym || blocked || geoWait || tx.busy} onClick={() => call(`Switch to ${pick}`, "switchStock", [STOCKS.find((s) => s.symbol === pick)!.id], `Switched. Your stake earns ${pick} once it is active: it ${activation}.`, true)}>
                 Switch to {pick}
               </Button>
             </div>
@@ -7160,11 +8737,34 @@ function Staker({ user, nextAt, now }: { user: Address; nextAt?: number; now: nu
   );
 }
 
-function Fig({ k, v, sub, accent }: { k: string; v?: string; sub?: string; accent?: boolean }) {
+/** Contract truth (WifStaking._matured): a stake placed in epoch e is active from the start of epoch e+2. */
+export function activationText(epoch: bigint | undefined, nextAt: number | undefined, now: number) {
+  const label = epoch !== undefined ? `activates at the start of epoch ${(epoch + 2n).toString()}` : "activates at the start of the second epoch from now";
+  const mins = nextAt ? Math.max(1, Math.ceil((nextAt + 3600 - now) / 60)) : null;
+  return { label, mins };
+}
+
+/** Reward in displayed shares; "—" when the quote is unavailable (never the raw amount presented as shares). */
+function rewardText(raw: bigint, q: StockQuote | undefined, sym: string) {
+  const sh = sharesOf(raw, q);
+  return sh === null ? `${DASH} ${sym} (price unavailable)` : `${shares18(sh)} ${sym}`;
+}
+
+/** Figure linked to the explorer page that holds the number (invariant: every onchain number links). */
+function Fig({ k, v, sub, accent, href }: { k: string; v?: string; sub?: string; accent?: boolean; href?: string }) {
+  const value = v ?? <Skeleton w="4rem" />;
   return (
     <div className={cx("rounded-xl border p-3", accent ? "border-accent/40 bg-accent-soft" : "border-line")}>
       <dt className="text-xs text-muted">{k}</dt>
-      <dd className="num mt-1 text-lg font-semibold">{v ?? <Skeleton w="4rem" />}</dd>
+      <dd className="num mt-1 text-lg font-semibold">
+        {href && v ? (
+          <a href={href} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-sm underline decoration-line underline-offset-4 hover:decoration-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" aria-label={`${k}: ${v}. View on the explorer`}>
+            {value}
+          </a>
+        ) : (
+          value
+        )}
+      </dd>
       {sub && <dd className="text-xs text-muted">{sub}</dd>}
     </div>
   );
@@ -7262,9 +8862,9 @@ import { CHAIN_ID, DEFAULT_SWEEP_BPS, FEE_BPS, STAKER_FEE_BPS, STOCKS, TF } from
 import { REGISTRY, memeByToken } from "@/lib/registry";
 import { DEPLOYED, WIF, publicClient } from "@/lib/ui-chain";
 import { PLAIN } from "@/lib/ui-errors";
-import { eth, parseAmount, shares18, short, token as fmtToken } from "@/lib/ui-format";
+import { eth, orDash, parseAmount, shares18, short, token as fmtToken } from "@/lib/ui-format";
 import { sharesOf } from "@/lib/ui-report";
-import { GEO_BLOCKED, useStockGate } from "./geo-gate";
+import { GEO_BLOCKED, GeoLoadingNote, useStockGate } from "./geo-gate";
 import { getJson, useApproveStep, useStockQuotes, useTx } from "./hooks";
 import { StockSelect } from "./stock-select";
 import { TxStatus } from "./tx-status";
@@ -7464,12 +9064,13 @@ function useTradeResult() {
     const evs = parseEventLogs({ abi: terraRouterAbi, logs });
     const traded = evs.find((e) => e.eventName === "Traded");
     const swept = evs.find((e) => e.eventName === "Swept");
-    const q = swept && market.data?.[Number(swept.args.stockId)];
+    const q = swept ? market.data?.[Number(swept.args.stockId)] : undefined;
     return {
       tokenAmount: traded?.eventName === "Traded" ? traded.args.tokenAmount : undefined,
       ethAmount: traded?.eventName === "Traded" ? traded.args.ethAmount : undefined,
       fee: traded?.eventName === "Traded" ? traded.args.fee : undefined,
-      stock: swept?.eventName === "Swept" && q ? { sym: STOCKS[Number(swept.args.stockId)].symbol, shares: sharesOf(swept.args.stockOut, q) } : undefined,
+      // Always reported when a sweep happened; shares are null (shown "—") if the quote is not loaded (N4).
+      stock: swept?.eventName === "Swept" ? { sym: STOCKS[Number(swept.args.stockId)].symbol, shares: sharesOf(swept.args.stockOut, q), hash: swept.transactionHash } : undefined,
     };
   };
 }
@@ -7481,7 +9082,7 @@ function ResultBox({ r, sym, decimals, isBuy }: { r: TradeResult; sym: string; d
     <ul className="space-y-1">
       {isBuy && r.tokenAmount !== undefined && <li>Received <strong className="num">{fmtToken(r.tokenAmount, decimals)} {sym}</strong> in your wallet.</li>}
       {!isBuy && r.ethAmount !== undefined && <li>Sold for <strong className="num">{eth(r.ethAmount)} ETH</strong> gross.</li>}
-      {r.stock && <li><strong className="num">{shares18(r.stock.shares)} {r.stock.sym}</strong> went to your <Link href="/jar" className="underline underline-offset-4">Jar</Link>.</li>}
+      {r.stock && <li><strong className="num">{orDash(r.stock.shares, shares18)} {r.stock.sym}</strong> went to your <Link href="/jar" className="underline underline-offset-4">Jar</Link>.</li>}
       {r.fee !== undefined && <li><span className="num">{eth(r.fee)} ETH</span> fee went to the <AddrLink addr={TF.FeePool}>fee pool</AddrLink> (burns $WIF, pays stakers).</li>}
     </ul>
   );
@@ -7498,13 +9099,13 @@ function BuyForm({ token, sym, decimals, feeBps, disabled }: { token: Address; s
   const sweep = restricted ? 0 : sweepRaw;
   const wei = parseAmount(amt, 18);
   const dWei = useDebounced(wei?.toString() ?? "");
-  const q = useQuery({
+  const buyOpts = {
     queryKey: ["quote", "buy", token, dWei, sweep, stock, feeBps],
-    enabled: !!dWei && dWei !== "0",
     queryFn: () => getJson<BuyQuote>(`/api/quote?token=${token}&side=buy&amount=${dWei}&sweepBps=${sweep}&stock=${stock}&feeBps=${feeBps}`),
     staleTime: 15_000,
     retry: 1,
-  });
+  };
+  const q = useQuery({ ...buyOpts, enabled: !!dWei && dWei !== "0" });
   const market = useStockQuotes();
   const sq = market.data?.find((s) => s.symbol === stock);
   const tx = useTx();
@@ -7518,11 +9119,22 @@ function BuyForm({ token, sym, decimals, feeBps, disabled }: { token: Address; s
     if (!q.data || !wei) return;
     const sid = STOCKS.find((s) => s.symbol === stock)!.id;
     const r = await tx.run([
-      { label: `Buy ${sym}`, call: { address: TF.TerraRouter, abi: terraRouterAbi as unknown as Abi, functionName: "buy", args: [q.data.route, token, sweep, sid, BigInt(q.data.minTokenOut), BigInt(q.data.minStockOut)], value: wei } },
+      {
+        label: `Buy ${sym}`,
+        // Fresh quote right before signing (S2); the step label shows the exact minimum the user signs.
+        build: async () => {
+          const f = await qc.fetchQuery({ ...buyOpts, staleTime: 0 });
+          return {
+            label: `Buy ${sym}, at least ${fmtToken(f.minTokenOut, decimals)} ${sym}`,
+            call: { address: TF.TerraRouter, abi: terraRouterAbi as unknown as Abi, functionName: "buy", args: [f.route, token, sweep, sid, BigInt(f.minTokenOut), BigInt(f.minStockOut)], value: wei },
+          };
+        },
+      },
     ]);
     if (r) {
       setResult(parse(r.logs));
       qc.invalidateQueries({ queryKey: ["tf-logs"] });
+      ethBal.refetch();
     }
   };
   const submit = () => (sweep > 0 ? gate.gate(send) : send());
@@ -7545,15 +9157,16 @@ function BuyForm({ token, sym, decimals, feeBps, disabled }: { token: Address; s
           <Notice className={cx(stale && "opacity-60")}>
             Buy ≈ <strong className="num">{fmtToken(q.data.tokenOut, decimals)} {sym}</strong>
             {sweep > 0 && (
-              <> · {(sweep / 100).toFixed(1)}% (<span className="num">{eth(q.data.ethToStock)} ETH</span>) goes to your Jar as {stock}{sq && <> ≈ <span className="num">{shares18(sharesOf(BigInt(q.data.stockOut), sq))}</span></>}</>
+              <> · {(sweep / 100).toFixed(1)}% (<span className="num">{eth(q.data.ethToStock)} ETH</span>) goes to your Jar as {stock} ≈ <span className="num">{orDash(sharesOf(BigInt(q.data.stockOut), sq), shares18)}</span></>
             )}{" "}
             · {(feeBps / 100).toFixed(1)}% fee (<span className="num">{eth(q.data.fee)} ETH</span>) builds the $WIF burn.
-            <span className="mt-1 block text-xs text-muted">At least <span className="num">{fmtToken(q.data.minTokenOut, decimals)} {sym}</span> or nothing happens.</span>
+            <span className="mt-1 block text-xs text-muted">At least <span className="num">{fmtToken(q.data.minTokenOut, decimals)} {sym}</span> or nothing happens. Re-quoted right before you sign.</span>
           </Notice>
         )}
       </div>
       {over && <p className="text-sm text-danger">That&apos;s more ETH than your wallet holds.</p>}
-      <Button className="w-full" onClick={submit} disabled={!DEPLOYED || !address || disabled || !q.data || !!stale || !!over || tx.busy}>
+      {sweep > 0 && <GeoLoadingNote status={gate.status} />}
+      <Button className="w-full" onClick={submit} disabled={!DEPLOYED || !address || disabled || !q.data || !!stale || !!over || tx.busy || (sweep > 0 && gate.status === "loading")}>
         {!DEPLOYED ? "Opens when contracts are live" : !address ? "Connect a wallet to trade" : tx.busy ? "Working…" : `Buy ${sym}`}
       </Button>
       <TxStatus state={tx.state} onReset={tx.reset} success={result ? <ResultBox r={result} sym={sym} decimals={decimals} isBuy /> : "Done."} />
@@ -7572,13 +9185,13 @@ function SellForm({ token, sym, decimals, feeBps, disabled }: { token: Address; 
   const sweep = restricted ? 0 : sweepRaw;
   const raw = useMemo(() => parseAmount(amt, decimals), [amt, decimals]);
   const dRaw = useDebounced(raw?.toString() ?? "");
-  const q = useQuery({
+  const sellOpts = {
     queryKey: ["quote", "sell", token, dRaw, sweep, stock, feeBps],
-    enabled: !!dRaw && dRaw !== "0",
     queryFn: () => getJson<SellQuote>(`/api/quote?token=${token}&side=sell&amount=${dRaw}&sweepBps=${sweep}&stock=${stock}&feeBps=${feeBps}`),
     staleTime: 15_000,
     retry: 1,
-  });
+  };
+  const q = useQuery({ ...sellOpts, enabled: !!dRaw && dRaw !== "0" });
   const market = useStockQuotes();
   const sq = market.data?.find((s) => s.symbol === stock);
   const tx = useTx();
@@ -7594,7 +9207,17 @@ function SellForm({ token, sym, decimals, feeBps, disabled }: { token: Address; 
     const sid = STOCKS.find((s) => s.symbol === stock)!.id;
     const r = await tx.run([
       approve(token, TF.TerraRouter, raw, sym),
-      { label: `Sell ${sym}`, call: { address: TF.TerraRouter, abi: terraRouterAbi as unknown as Abi, functionName: "sell", args: [q.data.route, token, raw, sweep, sid, BigInt(q.data.minEthOut), BigInt(q.data.minStockOut)] } },
+      {
+        label: `Sell ${sym}`,
+        // Re-quote after the approval, right before the sell signature (S2).
+        build: async () => {
+          const f = await qc.fetchQuery({ ...sellOpts, staleTime: 0 });
+          return {
+            label: `Sell ${sym}, at least ${eth(f.minEthOut)} ETH back`,
+            call: { address: TF.TerraRouter, abi: terraRouterAbi as unknown as Abi, functionName: "sell", args: [f.route, token, raw, sweep, sid, BigInt(f.minEthOut), BigInt(f.minStockOut)] },
+          };
+        },
+      },
     ]);
     if (r) {
       setResult(parse(r.logs));
@@ -7625,14 +9248,15 @@ function SellForm({ token, sym, decimals, feeBps, disabled }: { token: Address; 
         {q.data && (
           <Notice className={cx(stale && "opacity-60")}>
             You get ≈ <strong className="num">{eth(q.data.ethOut)} ETH</strong>
-            {sweep > 0 && <> · <span className="num">{eth(q.data.ethToStock)} ETH</span> goes to your Jar as {stock}{sq && <> ≈ <span className="num">{shares18(sharesOf(BigInt(q.data.stockOut), sq))}</span></>}</>} · fee{" "}
+            {sweep > 0 && <> · <span className="num">{eth(q.data.ethToStock)} ETH</span> goes to your Jar as {stock} ≈ <span className="num">{orDash(sharesOf(BigInt(q.data.stockOut), sq), shares18)}</span></>} · fee{" "}
             <span className="num">{eth(q.data.fee)} ETH</span> builds the $WIF burn.
-            <span className="mt-1 block text-xs text-muted">At least <span className="num">{eth(q.data.minEthOut)} ETH</span> or nothing happens.</span>
+            <span className="mt-1 block text-xs text-muted">At least <span className="num">{eth(q.data.minEthOut)} ETH</span> or nothing happens. Re-quoted right before you sign.</span>
           </Notice>
         )}
       </div>
       {over && <p className="text-sm text-danger">That&apos;s more than your balance.</p>}
-      <Button className="w-full" onClick={submit} disabled={!DEPLOYED || !address || disabled || !q.data || !!stale || over || tx.busy}>
+      {sweep > 0 && <GeoLoadingNote status={gate.status} />}
+      <Button className="w-full" onClick={submit} disabled={!DEPLOYED || !address || disabled || !q.data || !!stale || over || tx.busy || (sweep > 0 && gate.status === "loading")}>
         {!DEPLOYED ? "Opens when contracts are live" : !address ? "Connect a wallet to trade" : tx.busy ? "Working…" : `Approve and sell ${sym}`}
       </Button>
       <TxStatus state={tx.state} onReset={tx.reset} success={result ? <ResultBox r={result} sym={sym} decimals={decimals} isBuy={false} /> : "Done."} />
@@ -7662,10 +9286,10 @@ import { Notice, TxLink } from "./ui";
 
 /** Pending / success / error line for a multi-step transaction, always with explorer links. */
 export function TxStatus({ state, success, onReset }: { state: TxState; success?: ReactNode; onReset?: () => void }) {
-  if (state.phase === "idle") return null;
+  // The live region stays mounted (empty while idle) so screen readers announce the first update.
   const stepTxt = state.total > 1 ? `Step ${state.step} of ${state.total}: ` : "";
   return (
-    <div role="status" aria-live="polite" className="mt-4 space-y-2">
+    <div role="status" aria-live="polite" className={state.phase === "idle" ? "sr-only" : "mt-4 space-y-2"}>
       {state.phase === "sign" && <Notice>{stepTxt}{state.label}. Confirm in your wallet.</Notice>}
       {state.phase === "pending" && (
         <Notice>
@@ -7677,7 +9301,7 @@ export function TxStatus({ state, success, onReset }: { state: TxState; success?
         <Notice tone="danger">
           {state.error}{" "}
           {onReset && (
-            <button type="button" onClick={onReset} className="ml-1 underline underline-offset-4">
+            <button type="button" onClick={onReset} className="ml-1 inline-flex min-h-11 items-center rounded-sm underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
               Dismiss
             </button>
           )}
@@ -7767,7 +9391,12 @@ export function TxLink({ hash, children, className }: { hash: string; children?:
   );
 }
 
+const ZERO_ADDR = /0x0{40}(?![0-9a-f])/i;
+/** True for links that would point at the zero address (pre-deploy placeholders). Those render as plain text. */
+export const isZeroLink = (s: string | undefined) => !!s && ZERO_ADDR.test(s);
+
 export function AddrLink({ addr, children, className }: { addr: string; children?: ReactNode; className?: string }) {
+  if (isZeroLink(addr)) return <span className={className}>{children ?? "not deployed"}</span>;
   return (
     <a href={addrUrl(addr)} {...ext} className={cx(linkCls, !children && "font-mono", className)} aria-label={`View ${addr} on the explorer`}>
       {children ?? short(addr)}
@@ -7814,7 +9443,7 @@ export function Stat({ label, value, sub, href }: { label: string; value: ReactN
       {sub && <span className="mt-1 block text-xs text-muted">{sub}</span>}
     </>
   );
-  return href ? (
+  return href && !isZeroLink(href) ? (
     <a href={href} {...ext} className="block rounded-xl border border-line bg-surface p-4 transition-colors hover:border-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
       {body}
     </a>
@@ -7828,15 +9457,694 @@ export const inputCls =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent aria-[invalid=true]:border-danger";
 ```
 
+#### File: web/lib/api-hindsight.test.ts
+[ASSUMED] — Source: see header comment
+```typescript
+// File: web/lib/api-hindsight.test.ts
+// /api/hindsight + /api/card-check response mapping. The card source (lib/card-cache) is replaced so no RPC is reached;
+// pricing itself is covered by hindsight.test.ts fixtures and the live tier.
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { Card } from "./hindsight";
+
+const getCard = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/card-cache", async (orig) => ({ ...(await orig<typeof import("./card-cache")>()), getCard }));
+
+const { GET: hindsight } = await import("@/app/api/hindsight/route");
+const { GET: cardCheck } = await import("@/app/api/card-check/route");
+const { Busy } = await import("./concurrency");
+
+const WALLET = "0x3fDBeB0FC14cca8fDd238Dd21725F0b8585Ab09E";
+const card = { wallet: WALLET, totals: { usdPaid8: "10000" }, memes: [], partial: false } as unknown as Card;
+const get = (h: (r: Request) => Promise<Response>, path: string) => h(new Request(`http://localhost${path}`));
+
+beforeEach(() => { getCard.mockReset(); });
+
+describe("/api/hindsight", () => {
+  it("returns the cached card for (wallet, stock id)", async () => {
+    getCard.mockResolvedValue(card);
+    const res = await get(hindsight, `/api/hindsight?addr=${WALLET.toLowerCase()}&stock=tsla`);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ wallet: WALLET });
+    expect(getCard).toHaveBeenCalledWith(WALLET, 1);
+  });
+
+  it("503 busy with a Retry-After header when the build queue is full", async () => {
+    getCard.mockImplementation(async () => { throw new Busy(5); });
+    const res = await get(hindsight, `/api/hindsight?addr=${WALLET}`);
+    expect(res.status).toBe(503);
+    expect(res.headers.get("retry-after")).toBe("5");
+    expect(await res.json()).toEqual({ error: "busy", retryAfter: 5 });
+  });
+
+  it("503 rpc_unavailable without echoing the error text", async () => {
+    getCard.mockImplementation(async () => { throw new Error("fetch https://go.getblock.io/SECRET failed"); });
+    const res = await get(hindsight, `/api/hindsight?addr=${WALLET}`);
+    const text = await res.text();
+    expect(res.status).toBe(503);
+    expect(text).not.toContain("SECRET");
+    expect(JSON.parse(text)).toEqual({ error: "rpc_unavailable", retryAfter: 5 });
+  });
+});
+
+describe("/api/card-check", () => {
+  it("uses the (wallet, stock) card for every claimed value: 50 different claims, one cache key", async () => {
+    getCard.mockResolvedValue(card);
+    for (let i = 1; i <= 50; i++) await get(cardCheck, `/api/card-check?addr=${WALLET}&usdPaid8=${i}&stockId=2`);
+    expect(new Set(getCard.mock.calls.map((c) => `${c[0]}:${c[1]}`))).toEqual(new Set([`${WALLET}:2`]));
+  });
+
+  it("verified only within 1% of the derived usdPaid8; no internal fields in the body", async () => {
+    getCard.mockResolvedValue(card);
+    const ok = await (await get(cardCheck, `/api/card-check?addr=${WALLET}&usdPaid8=10050`)).json();
+    const bad = await (await get(cardCheck, `/api/card-check?addr=${WALLET}&usdPaid8=1`)).json();
+    expect(ok).toEqual({ verified: true, derived: "10000" });
+    expect(bad).toEqual({ verified: false, derived: "10000" });
+  });
+
+  it("503 with a stable code on failure", async () => {
+    getCard.mockImplementation(async () => { throw new Error("boom"); });
+    const res = await get(cardCheck, `/api/card-check?addr=${WALLET}&usdPaid8=1`);
+    expect(res.status).toBe(503);
+    expect(await res.json()).toEqual({ error: "rpc_unavailable", retryAfter: 5 });
+  });
+});
+```
+
+#### File: web/lib/api-quote.test.ts
+[ASSUMED] — Source: see header comment
+```typescript
+// File: web/lib/api-quote.test.ts
+// /api/quote response mapping. Only the three RPC-backed lib calls are replaced; the fee/sweep arithmetic in the route
+// and pickBestQuote's pool selection (quote.test.ts) run for real.
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { BestQuote } from "./quote";
+
+const m = vi.hoisted(() => ({ bestQuote: vi.fn(), quoteStock: vi.fn(), oracleMinStock: vi.fn() }));
+vi.mock("@/lib/quote", async (orig) => ({ ...(await orig<typeof import("./quote")>()), ...m }));
+
+const { GET: quote } = await import("@/app/api/quote/route");
+const { QuoteUnavailable } = await import("./quote");
+
+const MEME = "0x39dBED3a2bd333467115dE45665cC57F813C4571";
+const q = async (qs: string) => {
+  const res = await quote(new Request(`http://localhost/api/quote?${qs}`));
+  return { status: res.status, res, body: (await res.json()) as Record<string, unknown> };
+};
+const best = { route: { kind: 1, v2Path: [], v3Path: "0x", key: {} }, pool: {}, amountOut: 5000n } as unknown as BestQuote;
+const oracle = (min: bigint) => ({ min, ethUsd8: 1n, stockUsd8: 1n, fresh: true });
+
+beforeEach(() => {
+  m.bestQuote.mockReset().mockResolvedValue(best);
+  m.quoteStock.mockReset().mockResolvedValue(100n);
+  m.oracleMinStock.mockReset().mockResolvedValue(oracle(90n));
+});
+
+describe("/api/quote", () => {
+  it("buy: fee and sweep are bps of the ETH notional; meme leg gets the rest; band ok", async () => {
+    const r = await q(`token=${MEME}&amount=10000&side=buy&sweepBps=200&feeBps=50`);
+    expect(r.status).toBe(200);
+    expect(m.bestQuote).toHaveBeenCalledWith(MEME, "buy", 10000n - 50n - 200n);
+    expect(r.body).toMatchObject({ fee: "50", ethToStock: "200", stockOut: "100", minStockOut: "90", bandOk: true, warning: null });
+  });
+
+  it("warns outside_oracle_band when the pool returns less than the Chainlink floor (tx would revert)", async () => {
+    m.oracleMinStock.mockResolvedValue(oracle(101n));
+    for (const side of ["buy", "sell", "convert"]) {
+      expect((await q(`token=${MEME}&amount=10000&side=${side}`)).body).toMatchObject({ bandOk: false, warning: "outside_oracle_band" });
+    }
+  });
+
+  it("404 no_route only when pools genuinely cannot fill", async () => {
+    m.bestQuote.mockResolvedValue(null);
+    expect(await q(`token=${MEME}&amount=10000`)).toMatchObject({ status: 404, body: { error: "no_route" } });
+  });
+
+  it("503 quote_unavailable (retryable) when every quote call errored, never as no_route", async () => {
+    m.bestQuote.mockImplementation(async () => { throw new QuoteUnavailable("all 2 quote calls failed"); });
+    const r = await q(`token=${MEME}&amount=10000`);
+    expect(r).toMatchObject({ status: 503, body: { error: "quote_unavailable", retryAfter: 5 } });
+    expect(r.res.headers.get("retry-after")).toBe("5");
+  });
+
+  it("503 quote_failed without a detail field (M-02)", async () => {
+    m.quoteStock.mockImplementation(async () => { throw new Error("viem: https://go.getblock.io/SECRET reverted"); });
+    const r = await q(`token=${MEME}&amount=10000`);
+    expect(r.status).toBe(503);
+    expect(r.body).toEqual({ error: "quote_failed", retryAfter: 5 });
+  });
+
+  it("409 oracle_stale when the stock feed is stale and there is a sweep", async () => {
+    m.oracleMinStock.mockResolvedValue({ ...oracle(1n), fresh: false });
+    expect((await q(`token=${MEME}&amount=10000`)).status).toBe(409);
+  });
+});
+```
+
+#### File: web/lib/api-stream.test.ts
+[ASSUMED] — Source: see header comment
+```typescript
+// File: web/lib/api-stream.test.ts
+// /api/stream lifecycle (H-01 / M5). The RPC transport is replaced (no network); stream logic runs for real.
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+const rpcMock = vi.hoisted(() => vi.fn(async (method: string) => (method === "eth_blockNumber" ? "0x100" : [])));
+vi.mock("@/lib/rpc", async (orig) => ({ ...(await orig<typeof import("./rpc")>()), rpc: rpcMock }));
+delete process.env.GETBLOCK_WSS_FRA; // polling path
+
+const { GET: stream } = await import("@/app/api/stream/route");
+const { streamSlots } = await import("./concurrency");
+
+const open = () => {
+  const ac = new AbortController();
+  return { ac, res: stream(new Request("http://localhost/api/stream", { signal: ac.signal })) };
+};
+const firstFrame = async (res: Response) => new TextDecoder().decode((await res.body!.getReader().read()).value);
+const tick = () => new Promise((r) => setTimeout(r, 20));
+
+afterEach(() => rpcMock.mockClear());
+
+describe("/api/stream", () => {
+  it("sends hello, and a client abort releases the slot and stops polling", async () => {
+    const { ac, res } = open();
+    const r = await res;
+    expect(r.headers.get("content-type")).toBe("text/event-stream");
+    expect(await firstFrame(r)).toMatch(/^data: \{"type":"hello"/);
+    expect(streamSlots.active).toBe(1);
+    ac.abort();
+    await tick();
+    expect(streamSlots.active).toBe(0);
+  });
+
+  it("an RPC failure while polling emits an error event instead of killing the stream or rejecting", async () => {
+    rpcMock.mockRejectedValueOnce(new Error("HTTP 429 https://secret"));
+    const { ac, res } = open();
+    const reader = (await res).body!.getReader();
+    const dec = new TextDecoder();
+    let text = "";
+    while (!text.includes("error")) text += dec.decode((await reader.read()).value);
+    expect(text).toContain('"type":"error","error":"rpc_unavailable"');
+    expect(text).not.toContain("secret");
+    ac.abort();
+    await tick();
+    expect(streamSlots.active).toBe(0);
+  });
+
+  it("caps concurrent streams at 20 with 503 + Retry-After, and frees slots on abort", async () => {
+    const live = await Promise.all(Array.from({ length: 20 }, () => open()).map(async (s) => ({ ...s, r: await s.res })));
+    expect(live.every((s) => s.r.status === 200)).toBe(true);
+    const over = await open().res;
+    expect(over.status).toBe(503);
+    expect(over.headers.get("retry-after")).toBe("10");
+    expect(await over.json()).toEqual({ error: "busy", retryAfter: 10 });
+    live.forEach((s) => s.ac.abort());
+    await tick();
+    expect(streamSlots.active).toBe(0);
+    expect((await open().res).status).toBe(200);
+  });
+});
+```
+
+#### File: web/lib/api-validation.test.ts
+[ASSUMED] — Source: see header comment
+```typescript
+// File: web/lib/api-validation.test.ts
+// Route-level input validation: every case here is rejected before any RPC is reached (no mocks needed).
+import { describe, expect, it } from "vitest";
+import { GET as cardCheck } from "@/app/api/card-check/route";
+import { GET as geo } from "@/app/api/geo/route";
+import { GET as hindsight } from "@/app/api/hindsight/route";
+import { GET as quote } from "@/app/api/quote/route";
+import { ADDR } from "./config";
+
+const MEME = "0x39dBED3a2bd333467115dE45665cC57F813C4571";
+const WALLET = "0x3fDBeB0FC14cca8fDd238Dd21725F0b8585Ab09E";
+const call = async (h: (r: Request) => Promise<Response> | Response, path: string, headers?: Record<string, string>) => {
+  const res = await h(new Request(`http://localhost${path}`, { headers }));
+  return { status: res.status, body: (await res.json()) as Record<string, unknown>, res };
+};
+
+describe("/api/hindsight validation", () => {
+  it("400 bad_address for a missing, malformed or bad-checksum address", async () => {
+    for (const a of ["", "0x123", "not-an-address", "0x3fdbeb0fc14cca8fdd238dd21725f0b8585ab09E"]) {
+      expect(await call(hindsight, `/api/hindsight?addr=${a}`)).toMatchObject({ status: 400, body: { error: "bad_address" } });
+    }
+  });
+
+  it("400 bad_stock for a stock outside the curated six", async () => {
+    expect(await call(hindsight, `/api/hindsight?addr=${WALLET}&stock=AAPL`)).toMatchObject({ status: 400, body: { error: "bad_stock" } });
+  });
+});
+
+describe("/api/quote validation", () => {
+  const q = (qs: string) => call(quote, `/api/quote?${qs}`);
+  it("400 bad_side for an unknown side (used to fall through to a sell quote)", async () => {
+    expect(await q(`token=${MEME}&amount=1000&side=xyz`)).toMatchObject({ status: 400, body: { error: "bad_side" } });
+  });
+
+  it("400 for amounts that are zero, non-numeric or above uint128 (2^128 + 1)", async () => {
+    for (const amount of ["0", "-1", "1e18", "340282366920938463463374607431768211457"]) {
+      expect((await q(`token=${MEME}&amount=${amount}`)).status).toBe(400);
+    }
+  });
+
+  it("400 for a bad token, stock, sweep or fee tier", async () => {
+    expect((await q(`token=0xnope&amount=1`)).status).toBe(400);
+    expect((await q(`token=${MEME}&amount=1&stock=AAPL`)).status).toBe(400);
+    expect((await q(`token=${MEME}&amount=1&sweepBps=1001`)).status).toBe(400);
+    expect((await q(`token=${MEME}&amount=1&feeBps=10`)).status).toBe(400);
+  });
+
+  it("422 wif_not_sellable for a $WIF sell or convert (INVARIANT 1)", async () => {
+    for (const side of ["sell", "convert"]) {
+      expect(await q(`token=${ADDR.wif}&amount=1000&side=${side}`)).toMatchObject({ status: 422, body: { error: "wif_not_sellable" } });
+    }
+  });
+});
+
+describe("/api/card-check validation", () => {
+  const c = (qs: string) => call(cardCheck, `/api/card-check?${qs}`);
+  it("400 for a fractional or out-of-range stockId (1.5 used to pass and 503)", async () => {
+    for (const sid of ["1.5", "6", "-1", "x"]) expect((await c(`addr=${WALLET}&usdPaid8=100&stockId=${sid}`)).status).toBe(400);
+  });
+
+  it("400 for a bad address or a non-digit / oversize claim", async () => {
+    expect((await c(`addr=0x1&usdPaid8=100`)).status).toBe(400);
+    expect((await c(`addr=${WALLET}&usdPaid8=1.5`)).status).toBe(400);
+    expect((await c(`addr=${WALLET}&usdPaid8=${"9".repeat(41)}`)).status).toBe(400);
+  });
+});
+
+describe("/api/geo", () => {
+  it("reads the Vercel country header, flags restricted, and is never cached by intermediaries", async () => {
+    const r = await call(geo, "/api/geo", { "x-vercel-ip-country": "US" });
+    expect(r.body).toMatchObject({ country: "US", unknown: false });
+    expect(typeof r.body.restricted).toBe("boolean");
+    expect(r.res.headers.get("cache-control")).toBe("private, no-store");
+    expect((await call(geo, "/api/geo")).body).toMatchObject({ country: "UNKNOWN", unknown: true });
+  });
+});
+```
+
+#### File: web/lib/card-cache.test.ts
+[ASSUMED] — Source: see header comment
+```typescript
+// File: web/lib/card-cache.test.ts
+import { describe, expect, it } from "vitest";
+import type { Address } from "viem";
+import { createCardCache, cardFailure, matchesClaim } from "./card-cache";
+import { Busy, createLimiter } from "./concurrency";
+import type { Card } from "./hindsight";
+
+const A = "0x00000000000000000000000000000000000000Aa" as Address;
+const addr = (i: number) => `0x${i.toString(16).padStart(40, "0")}` as Address;
+const fakeCard = (wallet: Address) => ({ wallet, totals: { usdPaid8: "100" } }) as unknown as Card;
+const deferred = () => {
+  let resolve!: () => void;
+  const p = new Promise<void>((r) => (resolve = r));
+  return { p, resolve };
+};
+
+describe("createLimiter", () => {
+  it("admits max holders, queues up to queueMax FIFO, refuses the rest with Busy", async () => {
+    const l = createLimiter(1, 1, 7);
+    const r1 = await l.acquire();
+    const second = l.acquire();
+    await expect(l.acquire()).rejects.toMatchObject({ retryAfter: 7 });
+    expect([l.active, l.queued]).toEqual([1, 1]);
+    r1();
+    const r2 = await second;
+    expect([l.active, l.queued]).toEqual([1, 0]);
+    r2();
+    r2(); // double release is a no-op
+    expect(l.active).toBe(0);
+  });
+
+  it("queueMax 0 refuses immediately when full (stream cap)", async () => {
+    const l = createLimiter(2, 0);
+    await l.acquire();
+    await l.acquire();
+    await expect(l.acquire()).rejects.toBeInstanceOf(Busy);
+  });
+});
+
+describe("createCardCache (M4)", () => {
+  it("dedupes concurrent requests for one wallet into one build and serves repeats from cache", async () => {
+    let builds = 0;
+    const c = createCardCache({ build: async (w) => (builds++, fakeCard(w)) });
+    const [x, y] = await Promise.all([c.get(A, 0), c.get(A.toLowerCase() as Address, 0)]);
+    await c.get(A, 0);
+    expect(builds).toBe(1);
+    expect(x).toBe(y);
+  });
+
+  it("keys by stock as well as wallet", async () => {
+    let builds = 0;
+    const c = createCardCache({ build: async (w) => (builds++, fakeCard(w)) });
+    await c.get(A, 0);
+    await c.get(A, 1);
+    expect(builds).toBe(2);
+  });
+
+  it("rebuilds after the TTL and never caches a failure", async () => {
+    let t = 0;
+    let builds = 0;
+    let fail = true;
+    const c = createCardCache({ now: () => t, ttlMs: 1000, build: async (w) => { builds++; if (fail) throw new Error("rpc"); return fakeCard(w); } });
+    await expect(c.get(A, 0)).rejects.toThrow("rpc");
+    fail = false;
+    await c.get(A, 0);
+    expect(builds).toBe(2);
+    t = 999;
+    await c.get(A, 0);
+    expect(builds).toBe(2);
+    t = 1000;
+    await c.get(A, 0);
+    expect(builds).toBe(3);
+  });
+
+  it("stays bounded: 50 distinct wallets with max 10 keep at most 10 entries", async () => {
+    const c = createCardCache({ max: 10, build: async (w) => fakeCard(w) });
+    for (let i = 1; i <= 50; i++) await c.get(addr(i), 0);
+    expect(c.size).toBeLessThanOrEqual(10);
+  });
+
+  it("runs at most `concurrency` builds at once and refuses with Busy past the queue", async () => {
+    const gate = deferred();
+    let running = 0;
+    let peak = 0;
+    const c = createCardCache({ concurrency: 2, queue: 1, build: async (w) => { running++; peak = Math.max(peak, running); await gate.p; running--; return fakeCard(w); } });
+    const ok = [c.get(addr(1), 0), c.get(addr(2), 0), c.get(addr(3), 0)];
+    await expect(c.get(addr(4), 0)).rejects.toBeInstanceOf(Busy);
+    gate.resolve();
+    await Promise.all(ok);
+    expect(peak).toBe(2);
+  });
+});
+
+describe("matchesClaim (card-check)", () => {
+  it("verifies within 1% and rejects a fabricated amount or an empty derived card", () => {
+    expect(matchesClaim(10_000n, 10_000n)).toBe(true);
+    expect(matchesClaim(10_000n, 10_100n)).toBe(true);
+    expect(matchesClaim(10_000n, 9_900n)).toBe(true);
+    expect(matchesClaim(10_000n, 10_101n)).toBe(false);
+    expect(matchesClaim(10_000n, 1n)).toBe(false);
+    expect(matchesClaim(0n, 0n)).toBe(false);
+  });
+});
+
+describe("cardFailure (M-02: stable codes, no detail)", () => {
+  it("maps Busy to busy + its Retry-After and anything else to rpc_unavailable", () => {
+    expect(cardFailure(new Busy(9))).toEqual({ status: 503, body: { error: "busy", retryAfter: 9 }, headers: { "retry-after": "9" } });
+    const f = cardFailure(new Error("https://secret.example/token123 failed"));
+    expect(f.body).toEqual({ error: "rpc_unavailable", retryAfter: 5 });
+    expect(JSON.stringify(f)).not.toContain("secret");
+  });
+});
+```
+
+#### File: web/lib/card-cache.ts
+[ASSUMED] — Source: see header comment
+```typescript
+// File: web/lib/card-cache.ts
+// One shared Hindsight card cache for /api/hindsight, /api/card-check, /card/[addr] and its OG image.
+// Keyed `addr:stockId` only (never by caller-chosen values), stores the in-flight promise so concurrent requests for
+// one wallet share one build, bounded to MAX entries with oldest-first eviction, and admits at most CONCURRENCY builds.
+import "server-only";
+import type { Address } from "viem";
+import type { StockId } from "./config";
+import { Busy, createLimiter } from "./concurrency";
+import { buildCard, type Card } from "./hindsight";
+
+type Entry = { at: number; card: Promise<Card> };
+
+export interface CardCacheOptions {
+  build: (wallet: Address, stockId: StockId) => Promise<Card>;
+  ttlMs?: number;
+  max?: number;
+  concurrency?: number;
+  queue?: number;
+  now?: () => number;
+}
+
+export function createCardCache({ build, ttlMs = 300_000, max = 200, concurrency = 3, queue = 6, now = Date.now }: CardCacheOptions) {
+  const entries = new Map<string, Entry>();
+  const builds = createLimiter(concurrency, queue);
+
+  const evict = () => {
+    const t = now();
+    for (const [k, e] of entries) if (t - e.at >= ttlMs) entries.delete(k);
+    while (entries.size >= max) entries.delete(entries.keys().next().value as string); // Map keeps insertion order
+  };
+
+  async function limitedBuild(wallet: Address, stockId: StockId): Promise<Card> {
+    const release = await builds.acquire(); // throws Busy when the queue is full
+    try {
+      return await build(wallet, stockId);
+    } finally {
+      release();
+    }
+  }
+
+  return {
+    get size() {
+      return entries.size;
+    },
+    limiter: builds,
+    /** Cached (or shared in-flight) card for wallet + stock. Failures are never cached. Throws Busy when saturated. */
+    get(wallet: Address, stockId: StockId): Promise<Card> {
+      const key = `${wallet.toLowerCase()}:${stockId}`;
+      const hit = entries.get(key);
+      if (hit && now() - hit.at < ttlMs) return hit.card;
+      if (hit) entries.delete(key);
+      evict();
+      const card = limitedBuild(wallet, stockId);
+      entries.set(key, { at: now(), card });
+      card.catch(() => {
+        if (entries.get(key)?.card === card) entries.delete(key);
+      });
+      return card;
+    },
+  };
+}
+
+const shared = createCardCache({ build: buildCard });
+
+/** The process-wide cached card getter every route and page uses instead of calling buildCard directly. */
+export const getCard = (wallet: Address, stockId: StockId = 0) => shared.get(wallet, stockId);
+
+/** Stable client-facing failure for a card build (detail stays in server logs, never in the body). */
+export function cardFailure(e: unknown): { status: 503; body: { error: "busy" | "rpc_unavailable"; retryAfter: number }; headers: Record<string, string> } {
+  const retryAfter = e instanceof Busy ? e.retryAfter : 5;
+  const error = e instanceof Busy ? "busy" : "rpc_unavailable";
+  return { status: 503, body: { error, retryAfter }, headers: { "retry-after": String(retryAfter) } };
+}
+
+/** card-check rule: a minted usdPaid8 is verified within 1% of the re-derived one (a later buy may postdate the mint). */
+export function matchesClaim(derived: bigint, claimed: bigint): boolean {
+  return derived > 0n && (claimed > derived ? claimed - derived : derived - claimed) * 100n <= derived;
+}
+```
+
+#### File: web/lib/concurrency.ts
+[ASSUMED] — Source: see header comment
+```typescript
+// File: web/lib/concurrency.ts
+// Process-wide admission control for expensive server work (Hindsight card builds, SSE streams).
+import "server-only";
+
+/** Thrown when a limiter is full and its wait queue is full: map to 503 + Retry-After. */
+export class Busy extends Error {
+  constructor(public retryAfter: number) {
+    super("busy");
+  }
+}
+
+/**
+ * At most `max` holders at once; up to `queueMax` callers wait (FIFO) for a slot, everyone after that is refused
+ * with Busy. queueMax 0 means "refuse immediately when full".
+ */
+export function createLimiter(max: number, queueMax: number, retryAfter = 5) {
+  let active = 0;
+  const waiting: (() => void)[] = [];
+  const release = () => {
+    const next = waiting.shift();
+    if (next) next(); // hand the slot over directly; `active` is unchanged
+    else active--;
+  };
+  return {
+    get active() {
+      return active;
+    },
+    get queued() {
+      return waiting.length;
+    },
+    /** Resolves with a release function once a slot is held; release exactly once. */
+    async acquire(): Promise<() => void> {
+      if (active < max) active++;
+      else if (waiting.length < queueMax) await new Promise<void>((r) => waiting.push(r));
+      else throw new Busy(retryAfter);
+      let done = false;
+      return () => {
+        if (done) return;
+        done = true;
+        release();
+      };
+    },
+  };
+}
+
+/** Global cap on concurrent /api/stream connections (each holds an upstream socket or poller for up to 55 s). */
+export const streamSlots = createLimiter(20, 0, 10);
+```
+
+#### File: web/lib/hindsight.test.ts
+[ASSUMED] — Source: see header comment
+```typescript
+// File: web/lib/hindsight.test.ts
+import { describe, expect, it } from "vitest";
+import { encodeAbiParameters, encodeEventTopics, encodeFunctionResult, zeroAddress, type Address, type Hex } from "viem";
+import { erc20Abi, terraRouterAbi } from "./abi";
+import { blockTs, decodeBalances, purchaseSources, routerMemeLeg, summarize, type CardMeme, type Receipt } from "./hindsight";
+import { RpcError } from "./rpc";
+
+const ROUTER = "0x1111111111111111111111111111111111111111" as Address;
+const USER = "0x2222222222222222222222222222222222222222" as Address;
+const MEME = "0x3333333333333333333333333333333333333333" as Address;
+const OTHER = "0x4444444444444444444444444444444444444444" as Address;
+
+type EventName = "Traded" | "Swept";
+/** A receipt log for a TerraRouter event, encoded with viem from the generated ABI (topics + non-indexed data). */
+function routerLog(address: Address, eventName: EventName, args: Record<string, unknown>): Receipt["logs"][number] {
+  const ev = terraRouterAbi.find((x) => x.type === "event" && x.name === eventName) as { inputs: readonly { name: string; type: string; indexed?: boolean }[] };
+  const topics = encodeEventTopics({ abi: terraRouterAbi, eventName, args: args as never }) as Hex[];
+  const data = encodeAbiParameters(
+    ev.inputs.filter((i) => !i.indexed),
+    ev.inputs.filter((i) => !i.indexed).map((i) => args[i.name]),
+  );
+  return { address, topics, data, blockNumber: "0x1", transactionHash: "0xaa" };
+}
+
+const ETH = 10n ** 18n;
+const value = ETH; // tx.value sent to TerraRouter.buy
+const fee = (value * 50n) / 10_000n; // 0.5%
+const sweep = (value * 200n) / 10_000n; // 2% to stock
+const traded = routerLog(ROUTER, "Traded", { user: USER, token: MEME, isBuy: true, ethAmount: value - fee - sweep, tokenAmount: 123n, fee });
+const swept = routerLog(ROUTER, "Swept", { user: USER, stockId: 0, ethIn: sweep, stockOut: 456n });
+
+describe("routerMemeLeg (M1: router buys price only the meme leg)", () => {
+  it("paid = tx.value - Traded.fee - Swept.ethIn on a synthetic router receipt", () => {
+    const rc: Receipt = { logs: [traded, swept] };
+    expect(routerMemeLeg(rc, value, ROUTER)).toBe(value - fee - sweep);
+    expect(routerMemeLeg(rc, value, ROUTER)).toBe(975n * 10n ** 15n);
+  });
+
+  it("ignores identical events emitted by any other contract, and unrelated logs", () => {
+    const fake = routerLog(OTHER, "Swept", { user: USER, stockId: 0, ethIn: 10n ** 17n, stockOut: 1n });
+    const transfer = { ...traded, topics: ["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" as Hex], data: "0x" as Hex };
+    expect(routerMemeLeg({ logs: [fake, { ...transfer, address: ROUTER }, traded, swept] }, value, ROUTER)).toBe(value - fee - sweep);
+  });
+
+  it("sums several Swept legs and treats a no-sweep buy as value - fee", () => {
+    expect(routerMemeLeg({ logs: [traded, swept, swept] }, value, ROUTER)).toBe(value - fee - 2n * sweep);
+    expect(routerMemeLeg({ logs: [traded] }, value, ROUTER)).toBe(value - fee);
+  });
+
+  it("is null without a Traded event (the tx is not a router buy we can price)", () => {
+    expect(routerMemeLeg({ logs: [swept] }, value, ROUTER)).toBeNull();
+    expect(routerMemeLeg(undefined, value, ROUTER)).toBeNull();
+  });
+});
+
+describe("purchaseSources (M1: TerraRouter counts as a source once deployed)", () => {
+  const reg = ["0x8876789976dEcBfCbBbe364623C63652db8C0904"];
+  it("adds the router, lower-cased, so Transfer(from = TerraRouter) is a buy", () => {
+    const s = purchaseSources(reg, ROUTER);
+    expect(s.has(ROUTER.toLowerCase())).toBe(true);
+    expect(s.has(reg[0].toLowerCase())).toBe(true);
+    expect(s.size).toBe(2);
+  });
+
+  it("skips the zero address before Deploy has written deployments.json", () => {
+    expect(purchaseSources(reg, zeroAddress).size).toBe(1);
+    expect(purchaseSources(reg, zeroAddress).has(zeroAddress)).toBe(false);
+  });
+});
+
+describe("blockTs (M2: never price with NaN ts)", () => {
+  it("reads a hex timestamp", () => {
+    expect(blockTs({ timestamp: "0x6a5b0c00" }, 1)).toBe(0x6a5b0c00);
+  });
+
+  it("throws on an RpcError item, a null block and a missing/zero timestamp", () => {
+    expect(() => blockTs(new RpcError(-32005, "limit"), 1)).toThrow(/limit/);
+    expect(() => blockTs(null, 9)).toThrow(/block 9/);
+    expect(() => blockTs({}, 2)).toThrow(/bad timestamp/);
+    expect(() => blockTs({ timestamp: "0x0" }, 3)).toThrow(/bad timestamp/);
+  });
+});
+
+describe("decodeBalances (M2: an unreadable balance is not 0)", () => {
+  const enc = (n: bigint) => encodeFunctionResult({ abi: erc20Abi, functionName: "balanceOf", result: n });
+  it("decodes balanceOf results in order", () => {
+    expect(decodeBalances([enc(5n), enc(0n)], [MEME, OTHER])).toEqual([5n, 0n]);
+  });
+
+  it("throws on an RpcError item instead of reading it as 0n", () => {
+    expect(() => decodeBalances([enc(5n), new RpcError(429, "HTTP 429")], [MEME, OTHER])).toThrow(/429/);
+  });
+});
+
+const meme = (symbol: string, usdPaid8: string, usdToday8: string | null, shares18 = "0"): CardMeme => ({
+  token: `0x${symbol.padEnd(40, "0")}` as Address,
+  symbol,
+  usdPaid8,
+  usdToday8,
+  todayReason: usdToday8 === null ? "quote unavailable (RPC error)" : null,
+  usdCounterfactual8: "100",
+  holding: "1",
+  buys: [{ shares18 } as CardMeme["buys"][number]],
+});
+
+describe("summarize (M3: no fabricated $0 today)", () => {
+  it("excludes unquoted memes from usdToday8 and usdPaidQuoted8, keeps them in paid/counterfactual/shares", () => {
+    const s = summarize([meme("AAA", "1000", "500", "7"), meme("BBB", "4000", null, "3")], []);
+    expect(s.totals).toEqual({ usdPaid8: "5000", usdPaidQuoted8: "1000", usdToday8: "500", usdCounterfactual8: "200", shares18: "10" });
+    expect(s.partial).toBe(true);
+    expect(s.unquoted).toEqual([{ token: meme("BBB", "0", null).token, symbol: "BBB", reason: "quote unavailable (RPC error)" }]);
+  });
+
+  it("never names an unquoted meme the worst trade (it would read as -100%)", () => {
+    const s = summarize([meme("AAA", "1000", "900"), meme("BBB", "1000", null)], []);
+    expect(s.worst?.symbol).toBe("AAA");
+    expect(s.worst?.pct).toBeCloseTo(-10, 9);
+    expect(summarize([meme("BBB", "1000", null)], []).worst).toBeNull();
+  });
+
+  it("keeps a genuine $0 (holding sold to zero) as a priced value", () => {
+    const s = summarize([meme("AAA", "1000", "0")], []);
+    expect(s.totals.usdToday8).toBe("0");
+    expect(s.worst).toEqual({ symbol: "AAA", pct: -100 });
+    expect(s.partial).toBe(false);
+  });
+
+  it("marks the card partial when a history scan left gaps, even if every meme is quoted", () => {
+    const gap = { token: MEME, symbol: "AAA", fromBlock: 1, toBlock: 2 };
+    expect(summarize([meme("AAA", "1", "1")], [gap]).partial).toBe(true);
+    expect(summarize([], []).partial).toBe(false);
+  });
+});
+```
+
 #### File: web/lib/quote.test.ts
 [ASSUMED] — Source: see header comment
 ```typescript
 // File: web/lib/quote.test.ts
 import { describe, expect, it } from "vitest";
-import type { Address } from "viem";
+import { encodeAbiParameters, type Address } from "viem";
 import { ADDR } from "./config";
 import type { PoolEntry } from "./registry";
-import { bestQuote, quoteStock, routeFor, v3Path } from "./quote";
+import { QuoteUnavailable, bestQuote, pickBestQuote, quoteStock, routeFor, v3Path } from "./quote";
+import { RpcError } from "./rpc";
 
 const TOKEN = "0x39dBED3a2bd333467115dE45665cC57F813C4571" as Address;
 const NVDA = "0xd0601CE157Db5bdC3162BbaC2a2C8aF5320D9EEC" as Address;
@@ -7900,6 +10208,33 @@ describe("bestQuote / quoteStock guards (no RPC reached)", () => {
 
   it("quotes zero ETH into stock as zero without a call", async () => {
     await expect(quoteStock(0, 0n)).resolves.toBe(0n);
+  });
+});
+
+describe("pickBestQuote (M3/S8: unavailable vs no route)", () => {
+  const v2Out = (n: bigint) => encodeAbiParameters([{ type: "uint256[]" }], [[1n, n]]);
+  const v3Out = (n: bigint) => encodeAbiParameters([{ type: "uint256" }, { type: "uint160" }, { type: "uint32" }, { type: "uint256" }], [n, 0n, 0, 0n]);
+  const rateLimited = new RpcError(429, "HTTP 429");
+
+  it("picks the largest decoded output and builds that pool's route", () => {
+    const best = pickBestQuote([v2, v3], [v2Out(100n), v3Out(250n)], TOKEN, "sell");
+    expect(best?.amountOut).toBe(250n);
+    expect(best?.route.kind).toBe(2);
+  });
+
+  it("uses the surviving pools when only some calls errored", () => {
+    expect(pickBestQuote([v2, v3], [rateLimited, v3Out(7n)], TOKEN, "sell")?.amountOut).toBe(7n);
+  });
+
+  it("throws QuoteUnavailable when every call failed at the RPC layer (never 'no route' / $0)", () => {
+    expect(() => pickBestQuote([v2, v3], [rateLimited, new RpcError(-32603, "internal")], TOKEN, "sell")).toThrow(QuoteUnavailable);
+  });
+
+  it("returns null when pools answered but none can fill (revert, zero output, undecodable)", () => {
+    const revert = new RpcError(3, "execution reverted");
+    expect(pickBestQuote([v2, v3], [revert, v3Out(0n)], TOKEN, "sell")).toBeNull();
+    expect(pickBestQuote([v2], ["0xdead"], TOKEN, "sell")).toBeNull();
+    expect(pickBestQuote([], [], TOKEN, "sell")).toBeNull();
   });
 });
 ```
@@ -7983,6 +10318,75 @@ describe("normalize8", () => {
   it("never rescales a normal 8-decimal answer", () => {
     expect(normalize8(FEED, 1718, 17107118018n)).toBe(17107118018n);
     expect(normalize8(FEED, 1, 0n)).toBe(0n);
+  });
+});
+```
+
+#### File: web/lib/rpc.test.ts
+[ASSUMED] — Source: see header comment
+```typescript
+// File: web/lib/rpc.test.ts
+import { describe, expect, it } from "vitest";
+import { RpcError, TOO_MANY_LOGS, createTokenBucket, quicknodeUrl, unwrap } from "./rpc";
+
+describe("unwrap (M2: batch errors are never data)", () => {
+  it("returns a real result unchanged, including falsy-but-valid values", () => {
+    expect(unwrap<string>("0x01")).toBe("0x01");
+    expect(unwrap<unknown[]>([])).toEqual([]);
+    expect(unwrap<number>(0)).toBe(0);
+  });
+
+  it("throws the per-call RpcError instead of returning it", () => {
+    const e = new RpcError(-32005, "limit exceeded");
+    expect(() => unwrap(e)).toThrow(e);
+  });
+
+  it("throws on a null or missing result (pruned block, unknown tx)", () => {
+    expect(() => unwrap(null, "block 7")).toThrow(/block 7: null result/);
+    expect(() => unwrap(undefined)).toThrow(RpcError);
+  });
+});
+
+describe("createTokenBucket (S2: process-wide public RPC budget)", () => {
+  it("lets a burst through, then makes the caller wait rate-proportionally", () => {
+    let t = 0;
+    const b = createTokenBucket(4, 8, () => t);
+    expect(b.reserve(8)).toBe(0); // burst
+    expect(b.reserve(4)).toBe(1000); // 4 calls at 4/s
+    t = 1000;
+    expect(b.reserve(0)).toBe(0); // the debt has been repaid by now
+  });
+
+  it("refills over time but never above the burst", () => {
+    let t = 0;
+    const b = createTokenBucket(4, 8, () => t);
+    t = 60_000;
+    expect(b.reserve(8)).toBe(0);
+    expect(b.reserve(1)).toBe(250);
+  });
+});
+
+describe("quicknodeUrl (M-09: .env.local names)", () => {
+  it("prefers QUICKNODE_RPC when set", () => {
+    expect(quicknodeUrl({ QUICKNODE_RPC: "https://x/abc/", QUICKNODE_BASE: "https://y", QUICKNODE_TOKEN: "t" })).toBe("https://x/abc/");
+  });
+
+  it("composes base + token with exactly one slash between and a trailing slash", () => {
+    expect(quicknodeUrl({ QUICKNODE_BASE: "https://spring.quiknode.pro/", QUICKNODE_TOKEN: "/tok123/" })).toBe("https://spring.quiknode.pro/tok123/");
+    expect(quicknodeUrl({ QUICKNODE_BASE: "https://spring.quiknode.pro", QUICKNODE_TOKEN: "tok123" })).toBe("https://spring.quiknode.pro/tok123/");
+  });
+
+  it("is null when neither form is configured", () => {
+    expect(quicknodeUrl({})).toBeNull();
+    expect(quicknodeUrl({ QUICKNODE_BASE: "https://spring.quiknode.pro" })).toBeNull();
+  });
+});
+
+describe("TOO_MANY_LOGS", () => {
+  it("recognises the 10k-log error only on RpcError", () => {
+    expect(TOO_MANY_LOGS(new RpcError(-32005, "query returned more than 10000 results"))).toBe(true);
+    expect(TOO_MANY_LOGS(new RpcError(-32005, "rate limited"))).toBe(false);
+    expect(TOO_MANY_LOGS(new Error("query returned more than 10000 results"))).toBe(false);
   });
 });
 ```
@@ -8103,6 +10507,78 @@ export const aggregatorAbi = [
 export const REPO_URL = process.env.NEXT_PUBLIC_REPO_URL || "";
 export const DEMO_ADDR = process.env.NEXT_PUBLIC_DEMO_ADDR || "";
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "";
+export const FRIEND_JARS = process.env.NEXT_PUBLIC_FRIEND_JARS === "1";
+/** Real long-history wallet used as the Scene 2 contrast shot (PRD §6). Its card is read live from chain like any other. */
+export const HISTORY_ADDR = process.env.NEXT_PUBLIC_HISTORY_ADDR || "0x3fDBeB0FC14cca8fDd238Dd21725F0b8585Ab09E";
+
+/** Addresses marked Blockscout-verified in data/deployments.json ("verified": [...]) after `forge verify-contract`. Empty = no badge. */
+export const VERIFIED = new Set(((TF as unknown as { verified?: string[] }).verified ?? []).map((a) => a.toLowerCase()));
+
+/** Contracts shown on /proof: FriendJar only when the feature flag is on. */
+export const SHOWN_CONTRACTS = CONTRACTS.filter((c) => c.key !== "FriendJar" || FRIEND_JARS);
+```
+
+#### File: web/lib/ui-errors.test.ts
+[ASSUMED] — Source: see header comment
+```typescript
+// File: web/lib/ui-errors.test.ts
+import { BaseError, ContractFunctionRevertedError, UserRejectedRequestError, encodeErrorResult } from "viem";
+import { describe, expect, it } from "vitest";
+import { terraRouterAbi } from "./abi";
+import { API_ERRORS, PLAIN, WRONG_CHAIN, classifyOwnerProbe, isRevert, plainError } from "./ui-errors";
+
+class FakeChainMismatch extends Error {
+  override name = "ConnectorChainMismatchError";
+}
+
+describe("plainError", () => {
+  it("maps a decoded custom revert to plain words", () => {
+    const data = encodeErrorResult({ abi: terraRouterAbi, errorName: "WifNotSellable" });
+    const rev = new ContractFunctionRevertedError({ abi: terraRouterAbi, data, functionName: "sell" });
+    expect(plainError(new BaseError("call failed", { cause: rev }))).toBe(PLAIN.WifNotSellable);
+  });
+  it("maps a wallet rejection", () => {
+    const e = new BaseError("x", { cause: new UserRejectedRequestError(new Error("User rejected")) });
+    expect(plainError(e)).toBe("You cancelled in your wallet.");
+  });
+  it("maps a wrong-chain connector error, even when nested", () => {
+    expect(plainError(new FakeChainMismatch("chain 1 does not match 4663"))).toBe(WRONG_CHAIN);
+    expect(plainError(new Error("wrap", { cause: new FakeChainMismatch("x") }))).toBe(WRONG_CHAIN);
+  });
+  it("falls back to the message / a generic line", () => {
+    expect(plainError(new Error("boom"))).toBe("boom");
+    expect(plainError("nope")).toBe("Something went wrong.");
+    expect(plainError(new BaseError("insufficient funds for gas * price + value"))).toBe("Not enough ETH for this amount plus gas.");
+  });
+  it("covers the gas and self-call errors", () => {
+    expect(PLAIN.InsufficientGas).toMatch(/gas/);
+    expect(PLAIN.OnlySelf).toBeTruthy();
+  });
+  it("never promises next-epoch activation", () => {
+    expect(PLAIN.NoActiveStake).toMatch(/e\+2/);
+    expect(Object.values(PLAIN).join(" ")).not.toMatch(/next epoch/i);
+    expect(API_ERRORS.wif_not_sellable).toBe(PLAIN.WifNotSellable);
+  });
+});
+
+describe("isRevert / classifyOwnerProbe", () => {
+  it("treats an execution revert as ownerless", () => {
+    const e = new Error("call failed", { cause: Object.assign(new Error("execution reverted"), { name: "ExecutionRevertedError" }) });
+    expect(isRevert(e)).toBe(true);
+    expect(classifyOwnerProbe({ error: e })).toBe("ownerless");
+  });
+  it("treats an empty return as ownerless and a 32-byte word as has-owner", () => {
+    expect(classifyOwnerProbe({ data: "0x" })).toBe("ownerless");
+    expect(classifyOwnerProbe({ data: undefined })).toBe("ownerless");
+    expect(classifyOwnerProbe({ data: `0x${"0".repeat(24)}${"ab".repeat(20)}` })).toBe("has-owner");
+  });
+  it("makes no claim on an RPC/network failure or odd data", () => {
+    const net = Object.assign(new Error("HTTP request failed. Status: 429"), { name: "HttpRequestError" });
+    expect(isRevert(net)).toBe(false);
+    expect(classifyOwnerProbe({ error: net })).toBe("unknown");
+    expect(classifyOwnerProbe({ data: "0x1234" })).toBe("unknown");
+  });
+});
 ```
 
 #### File: web/lib/ui-errors.ts
@@ -8130,7 +10606,7 @@ export const PLAIN: Record<string, string> = {
   Locked: "Your $WIF is still locked. Withdraw opens 24h after you asked to unstake.",
   Insufficient: "You don't have enough balance for that.",
   NothingToConvert: "Nothing to convert. Select at least one meme with a balance.",
-  NoActiveStake: "You have no active stake yet. It activates at the next epoch.",
+  NoActiveStake: "You have no active stake yet. A stake placed in epoch e activates at the start of epoch e+2 (60 to 120 minutes).",
   ZeroAmount: "Enter an amount above zero.",
   BadStock: "That stock isn't one of the six supported.",
   BadRound: "The card inputs changed. Refresh the card and try again.",
@@ -8145,7 +10621,33 @@ export const PLAIN: Record<string, string> = {
   NotDepositor: "Only Terra Firma contracts can credit the Jar.",
   Unbacked: "The Jar refused a credit that wasn't backed by tokens.",
   NotFeePool: "Only the fee pool can do that.",
+  InsufficientGas: "The transaction ran out of gas budget. Increase the gas limit and retry.",
+  OnlySelf: "That function can only be called by the contract itself.",
 };
+
+export const WRONG_CHAIN = "Switch your wallet to Robinhood Chain (4663) to continue.";
+
+/** True if any error in the cause chain has one of these names (wagmi and viem errors both carry `name`). */
+function hasName(e: unknown, names: string[], depth = 0): boolean {
+  if (!e || typeof e !== "object" || depth > 8) return false;
+  const x = e as { name?: unknown; cause?: unknown };
+  return (typeof x.name === "string" && names.includes(x.name)) || hasName(x.cause, names, depth + 1);
+}
+
+/** A contract revert (as opposed to a network/RPC failure). Used to tell "no such function" from "RPC down". */
+export function isRevert(e: unknown): boolean {
+  if (hasName(e, ["ContractFunctionRevertedError", "ExecutionRevertedError"])) return true;
+  return e instanceof Error && /revert/i.test(e.message);
+}
+
+export type OwnerProbe = "ownerless" | "has-owner" | "unknown";
+
+/** Classify a raw eth_call of owner() (0x8da5cb5b): a revert or empty return means the contract has no owner(). */
+export function classifyOwnerProbe(r: { data?: string } | { error: unknown }): OwnerProbe {
+  if ("error" in r) return isRevert(r.error) ? "ownerless" : "unknown";
+  const d = r.data ?? "0x";
+  return d === "0x" ? "ownerless" : d.length >= 66 ? "has-owner" : "unknown";
+}
 
 function revertName(err: BaseError): string | undefined {
   const rev = err.walk((e) => e instanceof ContractFunctionRevertedError) as ContractFunctionRevertedError | null;
@@ -8171,6 +10673,7 @@ function findData(err: BaseError): Hex | undefined {
 
 /** Plain-language message for any thrown error. */
 export function plainError(e: unknown): string {
+  if (hasName(e, ["ConnectorChainMismatchError", "ChainMismatchError", "ChainNotConfiguredError", "SwitchChainNotSupportedError"])) return WRONG_CHAIN;
   if (e instanceof BaseError) {
     if (e.walk((x) => x instanceof UserRejectedRequestError)) return "You cancelled in your wallet.";
     const name = revertName(e);
@@ -8195,6 +10698,117 @@ export const API_ERRORS: Record<string, string> = {
   bad_address: "That isn't a valid wallet address.",
   bad_stock: "That stock isn't supported.",
 };
+```
+
+#### File: web/lib/ui-format.test.ts
+[ASSUMED] — Source: see header comment
+```typescript
+// File: web/lib/ui-format.test.ts
+import { describe, expect, it } from "vitest";
+import { DASH, duration, eth, orDash, parseAmount, pct, pctChange, roundTail, shares18, short, sig4, signedSig4, signedUsd, usd8, usd8Label, usd8OrDash } from "./ui-format";
+
+describe("usd8 / usd8Label", () => {
+  it("formats 8-decimal integers as dollars", () => {
+    expect(usd8("4107000000")).toBe("$41.07");
+    expect(usd8(123456789012n)).toBe("$1,234.57");
+    expect(usd8Label("4107000000")).toBe("41.07 dollars");
+  });
+  it("handles zero and negative", () => {
+    expect(usd8("0")).toBe("$0.00");
+    expect(usd8(-150000000n)).toBe("-$1.50");
+  });
+  it("throws on non-integer input instead of guessing", () => {
+    expect(() => usd8("1.5")).toThrow();
+  });
+});
+
+describe("orDash / usd8OrDash", () => {
+  it("formats known values", () => {
+    expect(orDash(2, (x) => `${x * 2}`)).toBe("4");
+    expect(usd8OrDash("100000000")).toBe("$1.00");
+  });
+  it("renders the dash for null/undefined, never zero", () => {
+    expect(usd8OrDash(null)).toBe(DASH);
+    expect(usd8OrDash(undefined)).toBe(DASH);
+    expect(orDash<number>(null, () => "$0.00")).toBe(DASH);
+  });
+  it("keeps a real zero as zero", () => {
+    expect(orDash(0, (x) => String(x))).toBe("0");
+  });
+});
+
+describe("signedUsd / signedSig4", () => {
+  it("prefixes positives with +", () => {
+    expect(signedUsd(1.5)).toBe("+$1.50");
+    expect(signedSig4(0.123456)).toBe("+0.1235");
+  });
+  it("keeps negatives negative", () => {
+    expect(signedUsd(-2)).toBe("-$2.00");
+  });
+  it("dash on unknown", () => {
+    expect(signedUsd(null)).toBe(DASH);
+    expect(signedSig4(null)).toBe(DASH);
+  });
+});
+
+describe("sig4 / shares18 / eth", () => {
+  it("rounds to 4 significant digits", () => {
+    expect(sig4(1.23456)).toBe("1.235");
+    expect(shares18(10n ** 18n)).toBe("1");
+    expect(eth(1_500_000_000_000_000n)).toBe("0.0015");
+  });
+  it("keeps large values whole and zero exact", () => {
+    expect(sig4(0)).toBe("0");
+    expect(sig4(12345.6)).toBe("12,346");
+  });
+});
+
+describe("parseAmount", () => {
+  it("parses decimals", () => {
+    expect(parseAmount("1.5")).toBe(1_500_000_000_000_000_000n);
+    expect(parseAmount(" 2 ", 6)).toBe(2_000_000n);
+  });
+  it("returns null on empty or a lone dot", () => {
+    expect(parseAmount("")).toBeNull();
+    expect(parseAmount(".")).toBeNull();
+  });
+  it("rejects exponent, negative and junk", () => {
+    expect(parseAmount("1e18")).toBeNull();
+    expect(parseAmount("-1")).toBeNull();
+    expect(parseAmount("abc")).toBeNull();
+  });
+});
+
+describe("pctChange / pct", () => {
+  it("computes percent change", () => {
+    expect(pctChange("100", "150")).toBeCloseTo(50);
+    expect(pct(50)).toBe("+50.0%");
+    expect(pct(-12.34)).toBe("-12.3%");
+  });
+  it("returns null for a zero base", () => {
+    expect(pctChange("0", "10")).toBeNull();
+  });
+  it("returns null when today's value is unknown", () => {
+    expect(pctChange("100", null)).toBeNull();
+    expect(pctChange("100", undefined)).toBeNull();
+  });
+});
+
+describe("duration / short / roundTail", () => {
+  it("formats countdowns", () => {
+    expect(duration(724)).toBe("12m 04s");
+    expect(duration(3 * 3600 + 120)).toBe("3h 02m");
+  });
+  it("says now for elapsed time", () => {
+    expect(duration(0)).toBe("now");
+    expect(duration(-5)).toBe("now");
+  });
+  it("shortens long hex and leaves short strings", () => {
+    expect(short("0x3fDBeB0FC14cca8fDd238Dd21725F0b8585Ab09E")).toBe("0x3fDB…b09E");
+    expect(short("0x12")).toBe("0x12");
+    expect(roundTail("18446744073709551001")).toBe("…001");
+  });
+});
 ```
 
 #### File: web/lib/ui-format.ts
@@ -8270,13 +10884,135 @@ export function parseAmount(s: string, decimals = 18): bigint | null {
 }
 
 /** Percent change between two 8dp USD values. */
-export function pctChange(from: string | bigint, to: string | bigint): number | null {
+export function pctChange(from: string | bigint, to: string | bigint | null | undefined): number | null {
+  if (to === null || to === undefined) return null;
   const a = Number(toBig(from));
   if (a === 0) return null;
   return (Number(toBig(to)) / a - 1) * 100;
 }
 
 export const pct = (n: number) => `${n > 0 ? "+" : ""}${n.toFixed(1)}%`;
+
+/** Shown wherever a chain read failed or a value is unknown. Never replaced by a guess. */
+export const DASH = "—";
+
+/** Format a value that may be unknown: null/undefined -> "—". */
+export const orDash = <T,>(v: T | null | undefined, f: (x: T) => string) => (v === null || v === undefined ? DASH : f(v));
+
+/** 8dp USD that may be unknown (e.g. a meme with no quote today). */
+export const usd8OrDash = (v: string | bigint | null | undefined) => orDash(v, usd8);
+
+/** "+$1.23" / "-$1.23"; "—" when unknown. */
+export const signedUsd = (n: number | null | undefined) => orDash(n, (x) => `${x >= 0 ? "+" : ""}${usd(x)}`);
+
+/** "+1.234" / "-1.234"; "—" when unknown. */
+export const signedSig4 = (n: number | null | undefined) => orDash(n, (x) => `${x >= 0 ? "+" : ""}${sig4(x)}`);
+```
+
+#### File: web/lib/ui-logs.test.ts
+[ASSUMED] — Source: see header comment
+```typescript
+// File: web/lib/ui-logs.test.ts
+import { describe, expect, it } from "vitest";
+import { SAVING_EVENTS, chunkRanges, mapLimit, mergeTicker, parseFrame, savingEventsOf, streakDays, toTickerEvents, type TickerEvent } from "./ui-logs";
+
+const U = "0x3fDBeB0FC14cca8fDd238Dd21725F0b8585Ab09E";
+const DAY = 86400;
+
+describe("chunkRanges", () => {
+  it("splits inclusive ranges", () => {
+    expect(chunkRanges(0n, 250n, 100n)).toEqual([[0n, 99n], [100n, 199n], [200n, 250n]]);
+    expect(chunkRanges(5n, 5n, 100n)).toEqual([[5n, 5n]]);
+  });
+  it("is empty when from > to", () => {
+    expect(chunkRanges(10n, 9n, 100n)).toEqual([]);
+  });
+  it("rejects a non-positive chunk", () => {
+    expect(() => chunkRanges(0n, 1n, 0n)).toThrow();
+  });
+});
+
+describe("savingEventsOf", () => {
+  const logs = [
+    { eventName: "Swept", args: { user: U } },
+    { eventName: "Deposited", args: { user: U.toLowerCase() } },
+    { eventName: "Converted", args: { user: U } },
+    { eventName: "Traded", args: { user: U } },
+    { eventName: "Swept", args: { user: "0x0000000000000000000000000000000000000001" } },
+  ];
+  it("treats Deposited as a Jar source alongside Swept and Converted", () => {
+    expect(SAVING_EVENTS.has("Deposited")).toBe(true);
+    expect(savingEventsOf(logs, U).map((l) => l.eventName)).toEqual(["Swept", "Deposited", "Converted"]);
+  });
+  it("is case-insensitive on the address and excludes other users", () => {
+    expect(savingEventsOf(logs, U.toUpperCase().replace("0X", "0x"))).toHaveLength(3);
+  });
+  it("tolerates logs without a user arg", () => {
+    expect(savingEventsOf([{ eventName: "Swept", args: {} }], U)).toEqual([]);
+  });
+});
+
+describe("streakDays", () => {
+  const now = 20_000 * DAY * 1000 + 3_600_000; // 01:00 UTC on day 20000
+  it("counts consecutive days ending today", () => {
+    expect(streakDays([20_000 * DAY + 10, 19_999 * DAY, 19_998 * DAY + 5], now)).toBe(3);
+  });
+  it("allows the streak to end yesterday", () => {
+    expect(streakDays([19_999 * DAY, 19_998 * DAY], now)).toBe(2);
+  });
+  it("is zero with a gap or no events", () => {
+    expect(streakDays([19_997 * DAY], now)).toBe(0);
+    expect(streakDays([], now)).toBe(0);
+  });
+});
+
+describe("mapLimit", () => {
+  it("keeps order and caps concurrency", async () => {
+    let inFlight = 0;
+    let peak = 0;
+    const res = await mapLimit([1, 2, 3, 4, 5, 6, 7], 3, async (x) => {
+      inFlight++;
+      peak = Math.max(peak, inFlight);
+      await new Promise((r) => setTimeout(r, 5));
+      inFlight--;
+      return x * 10;
+    });
+    expect(peak).toBeLessThanOrEqual(3);
+    expect(res.map((r) => (r.status === "fulfilled" ? r.value : null))).toEqual([10, 20, 30, 40, 50, 60, 70]);
+  });
+  it("handles an empty list", async () => {
+    expect(await mapLimit([], 3, async () => 1)).toEqual([]);
+  });
+  it("records rejections without throwing", async () => {
+    const res = await mapLimit([1, 2], 2, async (x) => {
+      if (x === 2) throw new Error("bad");
+      return x;
+    });
+    expect(res[0]).toEqual({ status: "fulfilled", value: 1 });
+    expect(res[1].status).toBe("rejected");
+  });
+});
+
+describe("ticker helpers", () => {
+  const ev = (tx: string, block: number, type: TickerEvent["type"] = "traded"): TickerEvent => ({ tx, block, type, args: {} });
+  it("converts decoded logs, stringifying bigints and dropping unknown events", () => {
+    const out = toTickerEvents([
+      { eventName: "Deposited", args: { user: U, stockId: 0, ethIn: 5n, stockOut: 7n }, transactionHash: "0xa", blockNumber: 10n },
+      { eventName: "BurnSkipped", args: {}, transactionHash: "0xb", blockNumber: 11n },
+    ]);
+    expect(out).toEqual([{ type: "deposited", tx: "0xa", block: 10, args: { user: U, stockId: 0, ethIn: "5", stockOut: "7" } }]);
+  });
+  it("merges, de-duplicates by tx+type and sorts newest first", () => {
+    const m = mergeTicker([ev("0x1", 5), ev("0x2", 9)], [ev("0x1", 5), ev("0x1", 5, "swept"), ev("0x3", 7)], 3);
+    expect(m.map((e) => `${e.tx}:${e.type}`)).toEqual(["0x2:traded", "0x3:traded", "0x1:traded"]);
+  });
+  it("parses frames safely", () => {
+    expect(parseFrame(JSON.stringify({ type: "hello", at: 1 }))).toBeNull();
+    expect(parseFrame("{not json")).toBeNull();
+    expect(parseFrame(JSON.stringify({ type: "weird", tx: "0x1" }))).toBeNull();
+    expect(parseFrame(JSON.stringify({ type: "swept", tx: "0x1", block: 3, args: { user: U } }))).toEqual({ type: "swept", tx: "0x1", block: 3, args: { user: U } });
+  });
+});
 ```
 
 #### File: web/lib/ui-logs.ts
@@ -8322,9 +11058,16 @@ async function rangeLogs(address: Address[], from: bigint, to: bigint, depth = 0
   }
 }
 
-export async function getLogsChunked(address: Address[], from: bigint, to: bigint): Promise<Log[]> {
+/** Inclusive [from, to] block ranges of at most `chunk` blocks. Empty when from > to. */
+export function chunkRanges(from: bigint, to: bigint, chunk = CHUNK): [bigint, bigint][] {
+  if (chunk <= 0n) throw new Error("chunk must be positive");
   const ranges: [bigint, bigint][] = [];
-  for (let s = from; s <= to; s += CHUNK) ranges.push([s, s + CHUNK - 1n > to ? to : s + CHUNK - 1n]);
+  for (let s = from; s <= to; s += chunk) ranges.push([s, s + chunk - 1n > to ? to : s + chunk - 1n]);
+  return ranges;
+}
+
+export async function getLogsChunked(address: Address[], from: bigint, to: bigint): Promise<Log[]> {
+  const ranges = chunkRanges(from, to);
   const out: Log[] = [];
   for (let i = 0; i < ranges.length; i += GROUP) {
     const part = await Promise.all(ranges.slice(i, i + GROUP).map(([a, b]) => rangeLogs(address, a, b)));
@@ -8375,6 +11118,168 @@ export async function blockTimes(blocks: bigint[]): Promise<Map<bigint, number>>
   got.forEach((b, i) => times.set(need[i], Number(b.timestamp)));
   return new Map(blocks.map((b) => [b, times.get(b)!]));
 }
+
+// ---- Pure helpers (unit-tested in ui-logs.test.ts) ----
+
+/** Router events that put stock into a user's Jar. `Deposited` replaced `Swept` for TerraRouter.deposit. */
+export const SAVING_EVENTS: ReadonlySet<string> = new Set(["Swept", "Converted", "Deposited"]);
+
+type UserLog = { eventName: string; args: object };
+const userOf = (l: UserLog) => (l.args as { user?: unknown }).user;
+
+/** A user's Jar-building router events (sweep, convert, direct deposit). */
+export function savingEventsOf<L extends UserLog>(router: readonly L[], user: string): L[] {
+  const u = user.toLowerCase();
+  return router.filter((l) => SAVING_EVENTS.has(l.eventName) && typeof userOf(l) === "string" && (userOf(l) as string).toLowerCase() === u);
+}
+
+/** Consecutive UTC days ending today (or yesterday, if today has none yet) that contain at least one timestamp. */
+export function streakDays(timestamps: number[], nowMs: number): number {
+  const days = new Set(timestamps.map((s) => Math.floor(s / 86400)));
+  let d = Math.floor(nowMs / 86_400_000);
+  if (!days.has(d)) d -= 1;
+  let n = 0;
+  while (days.has(d - n)) n++;
+  return n;
+}
+
+/** Run `fn` over `items` with at most `limit` in flight; results keep input order. A rejection is kept, not thrown. */
+export async function mapLimit<T, R>(items: readonly T[], limit: number, fn: (x: T) => Promise<R>): Promise<PromiseSettledResult<R>[]> {
+  const out: PromiseSettledResult<R>[] = new Array(items.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length) {
+      const i = next++;
+      try {
+        out[i] = { status: "fulfilled", value: await fn(items[i]) };
+      } catch (reason) {
+        out[i] = { status: "rejected", reason };
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.max(1, Math.min(limit, items.length)) }, worker));
+  return out;
+}
+
+/** Ticker event, same shape /api/stream sends (bigints as decimal strings). */
+export interface TickerEvent {
+  type: "traded" | "swept" | "deposited" | "converted" | "distributed" | "credited" | "cardMinted";
+  tx: string;
+  block: number;
+  args: Record<string, string | boolean | string[]>;
+}
+
+const KINDS: Record<string, TickerEvent["type"]> = {
+  Traded: "traded",
+  Swept: "swept",
+  Deposited: "deposited",
+  Converted: "converted",
+  Distributed: "distributed",
+  Credited: "credited",
+  CardMinted: "cardMinted",
+};
+
+type DecodedLog = { eventName: string; args: object; transactionHash: string; blockNumber: bigint | number };
+
+export const tickerKey = (e: Pick<TickerEvent, "tx" | "type">) => `${e.tx}-${e.type}`;
+
+/** Decoded logs -> ticker events (unknown event names are dropped). */
+export function toTickerEvents(logs: readonly DecodedLog[]): TickerEvent[] {
+  return logs.flatMap((l) => {
+    const type = KINDS[l.eventName];
+    if (!type) return [];
+    const args = JSON.parse(JSON.stringify(l.args, (_, v) => (typeof v === "bigint" ? v.toString() : v)));
+    return [{ type, tx: l.transactionHash, block: Number(l.blockNumber), args }];
+  });
+}
+
+/** Merge live and backfilled events: de-duplicated by tx+type, newest block first, capped. */
+export function mergeTicker(a: readonly TickerEvent[], b: readonly TickerEvent[], cap = 8): TickerEvent[] {
+  const seen = new Set<string>();
+  return [...a, ...b]
+    .filter((e) => (seen.has(tickerKey(e)) ? false : (seen.add(tickerKey(e)), true)))
+    .sort((x, y) => y.block - x.block)
+    .slice(0, cap);
+}
+
+/** Safe SSE frame parse: a malformed frame yields null instead of throwing in the handler. */
+export function parseFrame(data: string): TickerEvent | null {
+  try {
+    const e = JSON.parse(data) as { type?: unknown; tx?: unknown; block?: unknown; args?: unknown } | null;
+    if (!e || typeof e !== "object" || typeof e.type !== "string" || typeof e.tx !== "string") return null;
+    if (!Object.values(KINDS).includes(e.type as TickerEvent["type"])) return null;
+    return { type: e.type as TickerEvent["type"], tx: e.tx, block: Number(e.block ?? 0), args: (e.args ?? {}) as TickerEvent["args"] };
+  } catch {
+    return null;
+  }
+}
+```
+
+#### File: web/lib/ui-report.test.ts
+[ASSUMED] — Source: see header comment
+```typescript
+// File: web/lib/ui-report.test.ts
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { STOCKS } from "./config";
+import { publicClient } from "./ui-chain";
+import { sharesOf, stockQuotes, sumKnown, toQuote, usdOf, type StockQuote } from "./ui-report";
+
+const ok = (result: unknown) => ({ status: "success" as const, result });
+const fail = () => ({ status: "failure" as const, error: new Error("reverted") });
+const round = (price: bigint, updatedAt = 1_700_000_000n) => ok([1n, price, 0n, updatedAt, 1n]);
+const E18 = 10n ** 18n;
+
+afterEach(() => vi.restoreAllMocks());
+
+describe("toQuote", () => {
+  it("maps successful reads", () => {
+    expect(toQuote("NVDA", ok(E18), round(18_000_000_000n))).toEqual({ symbol: "NVDA", multiplier: E18, price8: 18_000_000_000n, updatedAt: 1_700_000_000 });
+  });
+  it("returns null fields on failed reads, never 1e18 or $0", () => {
+    const q = toQuote("NVDA", fail(), fail());
+    expect(q.multiplier).toBeNull();
+    expect(q.price8).toBeNull();
+    expect(q.updatedAt).toBeNull();
+  });
+  it("treats a non-positive answer or multiplier as unknown", () => {
+    expect(toQuote("X", ok(0n), round(0n)).price8).toBeNull();
+    expect(toQuote("X", ok(0n), round(-5n)).multiplier).toBeNull();
+  });
+});
+
+describe("stockQuotes (multicall)", () => {
+  it("keeps good stocks and nulls only the failed one", async () => {
+    const res = STOCKS.flatMap((_, i) => (i === 0 ? [fail(), round(10_000_000_000n)] : [ok(E18), round(20_000_000_000n)]));
+    vi.spyOn(publicClient, "multicall").mockResolvedValue(res as never);
+    const qs = await stockQuotes();
+    expect(qs).toHaveLength(STOCKS.length);
+    expect(qs[0].multiplier).toBeNull();
+    expect(qs[0].price8).toBe(10_000_000_000n);
+    expect(qs[1].multiplier).toBe(E18);
+  });
+  it("surfaces a whole-call failure as a rejection (react-query error state)", async () => {
+    vi.spyOn(publicClient, "multicall").mockRejectedValue(new Error("429"));
+    await expect(stockQuotes()).rejects.toThrow("429");
+  });
+});
+
+describe("sharesOf / usdOf / sumKnown", () => {
+  const q: StockQuote = { symbol: "NVDA", multiplier: 2n * E18, price8: 100_00000000n, updatedAt: 1 };
+  it("applies the multiplier and price", () => {
+    expect(sharesOf(E18, q)).toBe(2n * E18);
+    expect(usdOf(E18, q)).toBe(200);
+    expect(sumKnown([1, 2.5])).toBe(3.5);
+    expect(sumKnown([])).toBe(0);
+  });
+  it("is null when the quote is missing or partial", () => {
+    expect(sharesOf(E18, undefined)).toBeNull();
+    expect(sharesOf(E18, { ...q, multiplier: null })).toBeNull();
+    expect(usdOf(E18, { ...q, price8: null })).toBeNull();
+  });
+  it("refuses to total over an unknown term", () => {
+    expect(sumKnown([1, null, 2])).toBeNull();
+  });
+});
 ```
 
 #### File: web/lib/ui-report.ts
@@ -8389,11 +11294,22 @@ import { STOCKS, TF } from "./config";
 import { DEPLOYED, aggregatorAbi, publicClient } from "./ui-chain";
 import { blockTimes, getLogsChunked } from "./ui-logs";
 
+/** Live read per curated stock. A field is null when its read failed: callers render "—", never a default. */
 export interface StockQuote {
   symbol: string;
-  multiplier: bigint;
-  price8: bigint;
-  updatedAt: number;
+  multiplier: bigint | null;
+  price8: bigint | null;
+  updatedAt: number | null;
+}
+
+type Read = { status: "success"; result: unknown } | { status: "failure"; error: Error };
+
+/** Pure mapper from one multicall result pair to a quote (null on any failed or non-positive read). */
+export function toQuote(symbol: string, m: Read, p: Read): StockQuote {
+  const round = p.status === "success" ? (p.result as readonly [bigint, bigint, bigint, bigint, bigint]) : null;
+  const price = round && round[1] > 0n ? round[1] : null;
+  const mult = m.status === "success" && typeof m.result === "bigint" && m.result > 0n ? m.result : null;
+  return { symbol, multiplier: mult, price8: price, updatedAt: price !== null && round ? Number(round[3]) : null };
 }
 
 /** uiMultiplier + Chainlink live price for the curated 6 (one multicall). */
@@ -8405,31 +11321,34 @@ export async function stockQuotes(): Promise<StockQuote[]> {
       { address: s.liveFeed, abi: aggregatorAbi, functionName: "latestRoundData" } as const,
     ]),
   });
-  return STOCKS.map((s, i) => {
-    const m = res[2 * i];
-    const p = res[2 * i + 1];
-    const round = p.status === "success" ? (p.result as readonly [bigint, bigint, bigint, bigint, bigint]) : null;
-    return {
-      symbol: s.symbol,
-      multiplier: m.status === "success" ? (m.result as bigint) : 10n ** 18n,
-      price8: round ? round[1] : 0n,
-      updatedAt: round ? Number(round[3]) : 0,
-    };
-  });
+  return STOCKS.map((s, i) => toQuote(s.symbol, res[2 * i] as Read, res[2 * i + 1] as Read));
 }
 
-export const sharesOf = (raw: bigint, q: StockQuote) => (raw * q.multiplier) / 10n ** 18n;
-export const usdOf = (raw: bigint, q: StockQuote) => Number(formatUnits(sharesOf(raw, q), 18)) * Number(formatUnits(q.price8, 8));
+/** Displayed shares (raw * uiMultiplier). Null when the quote or its multiplier is unknown. */
+export const sharesOf = (raw: bigint, q: StockQuote | null | undefined): bigint | null =>
+  q?.multiplier != null ? (raw * q.multiplier) / 10n ** 18n : null;
+
+/** USD value at the live Chainlink price. Null when shares or price are unknown. */
+export function usdOf(raw: bigint, q: StockQuote | null | undefined): number | null {
+  const sh = sharesOf(raw, q);
+  if (sh === null || q?.price8 == null) return null;
+  return Number(formatUnits(sh, 18)) * Number(formatUnits(q.price8, 8));
+}
+
+/** Sum that refuses to guess: any unknown term makes the total unknown. */
+export const sumKnown = (xs: (number | null)[]): number | null => (xs.some((x) => x === null) ? null : (xs as number[]).reduce((a, x) => a + x, 0));
 
 export interface JarReport {
   user: Address;
   deployed: boolean;
   asOfBlock: string;
-  rows: { symbol: string; sharesNow: number; sharesWeek: number; usdNow: number; usdWeek: number }[];
-  usdNow: number;
-  usdWeek: number;
+  rows: { symbol: string; sharesNow: number | null; sharesWeek: number | null; usdNow: number | null; usdWeek: number | null }[];
+  usdNow: number | null;
+  usdWeek: number | null;
   creditsWeek: number;
 }
+
+const num18 = (v: bigint | null) => (v === null ? null : Number(formatUnits(v, 18)));
 
 export async function jarReport(addr: string): Promise<JarReport> {
   const user = getAddress(addr);
@@ -8445,7 +11364,7 @@ export async function jarReport(addr: string): Promise<JarReport> {
     contracts: STOCKS.map((s) => ({ address: TF.Jar, abi: jarAbi, functionName: "balanceOf", args: [user, s.token] }) as const),
   });
   let creditsWeek = 0;
-  const rows = STOCKS.map((s, i) => {
+  const rows = STOCKS.flatMap((s, i) => {
     let week = 0n;
     for (const l of mine) {
       if (l.args.stock.toLowerCase() !== s.token.toLowerCase() || times.get(l.blockNumber)! < weekAgo) continue;
@@ -8456,21 +11375,16 @@ export async function jarReport(addr: string): Promise<JarReport> {
     }
     const q = quotes[i];
     const now = balances[i] as bigint;
-    return {
-      symbol: s.symbol,
-      sharesNow: Number(formatUnits(sharesOf(now, q), 18)),
-      sharesWeek: Number(formatUnits(sharesOf(week, q), 18)),
-      usdNow: usdOf(now, q),
-      usdWeek: usdOf(week, q),
-    };
-  }).filter((r) => r.sharesNow !== 0 || r.sharesWeek !== 0);
+    if (now === 0n && week === 0n) return [];
+    return [{ symbol: s.symbol, sharesNow: num18(sharesOf(now, q)), sharesWeek: num18(sharesOf(week, q)), usdNow: usdOf(now, q), usdWeek: usdOf(week, q) }];
+  });
   return {
     user,
     deployed: true,
     asOfBlock: head.toString(),
     rows,
-    usdNow: rows.reduce((a, r) => a + r.usdNow, 0),
-    usdWeek: rows.reduce((a, r) => a + r.usdWeek, 0),
+    usdNow: sumKnown(rows.map((r) => r.usdNow)),
+    usdWeek: sumKnown(rows.map((r) => r.usdWeek)),
     creditsWeek,
   };
 }
@@ -8487,6 +11401,13 @@ import { robinhood } from "viem/chains";
 import { PUBLIC_RPC } from "./config";
 
 const wcProjectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID;
+
+/** WalletConnect v2 (Robinhood Wallet, mobile MetaMask) needs a project id; without it only injected + Coinbase show. */
+export const HAS_WALLETCONNECT = !!wcProjectId;
+
+if (typeof window === "undefined" && !wcProjectId && process.env.NODE_ENV === "production") {
+  console.warn("[terra-firma] NEXT_PUBLIC_WC_PROJECT_ID is not set: the wallet dialog will not offer WalletConnect (see .env.example).");
+}
 
 /** Connectors touch browser APIs, so they are only built in the browser. */
 function connectors() {
@@ -8536,7 +11457,9 @@ Data builders, deployment sync, keeper, seed, proof, claims.
 - `scripts/build-rounds.ts`
 - `scripts/check-arch-metrics.py`
 - `scripts/check-plan-metrics.py`
+- `scripts/debug-p2-hindsight-latency.live.ts`
 - `scripts/export-abis.mjs`
+- `scripts/fixtures/debug-p2-hindsight-baseline.json`
 - `scripts/gen-architecture.py`
 - `scripts/gen-plan.py`
 - `scripts/hindsight.live.ts`
@@ -8729,7 +11652,7 @@ jobs:
     "typecheck:web": "pnpm --dir web typecheck",
     "forge:build": "scripts/forge.sh build",
     "test": "pnpm --dir web test",
-    "test:live": "tsx --conditions=react-server scripts/hindsight.live.ts && scripts/fork-tests.sh",
+    "test:live": "tsx --conditions=react-server scripts/hindsight.live.ts && tsx --conditions=react-server scripts/debug-p2-hindsight-latency.live.ts && scripts/fork-tests.sh",
     "check": "pnpm typecheck && pnpm typecheck:web && pnpm forge:build && pnpm test && pnpm verify-claims",
     "clean-room": "scripts/clean-room.sh"
   },
@@ -8966,7 +11889,7 @@ async function main() {
   const raw = JSON.parse(readFileSync(path.join(ROOT, "research", "spike-pool-keys.json"), "utf8")) as Record<string, SpikeKey>;
   const spikeKeys = new Map(Object.entries(raw).map(([k, v]) => [k.toLowerCase(), v]));
   const firstBlock = await firstBlocks(memes.map((m) => m.token), head);
-  const sources = new Set<string>([ADDR.universalRouter, ADDR.universalRouter212, ADDR.poolManager].map((a) => getAddress(a)));
+  const sources = new Set<string>([ADDR.universalRouter, ADDR.universalRouter212, ADDR.poolManager, ...deployedRouter()].map((a) => getAddress(a)));
   const ctx: Ctx = { head, ethUsd, buyWei, spikeKeys, firstBlock, sources };
 
   const built: (Meme & { liq: number })[] = [];
@@ -8983,6 +11906,14 @@ async function main() {
   };
   writeJson(path.join(WEB_DATA, "memes.json"), registry);
   summarize(registry, head);
+}
+
+/** TerraRouter forwards bought memes to the buyer (Transfer.from = router): a purchase source once deployed. */
+function deployedRouter(): Address[] {
+  const d = JSON.parse(readFileSync(path.join(WEB_DATA, "deployments.json"), "utf8")) as { deployed?: boolean; TerraRouter?: string };
+  if (d.deployed !== true || !d.TerraRouter || /^0x0{40}$/i.test(d.TerraRouter)) return [];
+  console.log(`sources: + TerraRouter ${d.TerraRouter}`);
+  return [getAddress(d.TerraRouter)];
 }
 
 /** Keep only source addresses that are contracts (DexScreener pair ids are data, not trusted). */
@@ -9370,6 +12301,57 @@ print("tasks without commit:", [t.split("\n")[0] for t in tasks if t not in with
 sys.exit(1 if fail else 0)
 ```
 
+#### File: scripts/debug-p2-hindsight-latency.live.ts
+[ASSUMED] — Source: see header comment
+```typescript
+// File: scripts/debug-p2-hindsight-latency.live.ts
+// LIVE tier, added by hackathon-debug Phase 2 (known risk: heavy-wallet Hindsight latency, 28.7-32s before hardening).
+// Builds the card for the heaviest known wallet on the PUBLIC RPC only (worst case; GetBlock/Envio env removed, like
+// hindsight.live.ts) and asserts: (1) it completes in < 20 s, (2) every buy at or before the fixture's cutoff block is
+// byte-identical to the pre-change output (scripts/fixtures/debug-p2-hindsight-baseline.json) and their totals match,
+// (3) every pre-change unpriced row is still unpriced with the same reason. Exit 1 on any failure.
+// Run: tsx --conditions=react-server scripts/debug-p2-hindsight-latency.live.ts   (part of `pnpm test:live`)
+import assert from "node:assert/strict";
+import path from "node:path";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import type { Address } from "viem";
+
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+const LIMIT_MS = 20_000;
+type Buy = Record<string, unknown> & { tx: string; block: number; usdPaid8: string; shares18: string; token: string };
+type Fixture = { wallet: Address; cutoffBlock: number; totals: { usdPaid8: string; shares18: string }; buys: Buy[]; unpriced: { tx: string; reason: string }[] };
+const fx = JSON.parse(readFileSync(path.join(HERE, "fixtures", "debug-p2-hindsight-baseline.json"), "utf8")) as Fixture;
+
+for (const k of ["GETBLOCK_RPC_FRA", "GETBLOCK_RPC_NYC", "ENVIO_API_TOKEN"]) delete process.env[k];
+process.chdir(path.resolve(HERE, "..", "web")); // rounds.ts reads data/rounds relative to the Next app root
+
+async function main() {
+  const { buildCard } = await import("../web/lib/hindsight");
+  const t0 = Date.now();
+  const card = await buildCard(fx.wallet, 0);
+  const ms = Date.now() - t0;
+  console.log(`card for ${fx.wallet} in ${(ms / 1000).toFixed(1)}s (limit ${LIMIT_MS / 1000}s), block ${card.asOfBlock}`);
+
+  const got = card.memes.flatMap((m) => m.buys.map((b) => ({ token: m.token, ...b }))).filter((b) => b.block <= fx.cutoffBlock);
+  assert.equal(got.length, fx.buys.length, "buy count up to cutoff changed");
+  const byTx = new Map(got.map((b) => [b.tx, b]));
+  for (const want of fx.buys) assert.deepEqual(byTx.get(want.tx as `0x${string}`), want, `buy ${want.tx} differs from pre-change output`);
+  const sum = (k: "usdPaid8" | "shares18") => got.reduce((s, b) => s + BigInt(b[k]), 0n).toString();
+  assert.equal(sum("usdPaid8"), fx.totals.usdPaid8, "usdPaid8 total differs from pre-change");
+  assert.equal(sum("shares18"), fx.totals.shares18, "shares18 total differs from pre-change");
+  const unpriced = new Map(card.unpriced.map((u) => [u.tx, u.reason]));
+  for (const u of fx.unpriced) assert.equal(unpriced.get(u.tx as `0x${string}`), u.reason, `unpriced row ${u.tx} changed`);
+  assert.ok(ms < LIMIT_MS, `heavy-wallet card took ${ms} ms (>= ${LIMIT_MS} ms)`);
+  console.log(`PASS debug-p2 hindsight latency: ${ms} ms < ${LIMIT_MS}; ${got.length} buys + ${fx.unpriced.length} unpriced rows identical to pre-change; usdPaid8 ${fx.totals.usdPaid8}, shares18 ${fx.totals.shares18}`);
+}
+
+main().catch((e) => {
+  console.error(`FAIL debug-p2 hindsight latency: ${e instanceof Error ? e.message : String(e)}`);
+  process.exit(1);
+});
+```
+
 #### File: scripts/export-abis.mjs
 [VERIFIED] — Source: fork-tested / live-probed
 ```javascript
@@ -9393,6 +12375,1838 @@ out += `export const erc20Abi = ${JSON.stringify([
 ])} as const;\n`;
 writeFileSync("web/lib/abi.ts", out);
 console.log("wrote web/lib/abi.ts", out.length, "bytes");
+```
+
+#### File: scripts/fixtures/debug-p2-hindsight-baseline.json
+[ASSUMED] — Source: see header comment
+```json
+// File: scripts/fixtures/debug-p2-hindsight-baseline.json (JSON: copy everything after this first line)
+{
+ "note": "Pre-change (HEAD 5578422) buildCard output for 0x3fDB...b09E on the public RPC, captured 2026-11-11 by debug-p2 before the latency hardening. Buys at block <= cutoffBlock must match exactly.",
+ "wallet": "0x3fDBeB0FC14cca8fDd238Dd21725F0b8585Ab09E",
+ "stock": "NVDA",
+ "cutoffBlock": 111387915,
+ "totals": {
+  "usdPaid8": "1536343900041",
+  "shares18": "86786299456826669428"
+ },
+ "buys": [
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0xe25825c0345daaeb8b5d79d0156ef8568cc6036eb4da795d08091dd97130d949",
+   "block": 109215243,
+   "ts": 1794139755,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "100275012077658832",
+   "payRoundId": "18446744073709554798",
+   "payUsd8": "223058075380",
+   "stockRoundId": "18446744073709553209",
+   "stockUsd8": "18824025313",
+   "usdPaid8": "22367151202",
+   "shares18": "1188223604148741403"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0xcf8f96d45c2838f2b3140501fb4ba3092505e678cf1ae714a5bea234cf25f65d",
+   "block": 109244809,
+   "ts": 1794142919,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "69931552565134736",
+   "payRoundId": "18446744073709554798",
+   "payUsd8": "223058075380",
+   "stockRoundId": "18446744073709553209",
+   "stockUsd8": "18824025313",
+   "usdPaid8": "15598797523",
+   "shares18": "828664287453298538"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x4fd440d799d2f73ed305c1eb5e9d83eb3a22e53ac192631fed2d93828677f22e",
+   "block": 109268424,
+   "ts": 1794145415,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "66843015607946200",
+   "payRoundId": "18446744073709554799",
+   "payUsd8": "224183798139",
+   "stockRoundId": "18446744073709553209",
+   "stockUsd8": "18824025313",
+   "usdPaid8": "14985121118",
+   "shares18": "796063587295070909"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x277dd37e95dec68c6c33c693581f0543a38fe210c5cd2b5d809453cf1f7155c4",
+   "block": 109333613,
+   "ts": 1794152200,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "58575507226215704",
+   "payRoundId": "18446744073709554799",
+   "payUsd8": "224183798139",
+   "stockRoundId": "18446744073709553209",
+   "stockUsd8": "18824025313",
+   "usdPaid8": "13131679687",
+   "shares18": "697602105216633587"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x75b2b45b3da2829d2c335e4cf4aa2fee90ad0e142cb13aa65f570aaea210f5e4",
+   "block": 109362662,
+   "ts": 1794155219,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "34332066776834008",
+   "payRoundId": "18446744073709554799",
+   "payUsd8": "224183798139",
+   "stockRoundId": "18446744073709553209",
+   "stockUsd8": "18824025313",
+   "usdPaid8": "7696693127",
+   "shares18": "408876050633262341"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x35428e9d73c602301fd5450768a128b526f6a9e16652bd01f2649fa5aaae1b7e",
+   "block": 109531174,
+   "ts": 1794172722,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "89786557244095120",
+   "payRoundId": "18446744073709554800",
+   "payUsd8": "222975751599",
+   "stockRoundId": "18446744073709553209",
+   "stockUsd8": "18824025313",
+   "usdPaid8": "20020225084",
+   "shares18": "1063546438719134971"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0xbeaa56afdecbe21846c3584c12d9a8a0dab0dbe7f32835503b53d26b623e3d39",
+   "block": 109539280,
+   "ts": 1794173570,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "7838454903665026",
+   "payRoundId": "18446744073709554800",
+   "payUsd8": "222975751599",
+   "stockRoundId": "18446744073709553209",
+   "stockUsd8": "18824025313",
+   "usdPaid8": "1747785373",
+   "shares18": "92848651865813606"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0xc134960efff5aac6d7b68622a299c401ebd3a1cb4c16e5b2e4396f1fd117e327",
+   "block": 109542678,
+   "ts": 1794173925,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "35561651745980076",
+   "payRoundId": "18446744073709554800",
+   "payUsd8": "222975751599",
+   "stockRoundId": "18446744073709553209",
+   "stockUsd8": "18824025313",
+   "usdPaid8": "7929386026",
+   "shares18": "421237535232377319"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0xbd011ba7d6ca9cf78897e2eed33f28a8afed7902147c9accd900143f403f4221",
+   "block": 109684092,
+   "ts": 1794188571,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "123337611731926480",
+   "payRoundId": "18446744073709554822",
+   "payUsd8": "212995682749",
+   "stockRoundId": "18446744073709553217",
+   "stockUsd8": "18001125835",
+   "usdPaid8": "26270378819",
+   "shares18": "1459374211357486463"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0xb3eb0226619157c65e75125acd640d0d70a49dfd5927a307fbe50b5bf493ca78",
+   "block": 109695901,
+   "ts": 1794189785,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "103665156657876912",
+   "payRoundId": "18446744073709554823",
+   "payUsd8": "214136780832",
+   "stockRoundId": "18446744073709553218",
+   "stockUsd8": "18093856192",
+   "usdPaid8": "22198522931",
+   "shares18": "1226854170578344342"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0xd4218492f84659d21ac1deaf7801956fb163fc65bd364c9262c1c15fb15313ad",
+   "block": 109730717,
+   "ts": 1794193384,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "359549060640211520",
+   "payRoundId": "18446744073709554824",
+   "payUsd8": "215344010000",
+   "stockRoundId": "18446744073709553218",
+   "stockUsd8": "18093856192",
+   "usdPaid8": "77426736509",
+   "shares18": "4279172758277662340"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x703327c5c16864b30ced30ff5cc4142dcec58764d2e189028e9a25dbd4500d4e",
+   "block": 109743190,
+   "ts": 1794194679,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "268124096133200928",
+   "payRoundId": "18446744073709554825",
+   "payUsd8": "214210382193",
+   "stockRoundId": "18446744073709553218",
+   "stockUsd8": "18093856192",
+   "usdPaid8": "57434965107",
+   "shares18": "3174279959868048452"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x7d029357fca1eb8de6af4b3ea15e82f20c5d1761dcc6813eda7090ba0fc0c598",
+   "block": 109749092,
+   "ts": 1794195292,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "16864533734891986",
+   "payRoundId": "18446744073709554825",
+   "payUsd8": "214210382193",
+   "stockRoundId": "18446744073709553218",
+   "stockUsd8": "18093856192",
+   "usdPaid8": "3612558216",
+   "shares18": "199656622538939652"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x9753cdbcc31f2e1ed60c2c16eed776dd956731f40417f37da9070fc104c2f516",
+   "block": 109791139,
+   "ts": 1794199711,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "40494138646214928",
+   "payRoundId": "18446744073709554825",
+   "payUsd8": "214210382193",
+   "stockRoundId": "18446744073709553220",
+   "stockUsd8": "17912132359",
+   "usdPaid8": "8674264915",
+   "shares18": "484267575805489837"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0xfc734ceb95e8fb7dea25c95665d4444835236feb3ea09b327f7553a19b51f780",
+   "block": 109862503,
+   "ts": 1794207159,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "46644212440980160",
+   "payRoundId": "18446744073709554828",
+   "payUsd8": "210720374327",
+   "stockRoundId": "18446744073709553223",
+   "stockUsd8": "17636673622",
+   "usdPaid8": "9828885905",
+   "shares18": "557298168331438661"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0xed141c50ea69a8f84e79d208de416b653a39a35034abe24467c8a802006777d7",
+   "block": 109891504,
+   "ts": 1794210169,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "15639689402398162",
+   "payRoundId": "18446744073709554829",
+   "payUsd8": "209003938890",
+   "stockRoundId": "18446744073709553223",
+   "stockUsd8": "17636673622",
+   "usdPaid8": "3268756688",
+   "shares18": "185338616456708165"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x0ed40f0967456a0bfa044837c6ff1150719aa683035a654f431499dca014a3ba",
+   "block": 109912986,
+   "ts": 1794212367,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "31570167650873288",
+   "payRoundId": "18446744073709554829",
+   "payUsd8": "209003938890",
+   "stockRoundId": "18446744073709553224",
+   "stockUsd8": "17725683034",
+   "usdPaid8": "6598289390",
+   "shares18": "372244577393361055"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0xb41c0dea47a89d8e666296bea0f8236071aa377d16100d9ab605c1aa52a5669f",
+   "block": 109917787,
+   "ts": 1794212863,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "232949826842532416",
+   "payRoundId": "18446744073709554830",
+   "payUsd8": "210140609929",
+   "stockRoundId": "18446744073709553224",
+   "stockUsd8": "17725683034",
+   "usdPaid8": "48952218695",
+   "shares18": "2761654859849616782"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x50b3b899fdd2a341c78346e7b5cb0090332e81c365a9e7c157adb2fbc6f33158",
+   "block": 109933137,
+   "ts": 1794214471,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "101762107434919056",
+   "payRoundId": "18446744073709554831",
+   "payUsd8": "211264730000",
+   "stockRoundId": "18446744073709553225",
+   "stockUsd8": "17816420260",
+   "usdPaid8": "21498744151",
+   "shares18": "1206681467840498728"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0xc8db5992c971d10ab3a52badc413b3606cc139066d37cc57b04bb107d6c39840",
+   "block": 109934279,
+   "ts": 1794214589,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "125646593299130464",
+   "payRoundId": "18446744073709554831",
+   "payUsd8": "211264730000",
+   "stockRoundId": "18446744073709553225",
+   "stockUsd8": "17816420260",
+   "usdPaid8": "26544693608",
+   "shares18": "1489900508667053636"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x83f19bc413d8956ef4ccfb3fc08afc41dc7f935fbeaa625d49ed7382df884083",
+   "block": 109936132,
+   "ts": 1794214784,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "62180942179604312",
+   "payRoundId": "18446744073709554831",
+   "payUsd8": "211264730000",
+   "stockRoundId": "18446744073709553225",
+   "stockUsd8": "17816420260",
+   "usdPaid8": "13136639960",
+   "shares18": "737333300870396060"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0xb387193505047adbd115f788fcf1452cf7fcaf4fec1a5a4f368c0648cce9e610",
+   "block": 109941322,
+   "ts": 1794215318,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "330425337714037376",
+   "payRoundId": "18446744073709554832",
+   "payUsd8": "212418921898",
+   "stockRoundId": "18446744073709553227",
+   "stockUsd8": "17802288918",
+   "usdPaid8": "70188594004",
+   "shares18": "3942672446633078511"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x2029d21141676130bb1dc9b7eb51832c85765bc944502d63f3bb5f6ad0ecc5f9",
+   "block": 109947960,
+   "ts": 1794215993,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "24832389728510212",
+   "payRoundId": "18446744073709554832",
+   "payUsd8": "212418921898",
+   "stockRoundId": "18446744073709553227",
+   "stockUsd8": "17802288918",
+   "usdPaid8": "5274869454",
+   "shares18": "296302878708284988"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x6ce0d720b544dc81302c40dfec61facf65a2fa0a46b15cc67bf4b49ba4ac5cc1",
+   "block": 109984214,
+   "ts": 1794219753,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "219949032572233408",
+   "payRoundId": "18446744073709554834",
+   "payUsd8": "210211000000",
+   "stockRoundId": "18446744073709553230",
+   "stockUsd8": "17902266357",
+   "usdPaid8": "46235706086",
+   "shares18": "2582673342245368090"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x1b4eaa40d95f4e0ce9c48eaab039c5e956bd4de1b18fdfa17ceb4f9e4a58d8a9",
+   "block": 109990180,
+   "ts": 1794220371,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "12706054001877110",
+   "payRoundId": "18446744073709554834",
+   "payUsd8": "210211000000",
+   "stockRoundId": "18446744073709553230",
+   "stockUsd8": "17902266357",
+   "usdPaid8": "2670952317",
+   "shares18": "149196323177016397"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x30b8f160beec2cfdde838c31d6ab93dad4e9caf914faf6f767a84e2a87e8b1df",
+   "block": 110019108,
+   "ts": 1794223393,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "51117681906482432",
+   "payRoundId": "18446744073709554836",
+   "payUsd8": "212407467021",
+   "stockRoundId": "18446744073709553232",
+   "stockUsd8": "17715496693",
+   "usdPaid8": "10857777333",
+   "shares18": "612897144300237430"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0xc9b7aa93a2113c1bd7fa6c81f7f3bf2d6d46e772520f0d22447740daa384a3a6",
+   "block": 110024976,
+   "ts": 1794224000,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "40866904233424112",
+   "payRoundId": "18446744073709554836",
+   "payUsd8": "212407467021",
+   "stockRoundId": "18446744073709553232",
+   "stockUsd8": "17715496693",
+   "usdPaid8": "8680435613",
+   "shares18": "489991094431461109"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0xc37c17d5b4965763f81eb2a5b9b764289b1bc43206a5e2af49ad6375b3a52331",
+   "block": 110036835,
+   "ts": 1794225252,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "277589121348178432",
+   "payRoundId": "18446744073709554837",
+   "payUsd8": "211250276123",
+   "stockRoundId": "18446744073709553232",
+   "stockUsd8": "17715496693",
+   "usdPaid8": "58640778533",
+   "shares18": "3310140243269102452"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x44dbb6c96195f288efb3777d401bbed5041f420798ee439d400a09b71b031ad2",
+   "block": 110042777,
+   "ts": 1794225865,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "15668951322507754",
+   "payRoundId": "18446744073709554837",
+   "payUsd8": "211250276123",
+   "stockRoundId": "18446744073709553232",
+   "stockUsd8": "17715496693",
+   "usdPaid8": "3310070293",
+   "shares18": "186846033750096447"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x9082d3123bff5f31db15e4cc356bd460c356e6b2f7282fbf8b04bbe2774eab8a",
+   "block": 110050319,
+   "ts": 1794226639,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "270084207711995104",
+   "payRoundId": "18446744073709554837",
+   "payUsd8": "211250276123",
+   "stockRoundId": "18446744073709553234",
+   "stockUsd8": "17507560634",
+   "usdPaid8": "57055363455",
+   "shares18": "3258898520916583335"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0xc19c9d60af1e786415c59998560d46a642f9f3313fadf9a81ed0e61ca9e9fdbb",
+   "block": 110062251,
+   "ts": 1794227868,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "181545606444492288",
+   "payRoundId": "18446744073709554838",
+   "payUsd8": "212408453494",
+   "stockRoundId": "18446744073709553235",
+   "stockUsd8": "17601633499",
+   "usdPaid8": "38561821503",
+   "shares18": "2190809251038593051"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0xcc0b7b6798bbe9de7f762775ae8180d456f1dcb82bf4a6a2d82f77a44e31e924",
+   "block": 110091911,
+   "ts": 1794230899,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "8223725316740819",
+   "payRoundId": "18446744073709554838",
+   "payUsd8": "212408453494",
+   "stockRoundId": "18446744073709553236",
+   "stockUsd8": "17693204426",
+   "usdPaid8": "1746788776",
+   "shares18": "98726535563739379"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x204237af8506b5320b3d65771752c58b5f42a37c7efc17d44b16abb6a30b831d",
+   "block": 110126075,
+   "ts": 1794234396,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "217941475673766304",
+   "payRoundId": "18446744073709554838",
+   "payUsd8": "212408453494",
+   "stockRoundId": "18446744073709553239",
+   "stockUsd8": "17403379940",
+   "usdPaid8": "46292611800",
+   "shares18": "2659978231791680346"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x5a0b2ef139a93f158be59eb350ef160de984749cfe7e2689595a8aa74583d73e",
+   "block": 110133096,
+   "ts": 1794235140,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "5743885185167598",
+   "payRoundId": "18446744073709554838",
+   "payUsd8": "212408453494",
+   "stockRoundId": "18446744073709553244",
+   "stockUsd8": "17465027690",
+   "usdPaid8": "1220049769",
+   "shares18": "69856732589010856"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x6f5a9bb8d1ef9397a62b442af5d4a18e4155f9abf45a8fa38a3b75c530c64c0c",
+   "block": 110146105,
+   "ts": 1794236453,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "140775823751042496",
+   "payRoundId": "18446744073709554838",
+   "payUsd8": "212408453494",
+   "stockRoundId": "18446744073709553250",
+   "stockUsd8": "17852828064",
+   "usdPaid8": "29901975012",
+   "shares18": "1674915307804759016"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x0cf7dd5e44544bdc1a45fc38a143299aa3ceeb52329160ff41089e76a9bd8cb8",
+   "block": 110149106,
+   "ts": 1794236757,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "19807669547141060",
+   "payRoundId": "18446744073709554838",
+   "payUsd8": "212408453494",
+   "stockRoundId": "18446744073709553250",
+   "stockUsd8": "17852828064",
+   "usdPaid8": "4207316455",
+   "shares18": "235666665243026674"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0xf9ed0bb21f340d23d853ee4f7c0a065dfce595701508673b6b8411efedc21a84",
+   "block": 110216119,
+   "ts": 1794243565,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "165467808799826240",
+   "payRoundId": "18446744073709554842",
+   "payUsd8": "212426128868",
+   "stockRoundId": "18446744073709553263",
+   "stockUsd8": "17666433689",
+   "usdPaid8": "35149686075",
+   "shares18": "1989631110261146946"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0xe9fc60fbd3da1519db0b0f1dd0aeb48c380006596974a6dd542322e15f474473",
+   "block": 110234843,
+   "ts": 1794245473,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "10748168273773852",
+   "payRoundId": "18446744073709554842",
+   "payUsd8": "212426128868",
+   "stockRoundId": "18446744073709553264",
+   "stockUsd8": "17756203222",
+   "usdPaid8": "2283191778",
+   "shares18": "128585584961717329"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x5186c26481b9205addd219c348813b9778792d4efac6c6f1a403eb906951eed0",
+   "block": 110274561,
+   "ts": 1794249540,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "82038383760869488",
+   "payRoundId": "18446744073709554842",
+   "payUsd8": "212426128868",
+   "stockRoundId": "18446744073709553265",
+   "stockUsd8": "17658875336",
+   "usdPaid8": "17427096280",
+   "shares18": "986874642264024191"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0xb2eb1cf14ae8c3b4da342bfc1715ae93c48c513cd6dbe4b2d3cefca466bbe385",
+   "block": 110331607,
+   "ts": 1794255416,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "39211800544367856",
+   "payRoundId": "18446744073709554844",
+   "payUsd8": "212561000000",
+   "stockRoundId": "18446744073709553270",
+   "stockUsd8": "17771565120",
+   "usdPaid8": "8334899535",
+   "shares18": "469001997219702391"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0xfb0178dbc7b5548a00501b55c18dd74deceaa509fd7d2efd79eefce4ccc03bb6",
+   "block": 110348593,
+   "ts": 1794257144,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "69090448173030408",
+   "payRoundId": "18446744073709554844",
+   "payUsd8": "212561000000",
+   "stockRoundId": "18446744073709553272",
+   "stockUsd8": "17768597823",
+   "usdPaid8": "14685934754",
+   "shares18": "826510617230035777"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x2a172cd8e35d28ce2ffb936bcf2a4b2e1ac155bdbc8caf6e489589c6eab1b3a7",
+   "block": 110351697,
+   "ts": 1794257461,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "167853814330496224",
+   "payRoundId": "18446744073709554844",
+   "payUsd8": "212561000000",
+   "stockRoundId": "18446744073709553273",
+   "stockUsd8": "17866588722",
+   "usdPaid8": "35679174627",
+   "shares18": "1996977441086249234"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x0aa2004b5bc49dd9b954b06a8f5022c3fae52562f67b27c39ebb955e270efb30",
+   "block": 110387643,
+   "ts": 1794261183,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "59261339838957984",
+   "payRoundId": "18446744073709554844",
+   "payUsd8": "212561000000",
+   "stockRoundId": "18446744073709553273",
+   "stockUsd8": "17866588722",
+   "usdPaid8": "12596649657",
+   "shares18": "705039437186413340"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x1bfaafe14960b54ae60ace9393b848541200ff50e52dd3db34e72ed64dafd0b1",
+   "block": 110393342,
+   "ts": 1794261785,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "51951963532702696",
+   "payRoundId": "18446744073709554844",
+   "payUsd8": "212561000000",
+   "stockRoundId": "18446744073709553274",
+   "stockUsd8": "17957954490",
+   "usdPaid8": "11042961320",
+   "shares18": "614934252458950295"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x3c2386fc1e10dd47f48f962edd9250be6108ec857f7e40cedf0532fe1a56a75a",
+   "block": 110419446,
+   "ts": 1794264575,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "131778021240743968",
+   "payRoundId": "18446744073709554844",
+   "payUsd8": "212561000000",
+   "stockRoundId": "18446744073709553274",
+   "stockUsd8": "17957954490",
+   "usdPaid8": "28010867972",
+   "shares18": "1559802815381786837"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x8543c7ee1efef9265d36ee95c59bdff6886802137e3a6eef56dbc7f644b13fe2",
+   "block": 110453128,
+   "ts": 1794268152,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "36948623311354112",
+   "payRoundId": "18446744073709554844",
+   "payUsd8": "212561000000",
+   "stockRoundId": "18446744073709553276",
+   "stockUsd8": "17959911005",
+   "usdPaid8": "7853836319",
+   "shares18": "437298175743382532"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x8fa4ecd24b4a77f01ce6931fe3d082086cb74028ded4d1dc54b004d4123601de",
+   "block": 110465245,
+   "ts": 1794269428,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "69692519855833160",
+   "payRoundId": "18446744073709554844",
+   "payUsd8": "212561000000",
+   "stockRoundId": "18446744073709553278",
+   "stockUsd8": "18158064487",
+   "usdPaid8": "14813911713",
+   "shares18": "815830989233781103"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0xf562680b8bcb455d9ea80681c0183f83f384d28db4a6ce645e15330888cfa7b3",
+   "block": 110480761,
+   "ts": 1794271080,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "140661180078813840",
+   "payRoundId": "18446744073709554844",
+   "payUsd8": "212561000000",
+   "stockRoundId": "18446744073709553279",
+   "stockUsd8": "18059488133",
+   "usdPaid8": "29899081098",
+   "shares18": "1655588512686889451"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x0bd879650bf08a27f71c306ce04f3111a263ba22e449b11a554665c864b964b0",
+   "block": 110492427,
+   "ts": 1794272313,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "163133862220996640",
+   "payRoundId": "18446744073709554844",
+   "payUsd8": "212561000000",
+   "stockRoundId": "18446744073709553279",
+   "stockUsd8": "18059488133",
+   "usdPaid8": "34675896887",
+   "shares18": "1920093007710275616"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x0a8b3c5b73662a03b210669d727a301ef56b7f749181fbe965b5b9efc687cad9",
+   "block": 110492986,
+   "ts": 1794272372,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "44484629268237872",
+   "payRoundId": "18446744073709554844",
+   "payUsd8": "212561000000",
+   "stockRoundId": "18446744073709553279",
+   "stockUsd8": "18059488133",
+   "usdPaid8": "9455697281",
+   "shares18": "523586117799300087"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x015b2e06b5b135db64a26529f81666850734a1f31db3805e96f010b332bd9f87",
+   "block": 110514375,
+   "ts": 1794274538,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "146180438731100416",
+   "payRoundId": "18446744073709554844",
+   "payUsd8": "212561000000",
+   "stockRoundId": "18446744073709553279",
+   "stockUsd8": "18059488133",
+   "usdPaid8": "31072260237",
+   "shares18": "1720550439091451075"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0xdf0f70fde48ff2c324b2cfca99d647da4aba5fbdca305c911fbe0c230e19b7d5",
+   "block": 110517720,
+   "ts": 1794274888,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "11908206436847516",
+   "payRoundId": "18446744073709554844",
+   "payUsd8": "212561000000",
+   "stockRoundId": "18446744073709553279",
+   "stockUsd8": "18059488133",
+   "usdPaid8": "2531220268",
+   "shares18": "140160133518663554"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x8b5393bc7c2f857a989de46bdc4db6a3b8bd8355b7f2e610a77b375a0e41b3ad",
+   "block": 110677752,
+   "ts": 1794292126,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "18688970850516748",
+   "payRoundId": "18446744073709554847",
+   "payUsd8": "211538000000",
+   "stockRoundId": "18446744073709553284",
+   "stockUsd8": "17952230966",
+   "usdPaid8": "3953427515",
+   "shares18": "220219287646613715"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x3712537742ea0eb06f8fc05d5729f6ed0a29e9baa4d6747a4e9a75b7f841e23a",
+   "block": 110700837,
+   "ts": 1794294624,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "36810747996869616",
+   "payRoundId": "18446744073709554847",
+   "payUsd8": "211538000000",
+   "stockRoundId": "18446744073709553284",
+   "stockUsd8": "17952230966",
+   "usdPaid8": "7786872009",
+   "shares18": "433755115102277478"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x77126fd7bc93fe68e05fffb13b4b7663855f2e28040778134ddb49222fab61ae",
+   "block": 110745872,
+   "ts": 1794299517,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "6966617668762572",
+   "payRoundId": "18446744073709554847",
+   "payUsd8": "211538000000",
+   "stockRoundId": "18446744073709553287",
+   "stockUsd8": "18231953025",
+   "usdPaid8": "1473704368",
+   "shares18": "80830855914296652"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x4d74b9af19af0a4358bf6c809ce6bfec587b8829b031a6692292055f530c9ee5",
+   "block": 110808218,
+   "ts": 1794306149,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "6519898307664005",
+   "payRoundId": "18446744073709554848",
+   "payUsd8": "209778649210",
+   "stockRoundId": "18446744073709553289",
+   "stockUsd8": "18234093376",
+   "usdPaid8": "1367735459",
+   "shares18": "75009786930247647"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0xc4d717d17f19475b31d7193ad260e67976e183c476dde63437df46baa9087877",
+   "block": 110823174,
+   "ts": 1794307710,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "69942935492886648",
+   "payRoundId": "18446744073709554849",
+   "payUsd8": "208659000000",
+   "stockRoundId": "18446744073709553292",
+   "stockUsd8": "17918378837",
+   "usdPaid8": "14594222977",
+   "shares18": "814483447959260266"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0xe1e01d9c3858d519decef9519af9881559c71bbb51846cdc58132dfeb70264ef",
+   "block": 110854393,
+   "ts": 1794310996,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "186551193349370560",
+   "payRoundId": "18446744073709554851",
+   "payUsd8": "208693687508",
+   "stockRoundId": "18446744073709553294",
+   "stockUsd8": "17910988112",
+   "usdPaid8": "38932056449",
+   "shares18": "2173640907221434037"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0xe6ac6143e096c9574b9a689f31d74cbb765cf6a92344a03d7848d786ee79cc36",
+   "block": 110883433,
+   "ts": 1794314033,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "35268110771831376",
+   "payRoundId": "18446744073709554851",
+   "payUsd8": "208693687508",
+   "stockRoundId": "18446744073709553295",
+   "stockUsd8": "17789779229",
+   "usdPaid8": "7360232088",
+   "shares18": "413733750894542930"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x47f166a4d33c18b4f05775fcdee63f466fbe090bc621dac6fec66ba3bd57728b",
+   "block": 110916414,
+   "ts": 1794317465,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "142456354374296352",
+   "payRoundId": "18446744073709554852",
+   "payUsd8": "207536998900",
+   "stockRoundId": "18446744073709553296",
+   "stockUsd8": "17698733709",
+   "usdPaid8": "29564964261",
+   "shares18": "1670456471468684324"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0xc263652e14a55dfb1a3d682e2e8b9b6d0879289753e5efea134204743419ce2e",
+   "block": 110930149,
+   "ts": 1794318867,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "25237389510866344",
+   "payRoundId": "18446744073709554856",
+   "payUsd8": "207061000000",
+   "stockRoundId": "18446744073709553299",
+   "stockUsd8": "17582118383",
+   "usdPaid8": "5225679109",
+   "shares18": "297215557031663742"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x162049c82eb00aa260149d092e8e585321d8db27ca1932fc6cfc97e78167d2ba",
+   "block": 110953779,
+   "ts": 1794321281,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "64737153418498072",
+   "payRoundId": "18446744073709554857",
+   "payUsd8": "205941363757",
+   "stockRoundId": "18446744073709553303",
+   "stockUsd8": "17155487933",
+   "usdPaid8": "13332057660",
+   "shares18": "777130776581101163"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0xec2d0e2a6aaef277fa62364c82222140fdfd8269b3ce7d735a033dccb2635d0c",
+   "block": 110973412,
+   "ts": 1794323277,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "106813863262555744",
+   "payRoundId": "18446744073709554859",
+   "payUsd8": "208612424733",
+   "stockRoundId": "18446744073709553308",
+   "stockUsd8": "17278132928",
+   "usdPaid8": "22282699010",
+   "shares18": "1289647388572284515"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0xc8e22f43503ce4ca81a58c1dee63ff5ecf9c7bafa9daf51908b6260e45f78eb9",
+   "block": 110986177,
+   "ts": 1794324568,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "193275633096876544",
+   "payRoundId": "18446744073709554861",
+   "payUsd8": "206351655253",
+   "stockRoundId": "18446744073709553311",
+   "stockUsd8": "17180307157",
+   "usdPaid8": "39882746809",
+   "shares18": "2321422221648117882"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0xf2b1d7a34f6967349900fd16acfd3efc79366dc2a5ff5b3326d711986cf2e6ee",
+   "block": 111028560,
+   "ts": 1794328902,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "5293434763454200",
+   "payRoundId": "18446744073709554869",
+   "payUsd8": "201512352468",
+   "stockRoundId": "18446744073709553321",
+   "stockUsd8": "16844747246",
+   "usdPaid8": "1066692491",
+   "shares18": "63324933014551449"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x0617be4d8a10232992fd31fa033d1867989be2e147cd4d6bb166181eaee2ab37",
+   "block": 111034019,
+   "ts": 1794329452,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "6217675008983354",
+   "payRoundId": "18446744073709554869",
+   "payUsd8": "201512352468",
+   "stockRoundId": "18446744073709553322",
+   "stockUsd8": "16754477327",
+   "usdPaid8": "1252938317",
+   "shares18": "74782298041663045"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x99a7160b7e4f083526d72b1c83aa4f21ad8647c06c3702e96fd382226f75d7a9",
+   "block": 111039946,
+   "ts": 1794330054,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "5980920480452861",
+   "payRoundId": "18446744073709554869",
+   "payUsd8": "201512352468",
+   "stockRoundId": "18446744073709553322",
+   "stockUsd8": "16754477327",
+   "usdPaid8": "1205229355",
+   "shares18": "71934762957825094"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x6be5c3884d277f11a5bf2e2f71fc738e3b61d438cc045f6ef483ea366f12f74a",
+   "block": 111045007,
+   "ts": 1794330565,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "138780094144464576",
+   "payRoundId": "18446744073709554869",
+   "payUsd8": "201512352468",
+   "stockRoundId": "18446744073709553323",
+   "stockUsd8": "16669411438",
+   "usdPaid8": "27965903246",
+   "shares18": "1677677904226914673"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0xffd4ca2fdda36eebe10eb151fefc8e20c5fd906a90b6f6e636afb267385d160f",
+   "block": 111058777,
+   "ts": 1794331965,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "225449216423144736",
+   "payRoundId": "18446744073709554870",
+   "payUsd8": "202526436112",
+   "stockRoundId": "18446744073709553324",
+   "stockUsd8": "16756478877",
+   "usdPaid8": "45659426326",
+   "shares18": "2724881919474877514"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x01abb2aa02cbbf78a409b8973a29152e35e111c518bfef0d92cbd776bd910289",
+   "block": 111068342,
+   "ts": 1794332938,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "6373229578365314",
+   "payRoundId": "18446744073709554871",
+   "payUsd8": "201464000000",
+   "stockRoundId": "18446744073709553325",
+   "stockUsd8": "16662355973",
+   "usdPaid8": "1283976323",
+   "shares18": "77058509917839936"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x460fdda657cda55de1e0f3ab261dd00768740edc82da3c0ce3baea5c7186d9dd",
+   "block": 111073830,
+   "ts": 1794333500,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "66121916362699552",
+   "payRoundId": "18446744073709554872",
+   "payUsd8": "202490473360",
+   "stockRoundId": "18446744073709553326",
+   "stockUsd8": "16746773860",
+   "usdPaid8": "13389058143",
+   "shares18": "799500742944886221"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0xb9a197c42c7d7e4c0121b502be0417e3f0bebd64dced09e3242814796986a8b1",
+   "block": 111074035,
+   "ts": 1794333521,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "151204952127746560",
+   "payRoundId": "18446744073709554872",
+   "payUsd8": "202490473360",
+   "stockRoundId": "18446744073709553326",
+   "stockUsd8": "16746773860",
+   "usdPaid8": "30617562330",
+   "shares18": "1828266302868676821"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0xd800f34c89247b04da4a3cdcf3b32c75f5f703c83b1f97ac24af49799149429f",
+   "block": 111079984,
+   "ts": 1794334129,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "19597070218551528",
+   "payRoundId": "18446744073709554872",
+   "payUsd8": "202490473360",
+   "stockRoundId": "18446744073709553326",
+   "stockUsd8": "16746773860",
+   "usdPaid8": "3968220025",
+   "shares18": "236954296879721525"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x688783e90202a2e404d95d89859a6ad7fd30d9fb7cc052a008bd08ac89aa7b8d",
+   "block": 111097401,
+   "ts": 1794335929,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "30651332154998368",
+   "payRoundId": "18446744073709554873",
+   "payUsd8": "203683180081",
+   "stockRoundId": "18446744073709553327",
+   "stockUsd8": "16835700239",
+   "usdPaid8": "6243160807",
+   "shares18": "370828698442710494"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x68dccf26a02a7a105f541dbb2e008c3db3e1b3ea391423ab8c8a24d6cdc62553",
+   "block": 111138502,
+   "ts": 1794340183,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "53978657482270344",
+   "payRoundId": "18446744073709554873",
+   "payUsd8": "203683180081",
+   "stockRoundId": "18446744073709553328",
+   "stockUsd8": "16732690451",
+   "usdPaid8": "10994544612",
+   "shares18": "657069742860325863"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0xdc59df2b7d20b7e6bdf405cc6080e7a6680b2975d557149485b09e63313a3a03",
+   "block": 111153193,
+   "ts": 1794341714,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "20172083836633172",
+   "payRoundId": "18446744073709554873",
+   "payUsd8": "203683180081",
+   "stockRoundId": "18446744073709553331",
+   "stockUsd8": "16815274417",
+   "usdPaid8": "4108714184",
+   "shares18": "244344164841350980"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x507154f1eca6a83722cfede64fcee8d70bfc6b34dc7cb61f1d672f76d59cc413",
+   "block": 111189548,
+   "ts": 1794345466,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "31649579471032856",
+   "payRoundId": "18446744073709554875",
+   "payUsd8": "205896552868",
+   "stockRoundId": "18446744073709553332",
+   "stockUsd8": "16935917863",
+   "usdPaid8": "6516539312",
+   "shares18": "384776270451613491"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x899e904d5932222affa441d9cd713d76e8002dd65b3e55ee563551dfae64de08",
+   "block": 111190879,
+   "ts": 1794345607,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "202946499605083520",
+   "payRoundId": "18446744073709554875",
+   "payUsd8": "205896552868",
+   "stockRoundId": "18446744073709553332",
+   "stockUsd8": "16935917863",
+   "usdPaid8": "41785984685",
+   "shares18": "2467299677703922270"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x99653cd0388f0b7448cd8f4866173698214e89f9dfe3e080790517cd6d026ab0",
+   "block": 111233772,
+   "ts": 1794350150,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "54635318292363960",
+   "payRoundId": "18446744073709554876",
+   "payUsd8": "204837000000",
+   "stockRoundId": "18446744073709553332",
+   "stockUsd8": "16935917863",
+   "usdPaid8": "11191334693",
+   "shares18": "660804733674917917"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x6515d2cbf2546c53e12c9c6b1fddc6ae19cfa2a437fb2c4a1b37d58dfeef9461",
+   "block": 111295179,
+   "ts": 1794356707,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "48436223549348880",
+   "payRoundId": "18446744073709554876",
+   "payUsd8": "204837000000",
+   "stockRoundId": "18446744073709553333",
+   "stockUsd8": "17020683519",
+   "usdPaid8": "9921530723",
+   "shares18": "582910240468586671"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x3c65889ee6ac086ed85b05765458de4310c08e6c4e4ebe835a14e1da505722f3",
+   "block": 111309448,
+   "ts": 1794358212,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "94086664347948448",
+   "payRoundId": "18446744073709554876",
+   "payUsd8": "204837000000",
+   "stockRoundId": "18446744073709553333",
+   "stockUsd8": "17020683519",
+   "usdPaid8": "19272430065",
+   "shares18": "1132294719156630833"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "tx": "0x8ecddb82310ba7e4bcbb8c591f8c0a170ec9e8a8eac4b3821ad30619d3546c8d",
+   "block": 111342588,
+   "ts": 1794361611,
+   "payKind": 0,
+   "payStockId": 0,
+   "amountPaid": "23628311112148236",
+   "payRoundId": "18446744073709554877",
+   "payUsd8": "205866870000",
+   "stockRoundId": "18446744073709553335",
+   "stockUsd8": "17195042486",
+   "usdPaid8": "4864286452",
+   "shares18": "282888888233945594"
+  }
+ ],
+ "unpriced": [
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xc2136408cda7ce77168899a98526b2e3a305b0e2c7da03c138a42852623d333b",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xc80cf9aab76455da4833583d50da731ce5bc19a9c03a5ffa15998ccf7e868173",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xc15a61473cc05ae6dcce3b2af350211fe17769458ebf39d17d15e9dec33c0d04",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x00a7efb60f4da374d79d0c563b5bf0881a9b51def3dfc6eec21738586550dae7",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x261e902851f8e0ab2216c8c8e7321472f022c504a0b8601e5e56fec9880e07d2",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xfdd8c3ae32436504f30cb9baf301a3c237e102fd9b42e6e14c7a52812c47e3fe",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xe7a90a35694e10e51dde81697c40bad45366a6cd71a7c96140ebee3a0b6167fa",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xf2c686ad5af8e0e84d05b57f1484bcef58aa371a0115611d9984048480f987cb",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xb12466cce8f766e36904a115bab317e045526cdf55a36f8fb145e473dc199f89",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xca78eaee06b6f0e0df969c02dd763c9a095cbf24f1c29df4215bddaae6ea5f62",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x92e2f028abb77f98e29cafa8e76b4a2d40e7fffdc5a5522b88ac62fc4f484ef3",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xbbbbdf46cbfb72404cb8381a36f940b7a47a5aa659ec4715b848be6755bdb689",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xa072bac268fc8d8dc505f7b7239aab6beb9511ad4deba54ad41797db13a56083",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xaa906095884021b17f96adc5e228995d4e5d4b9035b7a640d7b65d12249338d6",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x150331185e7acf34d8a2571db9a7e2651d3a4e3394b507b98a44ab21c66bca38",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x6797a50e4cf75093ca264fc962d9a394ceb59083c89f4da92a329c8dad963019",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x2a80c30a5efb280db1fd1373fe4c145a4cfaa85e5f9149035ab475e78ffc2314",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x5d8ce75d815bf3d16c1f104a08e917893e0ba524aded2946f273e2092774ee15",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xe827eb32633c339835eb851268c3f87c709f65ed6c192ab5b244139a80d33d6a",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x7848649e01f1f6c826c3efaa2d0e150d89d14fb29507495d0970e161d0da0976",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x7bf93af8d1bb8ec0e70e58b46cd605735c53cd8c21aad2de426361d3f993aea6",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x3c1b13cd8106ed99a9bfd712915c79265bce767b8de6501555fd4b55be60c559",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xe5bb7cc51c8799161936210d9fb22b6e925dc56c21a3ccf0e43182530656ce93",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x1fe6fbaf521f47d0697c97010d7be5c3dc0c80e234af853189560b8ac545a663",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x267e59f79a5b6a6978977586b82c250dce9e1d1ab961f73fc9bde10ad94a4055",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x4a4be1b60a5858270cc56c89659a568734ee50de6e8b88486457119dc230b59a",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x87e7ad34cf06411234c67a949cdd686954ffe93c193c94d9692c0ece4ffcc49e",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xbf55edc7c54523333fcd71614bd365dfb63b9280d30accd4012ac9af2f8b1239",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xb10598fb1111e352bbed0279d46c753fe1f9a97fcac29edf43b42b65b356cda9",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x017974673af002df5b856bffcc67a1777c835111202363a52704f5c08385f9ed",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xf5962afcdf6f46d95057938d7436155f665b4b5ea10c09fc78960c543e50dc1c",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x7dd144fe28046412820b45f0d15474ce68488498150c9d073cf9c26e9492abfe",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xd9994fec32091ca69ff47487221dda8e864ffd0e96dcca76bcd517e85d7d340a",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xac59c0f86a58fe48e7e02ab49035aa0621aedea71b56be8180f68c1f1ce679b8",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xd6a9225770744010dfa3b2d91eee2825db7b696203b15aed132b254043ddeda7",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x16c6dd10849d92ca357b55240ed25cb534c04768fdee648a5b2eef28a1c75bdd",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xe105ee7bf4d1a1ed0188329a978f1d96ba2e80f7dcb5f0cf5c047de52405148f",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x6c5ed50b7135b23a5d8c8de100144eafed96540478973566d7d4a838d77e81e2",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x47525472e0118a928a88b463b61bdf68afd0a4d39cd750198c554577ce1293e3",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x091681e1ae910f2351666ab383c70f43dc5e15f2760e1aa66988e546fc0427d2",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x0ea3ec971ac7b765087f764469814238a25f7265bf52b272136a4c9acb4a09fd",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xbeefea6e705872882508b8f869c03f5a14f8481b33aad92907be0ed363c3cf1b",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x8b0d0fd114ad4548575653adc5145fcf08174f4e4af9cf67c4c3451a837cfea6",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xfa388669bf1e19df2c3ae79705672883772ce0ca4d9846fa23c6722142207c59",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x2d5d98647e149171c59bdd7b6d91aa0918774b53d4ce46fdffdbd6667538de62",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x1af2a6ccd201825f350c6a8fbecc3e67521232e666aace7497b83af20f3f01f6",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xadce44dd0d6448c74fc7062a227795a1b3daa3788c16f2ecf2f6164ffae497c7",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xc2b4091befe789f2477e328f5626c570471aa6ab77d6c8024c09590dc2f3c7ab",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xc60e63e7ba5b094dea53b4ef7ad4cd3a787df05333c9c1f9196e40d431ea3e7c",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xc5e9d6e5993a475444545dda8dd8da698f1878cece3a05fbf33f43a9a03809ae",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xb79ba974bfb0c4e74eec3d3710a198b80f2b65fb68374dfe854346fa902fda39",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x20f5483ee53838f1a33c6b49550d133ee704605ef6f88f66ef7edf7bba205ed4",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x5727c64f4f48447d66163bcc155f0da6df235fea2978d964aa20cedae1727aeb",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xf02c18b5501ecd33fe0b7efc170666832f7e9e2ae28312d9431653f254bbdd64",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x456bed0acb41a228d200772522306c8ceb4377986eb6909d572e5324f8938911",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x1e5031b7e3e9d8b68679befdaa0001908df4eda32c3cf19a75f85f3f25fab0f9",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x1ab5da2302da39ba32ad026dd7c7561cc36869c8ebc81d3b162fc73f666e6ad0",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x372710c424fb2fdbcf4c07e52020851d371e33f24dcd4da67a9aac3623df302c",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x6400f2882cf62bffb10b553aebf86444063194b9c3fa847df66f304b1955fc9d",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x80df04f783ded1a9dba9c050821faf1948b4a9a6c04aac403c80e74730f0c124",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xc9e03af7643665a72f66e058d13954d415f1179bd09d3cf42c437cab79b12621",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xabc1bbf503c6509b839dfdd834ca994784c44cc1e40fd52b4feab400e5a99cfa",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x949820ff60c442411d078c99e2a9aed864572b7da35fe249fa95ac548566ecdd",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x2e99f7ad674c6b6d3585e3d8e76d8632e0d2f504b120b238224dcd11bf1ecad4",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x0f549ed37bb317d5d619dd8e8ef00e6ba2af5ea6187b42190450fb248c873a01",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x81d5625ba93093f22e1847aacf6f94d8a72c92562d60a63c820f03cdcb3104e8",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xc5287935d04506d4c4f8eaef1d482ab085d9adcbc598047b6a5560a48f093819",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xded8780221d40d3bd2ab808af0ec35044c96b59618c589ac16bd8c36334cd780",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xfc6ad672bdf70f68e83d4a48c14ed2dba5ef1836ec149620c74dad478c3c3a70",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xfc885fb781a4e77b8258e8a9cfa64dc098d319cebd8bbe3577dc0614d696ac76",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xe3922697e771c4fce7a3dd931a5b64d09975fc385861f978d2bc0b0ecf3131b5",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x63bb78c28ee5f4722a2840dbd4f71e3120605e7317d92dcb27a4f07d993c20b4",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x4b6c580dbe37227ac01a669aa64250e5d0b6d96b3b73bf71dfb16bf5f15ced9e",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x16f9aab887ec7a43f7e5b6f88b4d83ab0e7b98f5b702ec7cac48afdbfd6c8cd6",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x84dcb2a09b957271b67f325e60bc1f451a97a68ae49cb72dbde85dfd4820c1bf",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xfe9446d66aeb6805633b95d0c103eb30938e961234822de4dcef9535a99f5830",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xc60d93f5c0300ac800f6fc70d2aaf21b189c83eace190759e97534ed2afc9407",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x274613b4e8b4c2d8fc0d9e488209da78673710cc0636ec2707cee410ecf3be22",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xbc0d6a77dfaba843ef7a4fa6f48f9125b94d633b4bcc0953393de76f22ae3dd8",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xc9bd38bd63cb7982d84b42ed1ded7b1f61e18bfc95cb0a15d5bb21aea5b4c327",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x843a6c37c63b89576c49d0369590e24f4a8a99b6ccac6fec955f3fa12d4b6eda",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x2ba258ad763e7bbe26e40fff337df709429dd26fcc3d4c760901d8a2eae80d12",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xea2332f2cd6620cbec029538f579bbe65169c0dcb610ece6514f884206fe59bc",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x9b50d7d6655ed94555a01de8258be74ba354ba6063958756c8d181cabd5a32af",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xdeeac975940027e252eddff605c6fa9f06c04d7ee31783481b88108e7bb3afc0",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xef11ea794ad915fba4492278e16683c06f4069fbe4bb21ac0490a461d9f49f09",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x656b9792398d0a354bcabd831c4530ece211426def1ab79879958c3ef53b53dc",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x04c932f64f3feffdb21c2829e46b2f5cc9aed752b9326e88aa37acc020a1cad5",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xd6af9a19a70065bdd314b1b2328f92cf7c72ea4328a03e7f648ebb4759665d89",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x3bb327eb5de357d82f66218d899468206bfa93d9cb1529b32f9eabfe3ca10ba0",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xc396843c80ce77763ccca9c1cefeccc5bf7c6cd60cf3f503e5e5a91ca37ea987",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xc7f696491345110007f9c9a4fcb63f08fbb6738a88315a5d82efada31b2f1827",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xa5621aab834605cf57d2e6ea2309f305f9405a3c928149aeb4008b050086191f",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xcb6a49029a430056e59ef3212ba072799be83e19755dafde5a67d61c3cba7465",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xfe6a296c625b03ebb1dc219b79addff51c2cbd6498903c1aaea3041ee4cec66d",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0xbc41044d82ddb3c5ca9a75a947d43c72b39339d3700d00b5025f7434596aeff4",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  },
+  {
+   "token": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18",
+   "symbol": "AI",
+   "tx": "0x3b9470ca515bd258c7d530760935c3ec3433e54954853a13dba6a8658dc15d4e",
+   "reason": "not a buy (nothing paid in this tx, e.g. liquidity withdrawal)"
+  }
+ ]
+}
 ```
 
 #### File: scripts/gen-architecture.py
@@ -9654,6 +14468,17 @@ async function main() {
   for (const m of card.memes) {
     assert.equal(BigInt(m.usdPaid8), m.buys.reduce((s, b) => s + BigInt(b.usdPaid8), 0n), `${m.symbol} usdPaid8 total`);
   }
+  // M3: unquoted memes are null (never a fabricated $0), excluded from usdToday8 / usdPaidQuoted8 / worst, and flag partial.
+  const quoted = card.memes.filter((m) => m.usdToday8 !== null);
+  const sum = (rows: typeof card.memes, f: (m: (typeof card.memes)[number]) => string) => rows.reduce((s, m) => s + BigInt(f(m)), 0n);
+  assert.equal(BigInt(card.totals.usdToday8), sum(quoted, (m) => m.usdToday8 as string), "usdToday8 total = sum of quoted memes");
+  assert.equal(BigInt(card.totals.usdPaidQuoted8), sum(quoted, (m) => m.usdPaid8), "usdPaidQuoted8 = paid over quoted memes");
+  assert.equal(BigInt(card.totals.usdPaid8), sum(card.memes, (m) => m.usdPaid8), "usdPaid8 total = sum of all memes");
+  for (const m of card.memes) assert.equal(m.todayReason === null, m.usdToday8 !== null, `${m.symbol} todayReason iff unquoted`);
+  assert.deepEqual(card.unquoted.map((u) => u.token), card.memes.filter((m) => m.usdToday8 === null).map((m) => m.token), "unquoted list");
+  assert.equal(card.partial, card.unquoted.length > 0 || card.scanGaps.length > 0, "partial flag");
+  if (card.worst) assert.ok(quoted.some((m) => m.symbol === card.worst?.symbol), "worst is a quoted meme");
+  console.log(`today: ${quoted.length}/${card.memes.length} memes quoted, partial ${card.partial}, scan gaps ${card.scanGaps.length}`);
   console.log(`PASS hindsight.live: ${buys.length} buys resolved onchain (status 1, from = wallet), pricing arithmetic and totals consistent`);
 }
 
@@ -9669,34 +14494,20 @@ main().catch((e) => {
 // File: scripts/keeper.ts
 // Hourly FeePool.distribute (PRD C10). distribute is permissionless; the keeper only saves someone the click.
 // Env: RPC_URL (else the .env.local GetBlock/public chain), KEEPER_KEY (0x private key; not needed with --dry).
-// Flags: --dry (quote + print, send nothing), --rounds (also run build-rounds --update afterwards).
+// Flags: --dry (print, send nothing), --rounds (also run build-rounds --update afterwards).
 // Run: pnpm tsx scripts/keeper.ts [--dry] [--rounds]
 import { spawnSync } from "node:child_process";
-import { createWalletClient, decodeFunctionResult, encodeFunctionData, formatEther, parseEther, parseEventLogs, type Hex } from "viem";
+import { createWalletClient, formatEther, parseEther, parseEventLogs, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { robinhood } from "viem/chains";
 import { feePoolAbi } from "../web/lib/abi";
-import { ADDR } from "../web/lib/config";
 import { hasFlag, ROOT } from "./lib/env";
 import { loadDeployments } from "./lib/files";
-import { v4QuoterAbi, ZERO } from "./lib/quote";
 import { client, transports } from "./lib/rpc";
 
 const KEEPER_MIN_ETH = parseEther("0.0002");
-const SLIPPAGE_BPS = 300n;
-const WIF_KEY = { currency0: ZERO, currency1: ADDR.wif, fee: 0, tickSpacing: 200, hooks: ADDR.wifHook } as const;
-
-/** Quote ETH -> WIF on the owned hooked pool; only used as the caller-side slippage guard (never contract value logic). */
-async function quoteWif(ethIn: bigint): Promise<bigint> {
-  const data = encodeFunctionData({
-    abi: v4QuoterAbi,
-    functionName: "quoteExactInputSingle",
-    args: [{ poolKey: WIF_KEY, zeroForOne: true, exactAmount: ethIn, hookData: "0x" }],
-  });
-  const { data: raw } = await client.call({ to: ADDR.v4Quoter, data });
-  if (!raw) throw new Error("V4Quoter returned no data");
-  return decodeFunctionResult({ abi: v4QuoterAbi, functionName: "quoteExactInputSingle", data: raw })[0];
-}
+/** distribute has no caller-set minimum; with all 6 pools live it needs ~3.1M gas, so never rely on a tight estimate. */
+const DISTRIBUTE_GAS = 3_500_000n;
 
 async function distribute(dry: boolean) {
   const d = loadDeployments();
@@ -9712,16 +14523,14 @@ async function distribute(dry: boolean) {
   if (!can || balance < KEEPER_MIN_ETH) return console.log(`skip (${!can ? "epoch already distributed" : "balance < 0.0002 ETH"})`);
 
   const wifEth = balance / 2n < cap ? balance / 2n : cap;
-  const quoted = await quoteWif(wifEth);
-  const wifMinOut = (quoted * (10_000n - SLIPPAGE_BPS)) / 10_000n;
-  console.log(`burn leg ${formatEther(wifEth)} ETH -> quote ${formatEther(quoted)} WIF, wifMinOut ${formatEther(wifMinOut)} (-3%)`);
+  console.log(`burn leg ${formatEther(wifEth)} ETH (capped per epoch; $WIF is never priced, no minimum is sent)`);
   if (dry) return console.log("dry run: distribute not sent");
 
   const key = process.env.KEEPER_KEY;
   if (!key) throw new Error("KEEPER_KEY is not set");
   const account = privateKeyToAccount(key as Hex);
   const wallet = createWalletClient({ account, chain: robinhood, transport: transports() });
-  const { request } = await client.simulateContract({ ...pool, functionName: "distribute", args: [wifMinOut], account });
+  const { request } = await client.simulateContract({ ...pool, functionName: "distribute", account, gas: DISTRIBUTE_GAS });
   const hash = await wallet.writeContract(request);
   console.log(`distribute tx ${hash}`);
   const receipt = await client.waitForTransactionReceipt({ hash });

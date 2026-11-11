@@ -5,6 +5,7 @@
 import { NextResponse } from "next/server";
 import { erc20Abi } from "@/lib/abi";
 import { STOCKS, TF } from "@/lib/config";
+import { quicknodeUrl } from "@/lib/rpc";
 import { DEPLOYED, publicClient } from "@/lib/ui-chain";
 
 export const runtime = "nodejs";
@@ -19,7 +20,7 @@ function rowsOf(result: unknown): QnRow[] {
 }
 
 export async function GET() {
-  const url = process.env.QUICKNODE_RPC;
+  const url = quicknodeUrl(); // QUICKNODE_RPC, or QUICKNODE_BASE + QUICKNODE_TOKEN
   if (!url || !DEPLOYED) return NextResponse.json({ enabled: false });
   try {
     const res = await fetch(url, {
@@ -27,6 +28,7 @@ export async function GET() {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "qn_getStockTokenBalances", params: [{ wallet: TF.Jar }] }),
       cache: "no-store",
+      signal: AbortSignal.timeout(8_000),
     });
     const body = (await res.json()) as { result?: unknown; error?: unknown };
     if (!res.ok || body.error || body.result === undefined) return NextResponse.json({ enabled: false });
@@ -39,10 +41,12 @@ export async function GET() {
       allowFailure: false,
       contracts: STOCKS.map((s) => ({ address: s.token, abi: erc20Abi, functionName: "balanceOf", args: [TF.Jar] }) as const),
     });
+    // A balance that is not an integer string (e.g. decimal-formatted) is an unknown format, not a disagreement.
+    if ([...qn.values()].some((q) => !/^\d+$/.test(String(q)))) return NextResponse.json({ enabled: false });
     const checks = STOCKS.map((s, i) => {
       const q = qn.get(s.token.toLowerCase());
       const d = direct[i] as bigint;
-      return { symbol: s.symbol, direct: d.toString(), quicknode: q ?? null, match: q === undefined ? d === 0n : (() => { try { return BigInt(q) === d; } catch { return false; } })() };
+      return { symbol: s.symbol, direct: d.toString(), quicknode: q ?? null, match: q === undefined ? d === 0n : BigInt(q) === d };
     });
     if (qn.size === 0 && checks.some((c) => c.direct !== "0")) return NextResponse.json({ enabled: false });
     return NextResponse.json({ enabled: true, agreement: checks.every((c) => c.match), checks });

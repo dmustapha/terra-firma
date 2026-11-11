@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useAccount, useConnect, useDisconnect, useSwitchChain } from "wagmi";
-import { CHAIN_ID } from "@/lib/config";
+import { CHAIN_ID, addrUrl } from "@/lib/config";
 import { short } from "@/lib/ui-format";
+import { HAS_WALLETCONNECT } from "@/lib/wagmi";
 import { useMounted } from "./hooks";
 import { Button, cx } from "./ui";
 
@@ -23,18 +24,64 @@ export function ConnectButton({ className, label = "Connect wallet", onConnected
           {switching ? "Switching…" : "Switch to Robinhood Chain"}
         </Button>
       );
-    return (
-      <Button variant="secondary" className={cx("font-mono", className)} onClick={() => disconnect()} aria-label={`Connected as ${address}. Disconnect`} title="Disconnect">
-        <span aria-hidden className="size-2 rounded-full bg-accent" />
-        {short(address)}
-      </Button>
-    );
+    return <AccountMenu address={address} className={className} onDisconnect={() => disconnect()} />;
   }
   return (
     <>
       <Button className={className} onClick={() => setOpen(true)}>{label}</Button>
       <WalletDialog open={open} onClose={() => setOpen(false)} onConnected={onConnected} />
     </>
+  );
+}
+
+/** Address pill opens a small menu; disconnecting is an explicit second click, never the pill itself (S8). */
+function AccountMenu({ address, className, onDisconnect }: { address: string; className?: string; onDisconnect: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const wrap = useRef<HTMLDivElement>(null);
+  const btn = useRef<HTMLButtonElement>(null);
+  const menuId = `acct-${address.slice(2, 8)}`;
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      btn.current?.focus();
+    };
+    const onDown = (e: PointerEvent) => !wrap.current?.contains(e.target as Node) && setOpen(false);
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("pointerdown", onDown);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("pointerdown", onDown);
+    };
+  }, [open]);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(address);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setCopied(false);
+    }
+  };
+  const item = "flex min-h-11 w-full items-center rounded-lg px-3 text-left text-sm hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent";
+  return (
+    <div ref={wrap} className={cx("relative", className)}>
+      <Button ref={btn} variant="secondary" className="w-full font-mono" aria-expanded={open} aria-controls={menuId} aria-label={`Connected as ${address}. Account options`} onClick={() => setOpen((o) => !o)}>
+        <span aria-hidden className="size-2 rounded-full bg-accent" />
+        {short(address)}
+        <span aria-hidden className="text-xs text-muted">▾</span>
+      </Button>
+      {open && (
+        <div id={menuId} className="absolute right-0 z-40 mt-2 w-60 rounded-xl border border-line bg-surface p-1.5 shadow-lg">
+          <button type="button" className={item} onClick={copy}>{copied ? "Copied" : "Copy address"}</button>
+          <a className={item} href={addrUrl(address)} target="_blank" rel="noopener noreferrer">View on explorer</a>
+          <button type="button" className={cx(item, "text-danger")} onClick={() => { setOpen(false); onDisconnect(); }}>Disconnect</button>
+          <span role="status" className="sr-only">{copied ? "Address copied" : ""}</span>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -62,7 +109,7 @@ function WalletDialog({ open, onClose, onConnected }: { open: boolean; onClose: 
       <h2 id="wallet-title" className="text-xl font-semibold">Connect a wallet</h2>
       <p className="mt-2 text-sm text-muted">Terra Firma runs on Robinhood Chain mainnet (chain 4663). Your wallet will be asked to switch.</p>
       <ul className="mt-5 space-y-2">
-        {list.length === 0 && <li className="text-sm text-muted">No wallet found. Install a browser wallet or use WalletConnect.</li>}
+        {list.length === 0 && <li className="text-sm text-muted">No wallet found. Install a browser wallet{HAS_WALLETCONNECT ? " or use WalletConnect" : ""}.</li>}
         {list.map((c) => (
           <li key={c.uid}>
             <Button
@@ -87,6 +134,7 @@ function WalletDialog({ open, onClose, onConnected }: { open: boolean; onClose: 
           </li>
         ))}
       </ul>
+      {!HAS_WALLETCONNECT && <p className="mt-3 text-xs text-muted">WalletConnect (mobile wallets) isn&apos;t configured on this deployment.</p>}
       {error && (
         <p role="alert" className="mt-4 text-sm text-danger">
           {/rejected|denied/i.test(error.message) ? "You cancelled in your wallet." : error.message.split("\n")[0]}

@@ -3,12 +3,12 @@
 // Universal Router calls, receipts only when value == 0). Receipt path VERIFIED by scripts/test-hindsight.ts on two
 // real txs (WETH-paid 0x9965...6ab0, USDG-paid 0x2ac2...28db) and an end-to-end card for 0x3fDB...b09E in 5.6s.
 import "server-only";
-import { decodeEventLog, decodeFunctionResult, encodeFunctionData, getAddress, type Address, type Hex } from "viem";
+import { decodeEventLog, decodeFunctionResult, encodeFunctionData, getAddress, zeroAddress, type Address, type Hex } from "viem";
 import { erc20Abi, terraRouterAbi } from "./abi";
 import { ADDR, STOCKS, type StockId } from "./config";
 import { REGISTRY, type Meme } from "./registry";
-import { bestQuote } from "./quote";
-import { RpcError, TOO_MANY_LOGS, hex, rpc, rpcBatch, rpcChunked } from "./rpc";
+import { QuoteUnavailable, bestQuote } from "./quote";
+import { RpcError, TOO_MANY_LOGS, hex, rpc, rpcBatch, rpcChunked, unwrap } from "./rpc";
 import { latestPrice8, loadTable, roundAtLive } from "./rounds";
 import { TF } from "./config";
 import { hypersyncEnabled, transfersTo } from "./hypersync";
@@ -38,7 +38,10 @@ export interface CardMeme {
   token: Address;
   symbol: string;
   usdPaid8: string;
-  usdToday8: string;
+  /** Sell-quote value of the holding now; null when no quote is available (never a fabricated $0). */
+  usdToday8: string | null;
+  /** Why usdToday8 is null ("no liquid pool" / "quote unavailable (RPC error)"); null when priced. */
+  todayReason: string | null;
   usdCounterfactual8: string;
   holding: string;
   buys: CardBuy[];
@@ -48,30 +51,52 @@ export interface Card {
   wallet: Address;
   stock: (typeof STOCKS)[number]["symbol"];
   asOfBlock: number;
-  totals: { usdPaid8: string; usdToday8: string; usdCounterfactual8: string; shares18: string };
+  /**
+   * usdToday8 sums only memes with a quote; usdPaidQuoted8 is usdPaid8 over those same memes, so today-vs-paid is
+   * like for like. usdPaid8 / usdCounterfactual8 / shares18 cover every priced buy.
+   */
+  totals: { usdPaid8: string; usdPaidQuoted8: string; usdToday8: string; usdCounterfactual8: string; shares18: string };
   memes: CardMeme[];
   unpriced: { token: Address; symbol: string; tx: Hex; reason: string }[];
+  /** Worst today-vs-paid among quoted memes only. */
   worst: { symbol: string; pct: number } | null;
+  /** True when any number above is incomplete: some held meme is unquoted or a history scan was cut short. */
+  partial: boolean;
+  /** Held memes whose usdToday8 is null, with the reason. */
+  unquoted: { token: Address; symbol: string; reason: string }[];
+  /** Block ranges whose Transfer history could not be read completely (buys there may be missing). */
+  scanGaps: { token: Address; symbol: string; fromBlock: number; toBlock: number }[];
 }
 
 type Log = { address: Address; topics: Hex[]; data: Hex; blockNumber: Hex; transactionHash: Hex };
 type Tx = { from: Address; to: Address | null; value: Hex; blockNumber: Hex; hash: Hex };
-type Receipt = { logs: (Log & { blockTimestamp?: Hex })[] };
+export type Receipt = { logs: (Log & { blockTimestamp?: Hex })[] };
 /** Block time from a receipt's logs (Nitro includes blockTimestamp there; eth_getLogs reports "0x0", never used). */
 const receiptTs = (rc: Receipt | undefined) => {
   const ts = Number(rc?.logs[0]?.blockTimestamp ?? 0);
   return ts > 0 ? ts : undefined;
 };
 
+/**
+ * Addresses whose outgoing meme transfers count as a purchase. TerraRouter forwards the meme it receives from the
+ * Universal Router to the buyer, so router buys arrive with from = TerraRouter (memes.json is built pre-deploy).
+ */
+export function purchaseSources(registrySources: readonly string[], router: string = TF.TerraRouter): Set<string> {
+  const all = [...registrySources, ...(router && router.toLowerCase() !== zeroAddress ? [router] : [])];
+  return new Set(all.map((a) => a.toLowerCase()));
+}
+
+type ScanGap = Card["scanGaps"][number];
+
 /** Step 1-2: every Transfer(to = wallet) of each registry meme, per-token, 10M-block spans, split on overflow. */
-async function scanBuys(wallet: Address, head: number, memes: Meme[]): Promise<Log[]> {
-  if (memes.length === 0) return [];
-  const sources = new Set(REGISTRY.sources.map((s) => s.toLowerCase()));
+async function scanBuys(wallet: Address, head: number, memes: Meme[]): Promise<{ logs: Log[]; gaps: ScanGap[] }> {
+  if (memes.length === 0) return { logs: [], gaps: [] };
+  const sources = purchaseSources(REGISTRY.sources);
   if (hypersyncEnabled()) {
     try {
       const from = Math.min(...memes.map((m) => m.firstBlock));
       const hs = (await transfersTo(wallet, memes.map((m) => m.token), from)) as Log[];
-      return hs.filter((l) => Number(l.blockNumber) <= head && sources.has(topicAddr(l.topics[1]).toLowerCase()));
+      return { logs: hs.filter((l) => Number(l.blockNumber) <= head && sources.has(topicAddr(l.topics[1]).toLowerCase())), gaps: [] };
     } catch (e) {
       console.warn(JSON.stringify({ route: "hindsight", hypersync: "fallback", error: String(e) }));
     }
@@ -105,18 +130,20 @@ async function scanBuys(wallet: Address, head: number, memes: Meme[]): Promise<L
     });
     queue = retry;
   }
-  return logs.filter((l) => sources.has(topicAddr(l.topics[1]).toLowerCase()));
+  // Split rounds exhausted: report the unread ranges instead of returning a silently truncated history.
+  const gaps = queue.map((q) => ({ token: q.meme.token, symbol: q.meme.symbol, fromBlock: q.from, toBlock: q.to }));
+  return { logs: logs.filter((l) => sources.has(topicAddr(l.topics[1]).toLowerCase())), gaps };
 }
 
 type Payment = { payKind: 0 | 1 | 2; payStockId: number; amount: bigint; block: number; ts?: number };
 type Unpriced = { unpriced: string };
 
 /** Meme leg of a buy through Terra Firma's own router: tx.value minus the protocol fee and the sweep (from its events). */
-function routerMemeLeg(rc: Receipt | undefined, value: bigint): bigint | null {
+export function routerMemeLeg(rc: Receipt | undefined, value: bigint, router: Address = TF.TerraRouter): bigint | null {
   let fee: bigint | null = null;
   let sweep = 0n;
   for (const l of rc?.logs ?? []) {
-    if (l.address.toLowerCase() !== TF.TerraRouter.toLowerCase()) continue;
+    if (l.address.toLowerCase() !== router.toLowerCase()) continue;
     try {
       const ev = decodeEventLog({ abi: terraRouterAbi, data: l.data, topics: l.topics as [Hex, ...Hex[]] });
       if (ev.eventName === "Traded") fee = (ev.args as { fee: bigint }).fee;
@@ -131,16 +158,17 @@ function routerMemeLeg(rc: Receipt | undefined, value: bigint): bigint | null {
 /** Step 3-4: what the wallet paid in each buy tx (ETH from tx.value, else outgoing WETH/USDG/stock in the receipt). */
 async function payments(wallet: Address, hashes: Hex[]) {
   const me = wallet.toLowerCase();
-  const txs = (await rpcChunked(hashes.map((h) => ({ method: "eth_getTransactionByHash", params: [h] })), 10)) as Tx[];
+  const txRes = await rpcChunked(hashes.map((h) => ({ method: "eth_getTransactionByHash", params: [h] })), 10);
+  const txs = txRes.map((r, i) => unwrap<Tx>(r, `tx ${hashes[i]}`));
   const viaRouter = (t: Tx) => !!t.to && t.to.toLowerCase() === TF.TerraRouter.toLowerCase();
-  const needReceipt = txs.filter((t) => t && t.from.toLowerCase() === me && (BigInt(t.value) === 0n || viaRouter(t)));
-  const receipts = (await rpcChunked(needReceipt.map((t) => ({ method: "eth_getTransactionReceipt", params: [t.hash] })), 10)) as Receipt[];
+  const needReceipt = txs.filter((t) => t.from.toLowerCase() === me && (BigInt(t.value) === 0n || viaRouter(t)));
+  const rcRes = await rpcChunked(needReceipt.map((t) => ({ method: "eth_getTransactionReceipt", params: [t.hash] })), 10);
+  const receipts = rcRes.map((r, i) => unwrap<Receipt>(r, `receipt ${needReceipt[i].hash}`));
   const receiptByHash = new Map(needReceipt.map((t, i) => [t.hash, receipts[i]]));
   const stockIdx = new Map(STOCKS.map((x) => [x.token.toLowerCase(), x.id]));
   const payable = new Set([ADDR.weth.toLowerCase(), ADDR.usdg.toLowerCase(), ...stockIdx.keys()]);
   const out = new Map<Hex, Payment | Unpriced>();
   for (const t of txs) {
-    if (!t) continue;
     if (t.from.toLowerCase() !== me) {
       out.set(t.hash, { unpriced: "received, not bought by this wallet" });
       continue;
@@ -171,16 +199,59 @@ async function payments(wallet: Address, hashes: Hex[]) {
   return out;
 }
 
+/** A block timestamp from an RPC result; throws on an error, a null block or a non-positive/NaN time. */
+export function blockTs(r: unknown, block: number): number {
+  const ts = Number(unwrap<{ timestamp: Hex }>(r, `block ${block}`).timestamp);
+  if (!Number.isFinite(ts) || ts <= 0) throw new RpcError(-2, `block ${block}: bad timestamp`);
+  return ts;
+}
+
 async function blockTimes(blocks: number[]): Promise<Map<number, number>> {
   const uniq = [...new Set(blocks)];
-  const res = (await rpcChunked(uniq.map((b) => ({ method: "eth_getBlockByNumber", params: [hex(b), false] })), 20)) as { timestamp: Hex }[];
-  return new Map(uniq.map((b, i) => [b, Number(res[i].timestamp)]));
+  const res = await rpcChunked(uniq.map((b) => ({ method: "eth_getBlockByNumber", params: [hex(b), false] })), 20);
+  return new Map(uniq.map((b, i) => [b, blockTs(res[i], b)]));
+}
+
+/** balanceOf results; a failed call throws (an unreadable balance is not a zero balance). */
+export function decodeBalances(res: unknown[], tokens: readonly Address[]): bigint[] {
+  return res.map((r, i) => decodeFunctionResult({ abi: erc20Abi, functionName: "balanceOf", data: unwrap<Hex>(r, `balanceOf ${tokens[i]}`) }));
 }
 
 async function balances(wallet: Address, tokens: Address[]): Promise<bigint[]> {
   const data = encodeFunctionData({ abi: erc20Abi, functionName: "balanceOf", args: [wallet] });
-  const res = await rpcBatch(tokens.map((t) => ({ method: "eth_call", params: [{ to: t, data }, "latest"] })));
-  return res.map((r) => (r instanceof RpcError ? 0n : decodeFunctionResult({ abi: erc20Abi, functionName: "balanceOf", data: r as Hex })));
+  return decodeBalances(await rpcBatch(tokens.map((t) => ({ method: "eth_call", params: [{ to: t, data }, "latest"] }))), tokens);
+}
+
+/** Sell-quote value of `held` in USD8, or null with the reason when no quote exists right now. */
+async function valueToday(token: Address, held: bigint, ethUsd8: bigint): Promise<{ usd8: bigint | null; reason: string | null }> {
+  if (held === 0n) return { usd8: 0n, reason: null };
+  try {
+    const q = await bestQuote(token, "sell", held);
+    return q ? { usd8: (q.amountOut * ethUsd8) / 10n ** 18n, reason: null } : { usd8: null, reason: "no liquid pool" };
+  } catch (e) {
+    if (!(e instanceof QuoteUnavailable || e instanceof RpcError)) throw e;
+    return { usd8: null, reason: "quote unavailable (RPC error)" };
+  }
+}
+
+/** Card totals, `worst` and `partial` from finished meme rows (pure; nulls never count as $0). */
+export function summarize(memes: CardMeme[], gaps: ScanGap[]) {
+  const sum = (rows: CardMeme[], f: (m: CardMeme) => string) => rows.reduce((s, m) => s + BigInt(f(m)), 0n).toString();
+  const quoted = memes.filter((m) => m.usdToday8 !== null);
+  const unquoted = memes.filter((m) => m.usdToday8 === null).map((m) => ({ token: m.token, symbol: m.symbol, reason: m.todayReason ?? "unquoted" }));
+  const worst =
+    quoted
+      .filter((m) => BigInt(m.usdPaid8) > 0n)
+      .map((m) => ({ symbol: m.symbol, pct: (Number(m.usdToday8) / Number(m.usdPaid8) - 1) * 100 }))
+      .sort((a, b) => a.pct - b.pct)[0] ?? null;
+  const totals = {
+    usdPaid8: sum(memes, (m) => m.usdPaid8),
+    usdPaidQuoted8: sum(quoted, (m) => m.usdPaid8),
+    usdToday8: sum(quoted, (m) => m.usdToday8 as string),
+    usdCounterfactual8: sum(memes, (m) => m.usdCounterfactual8),
+    shares18: memes.reduce((s, m) => s + m.buys.reduce((x, b) => x + BigInt(b.shares18), 0n), 0n).toString(),
+  };
+  return { totals, worst, unquoted, partial: unquoted.length > 0 || gaps.length > 0 };
 }
 
 /** Build a wallet's Hindsight card against `stockId` (default NVDA). $WIF, stables, WETH and stocks are never memes. */
@@ -191,7 +262,7 @@ export async function buildCard(wallet: Address, stockId: StockId = 0): Promise<
   // then scan history only for held memes. Cuts a card from ~158 getLogs calls to ~5 per held meme.
   const allBal = await balances(wallet, REGISTRY.memes.map((m) => m.token));
   const heldMemes = REGISTRY.memes.filter((_, i) => allBal[i] > 0n);
-  const logs = await scanBuys(wallet, head, heldMemes);
+  const { logs, gaps } = await scanBuys(wallet, head, heldMemes);
   const hashes = [...new Set(logs.map((l) => l.transactionHash))];
   // payments() runs alone first: overlapping it with blockTimes() put ~8 POSTs in flight and drew a 429 storm with
   // multi-second backoffs on the public RPC (heavy wallet 29s, debug-results/phase-2-known-risks.md). Only priced txs
@@ -227,7 +298,8 @@ export async function buildCard(wallet: Address, stockId: StockId = 0): Promise<
       continue;
     }
     const meme = memesInTx[0];
-    const ts = p.ts ?? times.get(Number(txLogs[0].blockNumber))!;
+    const ts = p.ts ?? times.get(Number(txLogs[0].blockNumber));
+    if (ts === undefined || !Number.isFinite(ts)) throw new Error(`no block time for ${tx}`); // never price with NaN ts
     const payTable = p.payKind === 0 ? ethT : p.payKind === 1 ? usdgT : await loadTable(STOCKS[p.payStockId].historyFeed);
     const payLatest = p.payKind === 0 ? nowEth : undefined;
     const [payRound, stockRound] = await Promise.all([roundAtLive(payTable, ts, payLatest), roundAtLive(histT, ts, nowStock)]);
@@ -240,7 +312,7 @@ export async function buildCard(wallet: Address, stockId: StockId = 0): Promise<
     const shares18 = (usdPaid8 * 10n ** 18n) / stockRound.price8;
     const entry =
       byMeme.get(meme.token) ??
-      ({ token: meme.token, symbol: meme.symbol, usdPaid8: "0", usdToday8: "0", usdCounterfactual8: "0", holding: "0", buys: [] } as CardMeme);
+      ({ token: meme.token, symbol: meme.symbol, usdPaid8: "0", usdToday8: null, todayReason: null, usdCounterfactual8: "0", holding: "0", buys: [] } as CardMeme);
     entry.buys.push({
       tx,
       block: Number(txLogs[0].blockNumber),
@@ -264,32 +336,25 @@ export async function buildCard(wallet: Address, stockId: StockId = 0): Promise<
   await Promise.all(
     memes.map(async (m, i) => {
       m.holding = held[i].toString();
-      const q = held[i] > 0n ? await bestQuote(m.token, "sell", held[i]) : null;
-      m.usdToday8 = q ? ((q.amountOut * nowEth.price8) / 10n ** 18n).toString() : "0";
+      const today = await valueToday(m.token, held[i], nowEth.price8);
+      m.usdToday8 = today.usd8 === null ? null : today.usd8.toString();
+      m.todayReason = today.reason;
       const shares = m.buys.reduce((s, b) => s + BigInt(b.shares18), 0n);
       m.usdCounterfactual8 = ((shares * nowStock.price8) / 10n ** 18n).toString();
     }),
   );
 
-  const sum = (f: (m: CardMeme) => string) => memes.reduce((s, m) => s + BigInt(f(m)), 0n);
-  const shares18 = memes.reduce((s, m) => s + m.buys.reduce((x, b) => x + BigInt(b.shares18), 0n), 0n);
-  const worst = memes
-    .filter((m) => BigInt(m.usdPaid8) > 0n)
-    .map((m) => ({ symbol: m.symbol, pct: (Number(m.usdToday8) / Number(m.usdPaid8) - 1) * 100 }))
-    .sort((a, b) => a.pct - b.pct)[0] ?? null;
-
+  const { totals, worst, unquoted, partial } = summarize(memes, gaps);
   return {
     wallet,
     stock: stock.symbol,
     asOfBlock: head,
-    totals: {
-      usdPaid8: sum((m) => m.usdPaid8).toString(),
-      usdToday8: sum((m) => m.usdToday8).toString(),
-      usdCounterfactual8: sum((m) => m.usdCounterfactual8).toString(),
-      shares18: shares18.toString(),
-    },
+    totals,
     memes: memes.sort((a, b) => Number(BigInt(b.usdPaid8) - BigInt(a.usdPaid8))),
     unpriced,
     worst,
+    partial,
+    unquoted,
+    scanGaps: gaps,
   };
 }

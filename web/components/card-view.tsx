@@ -3,6 +3,8 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { useAccount } from "wagmi";
+import { HISTORY_ADDR } from "@/lib/ui-chain";
+import { AddressLookup } from "./address-lookup";
 import type { Card } from "@/lib/hindsight";
 import { MintButton, RecomputeButton, ShareButton } from "./card-actions";
 import { ConnectButton } from "./connect-button";
@@ -46,6 +48,11 @@ export function CardView({ card, error }: { card: Card | null; error: string | n
       <Panel className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-lg font-semibold">{own ? "This is your wallet." : "Connect to fix yours."}</p>
         {isConnected ? <LinkButton href="/app">Open your card</LinkButton> : <ConnectButton label="Connect to fix yours" onConnected={() => router.push("/app")} />}
+      </Panel>
+      <Panel aria-labelledby="card-lookup-title" className="space-y-3">
+        <h2 id="card-lookup-title" className="font-semibold">Look up another wallet</h2>
+        {card.wallet.toLowerCase() !== HISTORY_ADDR.toLowerCase() && <LinkButton href={`/card/${HISTORY_ADDR}`} variant="secondary">See a wallet with real history</LinkButton>}
+        <AddressLookup id="card-lookup" placeholder="Wallet address: 0x…" />
       </Panel>
     </div>
   );

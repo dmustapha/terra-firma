@@ -12,7 +12,7 @@ import {StockOracle} from "../src/StockOracle.sol";
 import {Jar} from "../src/Jar.sol";
 import {WifStaking} from "../src/WifStaking.sol";
 import {FeePool} from "../src/FeePool.sol";
-import {PoolKey, IWIF} from "../src/interfaces/IExternal.sol";
+import {PoolKey, IWIF, IUniversalRouter} from "../src/interfaces/IExternal.sol";
 
 contract TerraFirmaTest is Test, TerraConfig {
     address constant PONS = 0x39dBED3a2bd333467115dE45665cC57F813C4571;
@@ -261,7 +261,7 @@ contract TerraFirmaTest is Test, TerraConfig {
         for (uint256 i; i < 3; ++i) buyPons(alice, 0.05 ether, 200);
         uint256 supply0 = IWIF(WIF).totalSupply();
         vm.recordLogs();
-        d.feePool.distribute(1);
+        d.feePool.distribute();
         uint256 burned = d.feePool.totalWifBurned();
         assertGt(burned, 0, "burned");
         assertEq(supply0 - IWIF(WIF).totalSupply(), burned, "supply drop == burned");
@@ -279,7 +279,7 @@ contract TerraFirmaTest is Test, TerraConfig {
         vm.warp(vm.getBlockTimestamp() + 2 hours);
         for (uint256 i; i < 2; ++i) buyPons(alice, 0.05 ether, 0);
         stakeWif(alice, 0.02 ether); // JIT: staked in the same epoch as the distribute
-        d.feePool.distribute(1);
+        d.feePool.distribute();
         (, uint256 pa) = d.staking.pending(alice);
         (, uint256 pb) = d.staking.pending(bob);
         assertEq(pa, 0, "JIT stake earns nothing this epoch");
@@ -287,29 +287,29 @@ contract TerraFirmaTest is Test, TerraConfig {
         // next epoch: still not active (placed in e, active from e+2)
         vm.warp(vm.getBlockTimestamp() + 1 hours);
         buyPons(bob, 0.05 ether, 0);
-        d.feePool.distribute(1);
+        d.feePool.distribute();
         (, pa) = d.staking.pending(alice);
         assertEq(pa, 0, "not active one epoch later");
         // epoch e+2: active and earns
         vm.warp(vm.getBlockTimestamp() + 1 hours);
         buyPons(bob, 0.05 ether, 0);
-        d.feePool.distribute(1);
+        d.feePool.distribute();
         (, pa) = d.staking.pending(alice);
         assertGt(pa, 0, "earns after activation");
     }
 
     function test_distributeOncePerEpoch() public {
         buyPons(alice, 0.05 ether, 0);
-        d.feePool.distribute(1);
+        d.feePool.distribute();
         buyPons(alice, 0.05 ether, 0);
         vm.expectRevert(FeePool.EpochNotElapsed.selector);
-        d.feePool.distribute(1);
+        d.feePool.distribute();
     }
 
     function test_noStakersCarriesStockHalf() public {
         buyPons(alice, 0.05 ether, 0);
         uint256 bal = address(d.feePool).balance;
-        d.feePool.distribute(1);
+        d.feePool.distribute();
         assertGt(d.feePool.totalWifBurned(), 0);
         assertEq(address(d.feePool).balance, bal - bal / 2, "stock half carried");
     }
@@ -317,10 +317,11 @@ contract TerraFirmaTest is Test, TerraConfig {
     function test_burnFailureEmitsAndCarries() public {
         buyPons(alice, 0.05 ether, 0);
         uint256 bal = address(d.feePool).balance;
-        // force the WIF swap to fail: an absurd minOut makes the hooked-pool swap revert inside try/catch
+        // force the WIF swap to fail (a third-party hook/pool revert with a reason) inside try/catch
+        vm.mockCallRevert(UR, IUniversalRouter.execute.selector, abi.encodeWithSignature("Error(string)", "hook"));
         vm.expectEmit(true, false, false, false, address(d.feePool));
         emit FeePool.BurnSkipped(d.feePool.epoch(), 0, "");
-        d.feePool.distribute(type(uint128).max);
+        d.feePool.distribute();
         assertEq(d.feePool.totalWifBurned(), 0, "nothing burned");
         assertEq(address(d.feePool).balance, bal, "all ETH carried (no stakers, burn failed)");
     }
@@ -335,7 +336,7 @@ contract TerraFirmaTest is Test, TerraConfig {
         stakeWif(alice, 0.02 ether);
         vm.warp(st + (e + 1) * 1 hours + 1); // first second of the next epoch
         buyPons(bob, 0.05 ether, 0);
-        d.feePool.distribute(1);
+        d.feePool.distribute();
         (, uint256 pa) = d.staking.pending(alice);
         (, uint256 pb) = d.staking.pending(bob);
         assertEq(pa, 0, "boundary stake captures nothing");
@@ -348,7 +349,7 @@ contract TerraFirmaTest is Test, TerraConfig {
         stakeWif(bob, 0.005 ether);
         vm.warp(vm.getBlockTimestamp() + 2 hours);
         buyPons(bob, 0.05 ether, 0);
-        d.feePool.distribute(1);
+        d.feePool.distribute();
         (, uint256 acc) = d.staking.pending(alice);
         assertGt(acc, 0);
         vm.startPrank(alice);
@@ -367,7 +368,7 @@ contract TerraFirmaTest is Test, TerraConfig {
         buyPons(alice, 0.05 ether, 0);
         uint256 last = d.feePool.lastEpoch();
         for (uint256 g = 120_000; g <= 900_000; g += 60_000) {
-            try d.feePool.distribute{gas: g}(1) {
+            try d.feePool.distribute{gas: g}() {
                 assertGt(d.feePool.totalWifBurned(), 0, "a successful distribute must burn");
                 return;
             } catch {
@@ -382,7 +383,7 @@ contract TerraFirmaTest is Test, TerraConfig {
         vm.warp(vm.getBlockTimestamp() + 2 hours);
         vm.deal(address(d.feePool), 1 ether);
         vm.recordLogs();
-        d.feePool.distribute(1);
+        d.feePool.distribute();
         assertEq(address(d.feePool).balance, 1 ether - 2 * d.feePool.MAX_WIF_BUY_ETH(), "two equal capped legs");
         assertEq(d.feePool.totalEthToStock(), d.feePool.MAX_WIF_BUY_ETH(), "stock leg == burn leg");
     }

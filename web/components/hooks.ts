@@ -4,12 +4,12 @@ import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
 import { type Abi, type Address, type Hex, type TransactionReceipt } from "viem";
 import { useAccount, useConfig } from "wagmi";
-import { readContract, simulateContract, waitForTransactionReceipt, writeContract } from "wagmi/actions";
+import { getAccount, readContract, simulateContract, switchChain, waitForTransactionReceipt, writeContract } from "wagmi/actions";
 import { erc20Abi } from "@/lib/abi";
 import { ADDR, CHAIN_ID } from "@/lib/config";
 import type { Card } from "@/lib/hindsight";
 import { aggregatorAbi, publicClient } from "@/lib/ui-chain";
-import { API_ERRORS, plainError } from "@/lib/ui-errors";
+import { API_ERRORS, WRONG_CHAIN, plainError } from "@/lib/ui-errors";
 import { scanLogs } from "@/lib/ui-logs";
 import { stockQuotes } from "@/lib/ui-report";
 
@@ -79,13 +79,29 @@ export interface WriteCall {
   functionName: string;
   args?: readonly unknown[];
   value?: bigint;
+  /** Explicit gas limit (FeePool.distribute needs ~3.1M with all six pools live; wallet estimates can under-shoot). */
+  gas?: bigint;
 }
 
 export interface TxStep {
   label: string;
-  call: WriteCall;
+  /** Static call, or `build` to compute it right before signing (fresh quote + min-out). One of the two is required. */
+  call?: WriteCall;
+  build?: () => Promise<{ call: WriteCall; label?: string }>;
   /** Return true to skip (e.g. allowance already sufficient). */
   skip?: () => Promise<boolean>;
+}
+
+/** Make sure the wallet is on 4663 before a write; ask it to switch if not. Throws a plain-language error. */
+async function ensureChain(config: Parameters<typeof getAccount>[0]) {
+  if (getAccount(config).chainId === CHAIN_ID) return;
+  try {
+    await switchChain(config, { chainId: CHAIN_ID });
+  } catch (e) {
+    const msg = plainError(e);
+    throw new Error(msg === "You cancelled in your wallet." ? `${WRONG_CHAIN} The switch was cancelled.` : WRONG_CHAIN);
+  }
+  if (getAccount(config).chainId !== CHAIN_ID) throw new Error(WRONG_CHAIN);
 }
 
 export type TxPhase = "idle" | "sign" | "pending" | "done" | "error";
@@ -116,14 +132,24 @@ export function useTx() {
         for (let i = 0; i < steps.length; i++) {
           const s = steps[i];
           if (s.skip && (await s.skip())) continue;
-          setState({ phase: "sign", step: i + 1, total: steps.length, label: s.label, hashes: [...hashes] });
+          await ensureChain(config);
+          let call = s.call;
+          let label = s.label;
+          if (s.build) {
+            setState({ phase: "sign", step: i + 1, total: steps.length, label: `${s.label}: refreshing the quote`, hashes: [...hashes] });
+            const b = await s.build();
+            call = b.call;
+            label = b.label ?? s.label;
+          }
+          if (!call) throw new Error("Nothing to sign.");
+          setState({ phase: "sign", step: i + 1, total: steps.length, label, hashes: [...hashes] });
           // One localized cast: the steps array mixes ABIs, so wagmi's per-ABI generics cannot be inferred here.
-          const { request } = await simulateContract(config, { ...s.call, account: address, chainId: CHAIN_ID } as never);
+          const { request } = await simulateContract(config, { ...call, account: address, chainId: CHAIN_ID } as never);
           const hash = await writeContract(config, request as never);
-          hashes.push({ label: s.label, hash });
-          setState({ phase: "pending", step: i + 1, total: steps.length, label: s.label, hash, hashes: [...hashes] });
+          hashes.push({ label, hash });
+          setState({ phase: "pending", step: i + 1, total: steps.length, label, hash, hashes: [...hashes] });
           last = await waitForTransactionReceipt(config, { hash, chainId: CHAIN_ID });
-          if (last.status !== "success") throw new Error(`${s.label} reverted onchain.`);
+          if (last.status !== "success") throw new Error(`${label} reverted onchain.`);
         }
         setState((p) => ({ ...p, phase: "done", hashes: [...hashes] }));
         return last;

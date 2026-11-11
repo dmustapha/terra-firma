@@ -6,10 +6,10 @@ import { Notice, TxLink } from "./ui";
 
 /** Pending / success / error line for a multi-step transaction, always with explorer links. */
 export function TxStatus({ state, success, onReset }: { state: TxState; success?: ReactNode; onReset?: () => void }) {
-  if (state.phase === "idle") return null;
+  // The live region stays mounted (empty while idle) so screen readers announce the first update.
   const stepTxt = state.total > 1 ? `Step ${state.step} of ${state.total}: ` : "";
   return (
-    <div role="status" aria-live="polite" className="mt-4 space-y-2">
+    <div role="status" aria-live="polite" className={state.phase === "idle" ? "sr-only" : "mt-4 space-y-2"}>
       {state.phase === "sign" && <Notice>{stepTxt}{state.label}. Confirm in your wallet.</Notice>}
       {state.phase === "pending" && (
         <Notice>
@@ -21,7 +21,7 @@ export function TxStatus({ state, success, onReset }: { state: TxState; success?
         <Notice tone="danger">
           {state.error}{" "}
           {onReset && (
-            <button type="button" onClick={onReset} className="ml-1 underline underline-offset-4">
+            <button type="button" onClick={onReset} className="ml-1 inline-flex min-h-11 items-center rounded-sm underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
               Dismiss
             </button>
           )}

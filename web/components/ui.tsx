@@ -64,7 +64,12 @@ export function TxLink({ hash, children, className }: { hash: string; children?:
   );
 }
 
+const ZERO_ADDR = /0x0{40}(?![0-9a-f])/i;
+/** True for links that would point at the zero address (pre-deploy placeholders). Those render as plain text. */
+export const isZeroLink = (s: string | undefined) => !!s && ZERO_ADDR.test(s);
+
 export function AddrLink({ addr, children, className }: { addr: string; children?: ReactNode; className?: string }) {
+  if (isZeroLink(addr)) return <span className={className}>{children ?? "not deployed"}</span>;
   return (
     <a href={addrUrl(addr)} {...ext} className={cx(linkCls, !children && "font-mono", className)} aria-label={`View ${addr} on the explorer`}>
       {children ?? short(addr)}
@@ -111,7 +116,7 @@ export function Stat({ label, value, sub, href }: { label: string; value: ReactN
       {sub && <span className="mt-1 block text-xs text-muted">{sub}</span>}
     </>
   );
-  return href ? (
+  return href && !isZeroLink(href) ? (
     <a href={href} {...ext} className="block rounded-xl border border-line bg-surface p-4 transition-colors hover:border-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
       {body}
     </a>

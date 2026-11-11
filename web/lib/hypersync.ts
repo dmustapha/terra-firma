@@ -18,12 +18,17 @@ interface HsResponse {
 
 export const hypersyncEnabled = () => typeof process.env.ENVIO_API_TOKEN === "string" && process.env.ENVIO_API_TOKEN.length > 0;
 
-/** All Transfer(*, wallet) logs of `tokens` from `fromBlock`, paginated until HyperSync reports no more data. */
+const MAX_PAGES = 50;
+
+/**
+ * All Transfer(*, wallet) logs of `tokens` from `fromBlock`, paginated until HyperSync reports no more data.
+ * Throws (never returns a truncated list) if MAX_PAGES is reached first; the caller then falls back to eth_getLogs.
+ */
 export async function transfersTo(wallet: Address, tokens: Address[], fromBlock: number): Promise<HsLog[]> {
   const padded = `0x000000000000000000000000${wallet.slice(2).toLowerCase()}`;
   const out: HsLog[] = [];
   let from = fromBlock;
-  for (let page = 0; page < 50; page++) {
+  for (let page = 0; page < MAX_PAGES; page++) {
     const res = await fetch(URL_QUERY, {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${process.env.ENVIO_API_TOKEN}` },
@@ -33,6 +38,7 @@ export async function transfersTo(wallet: Address, tokens: Address[], fromBlock:
         field_selection: { log: ["address", "topic0", "topic1", "topic2", "topic3", "data", "block_number", "transaction_hash"] },
       }),
       cache: "no-store",
+      signal: AbortSignal.timeout(10_000),
     });
     if (!res.ok) throw new Error(`hypersync HTTP ${res.status}`);
     const j = (await res.json()) as HsResponse;
@@ -47,8 +53,8 @@ export async function transfersTo(wallet: Address, tokens: Address[], fromBlock:
         });
       }
     }
-    if (!j.next_block || (j.archive_height !== undefined && j.next_block >= j.archive_height) || j.next_block <= from) break;
+    if (!j.next_block || (j.archive_height !== undefined && j.next_block >= j.archive_height) || j.next_block <= from) return out;
     from = j.next_block;
   }
-  return out;
+  throw new Error(`hypersync: page cap ${MAX_PAGES} reached at block ${from}`);
 }

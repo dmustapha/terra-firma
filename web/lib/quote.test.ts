@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
-import type { Address } from "viem";
+import { encodeAbiParameters, type Address } from "viem";
 import { ADDR } from "./config";
 import type { PoolEntry } from "./registry";
-import { bestQuote, quoteStock, routeFor, v3Path } from "./quote";
+import { QuoteUnavailable, bestQuote, pickBestQuote, quoteStock, routeFor, v3Path } from "./quote";
+import { RpcError } from "./rpc";
 
 const TOKEN = "0x39dBED3a2bd333467115dE45665cC57F813C4571" as Address;
 const NVDA = "0xd0601CE157Db5bdC3162BbaC2a2C8aF5320D9EEC" as Address;
@@ -66,5 +67,32 @@ describe("bestQuote / quoteStock guards (no RPC reached)", () => {
 
   it("quotes zero ETH into stock as zero without a call", async () => {
     await expect(quoteStock(0, 0n)).resolves.toBe(0n);
+  });
+});
+
+describe("pickBestQuote (M3/S8: unavailable vs no route)", () => {
+  const v2Out = (n: bigint) => encodeAbiParameters([{ type: "uint256[]" }], [[1n, n]]);
+  const v3Out = (n: bigint) => encodeAbiParameters([{ type: "uint256" }, { type: "uint160" }, { type: "uint32" }, { type: "uint256" }], [n, 0n, 0, 0n]);
+  const rateLimited = new RpcError(429, "HTTP 429");
+
+  it("picks the largest decoded output and builds that pool's route", () => {
+    const best = pickBestQuote([v2, v3], [v2Out(100n), v3Out(250n)], TOKEN, "sell");
+    expect(best?.amountOut).toBe(250n);
+    expect(best?.route.kind).toBe(2);
+  });
+
+  it("uses the surviving pools when only some calls errored", () => {
+    expect(pickBestQuote([v2, v3], [rateLimited, v3Out(7n)], TOKEN, "sell")?.amountOut).toBe(7n);
+  });
+
+  it("throws QuoteUnavailable when every call failed at the RPC layer (never 'no route' / $0)", () => {
+    expect(() => pickBestQuote([v2, v3], [rateLimited, new RpcError(-32603, "internal")], TOKEN, "sell")).toThrow(QuoteUnavailable);
+  });
+
+  it("returns null when pools answered but none can fill (revert, zero output, undecodable)", () => {
+    const revert = new RpcError(3, "execution reverted");
+    expect(pickBestQuote([v2, v3], [revert, v3Out(0n)], TOKEN, "sell")).toBeNull();
+    expect(pickBestQuote([v2], ["0xdead"], TOKEN, "sell")).toBeNull();
+    expect(pickBestQuote([], [], TOKEN, "sell")).toBeNull();
   });
 });

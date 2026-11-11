@@ -59,6 +59,30 @@
   "section": 11,
   "name": "Contract tests"
  },
+ "contracts/test/debug-p2-reentrancy.t.sol": {
+  "section": 11,
+  "name": "Contract tests"
+ },
+ "contracts/test/debug-p2-staking-invariant.t.sol": {
+  "section": 11,
+  "name": "Contract tests"
+ },
+ "contracts/test/debug-p2-weekend-staleness.t.sol": {
+  "section": 11,
+  "name": "Contract tests"
+ },
+ "contracts/test/debug-p6-crossepoch-lock.t.sol": {
+  "section": 11,
+  "name": "Contract tests"
+ },
+ "contracts/test/debug-p6-feepool.t.sol": {
+  "section": 11,
+  "name": "Contract tests"
+ },
+ "contracts/test/debug-p6-hindsight-phase.t.sol": {
+  "section": 11,
+  "name": "Contract tests"
+ },
  "web/lib/config.ts": {
   "section": 12,
   "name": "Shared web infrastructure"
@@ -211,6 +235,10 @@
   "section": 16,
   "name": "C9 Frontend"
  },
+ "web/components/address-lookup.tsx": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
  "web/components/app-home.tsx": {
   "section": 16,
   "name": "C9 Frontend"
@@ -307,6 +335,38 @@
   "section": 16,
   "name": "C9 Frontend"
  },
+ "web/lib/api-hindsight.test.ts": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/lib/api-quote.test.ts": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/lib/api-stream.test.ts": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/lib/api-validation.test.ts": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/lib/card-cache.test.ts": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/lib/card-cache.ts": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/lib/concurrency.ts": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/lib/hindsight.test.ts": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
  "web/lib/quote.test.ts": {
   "section": 16,
   "name": "C9 Frontend"
@@ -319,6 +379,10 @@
   "section": 16,
   "name": "C9 Frontend"
  },
+ "web/lib/rpc.test.ts": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
  "web/lib/stock-paths.integration.ts": {
   "section": 16,
   "name": "C9 Frontend"
@@ -327,7 +391,15 @@
   "section": 16,
   "name": "C9 Frontend"
  },
+ "web/lib/ui-errors.test.ts": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
  "web/lib/ui-errors.ts": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/lib/ui-format.test.ts": {
   "section": 16,
   "name": "C9 Frontend"
  },
@@ -335,7 +407,15 @@
   "section": 16,
   "name": "C9 Frontend"
  },
+ "web/lib/ui-logs.test.ts": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
  "web/lib/ui-logs.ts": {
+  "section": 16,
+  "name": "C9 Frontend"
+ },
+ "web/lib/ui-report.test.ts": {
   "section": 16,
   "name": "C9 Frontend"
  },
@@ -379,7 +459,15 @@
   "section": 17,
   "name": "C10/C11 Scripts + keeper"
  },
+ "scripts/debug-p2-hindsight-latency.live.ts": {
+  "section": 17,
+  "name": "C10/C11 Scripts + keeper"
+ },
  "scripts/export-abis.mjs": {
+  "section": 17,
+  "name": "C10/C11 Scripts + keeper"
+ },
+ "scripts/fixtures/debug-p2-hindsight-baseline.json": {
   "section": 17,
   "name": "C10/C11 Scripts + keeper"
  },

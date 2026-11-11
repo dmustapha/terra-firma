@@ -4,13 +4,13 @@ import { useState } from "react";
 import { formatUnits, type Abi, type Address } from "viem";
 import { useAccount, useReadContract, useReadContracts } from "wagmi";
 import { erc20Abi, feePoolAbi, terraRouterAbi, wifStakingAbi } from "@/lib/abi";
-import { CHAIN_ID, DISCOUNT_STAKE, STAKER_FEE_BPS, STOCKS, TF, addrUrl } from "@/lib/config";
+import { CHAIN_ID, DISCOUNT_STAKE, EXPLORER, STAKER_FEE_BPS, STOCKS, TF, addrUrl } from "@/lib/config";
 import { DEPLOYED, WIF } from "@/lib/ui-chain";
-import { duration, parseAmount, shares18, token } from "@/lib/ui-format";
+import { DASH, duration, parseAmount, shares18, token } from "@/lib/ui-format";
 import { only } from "@/lib/ui-logs";
-import { sharesOf } from "@/lib/ui-report";
+import { sharesOf, type StockQuote } from "@/lib/ui-report";
 import { ConnectButton } from "./connect-button";
-import { GEO_BLOCKED, useStockGate } from "./geo-gate";
+import { GEO_BLOCKED, GeoLoadingNote, useStockGate } from "./geo-gate";
 import { useApproveStep, useMounted, useNow, useStockQuotes, useTfLogs, useTx } from "./hooks";
 import { StockSelect } from "./stock-select";
 import { TxStatus } from "./tx-status";
@@ -70,7 +70,7 @@ export function StakeView() {
                 <p className="num text-sm text-muted">
                   Last reward:{" "}
                   {last ? (
-                    <TxLink hash={last.transactionHash}>{q ? shares18(sharesOf(last.args.amount, q)) : token(last.args.amount)} {s.symbol}</TxLink>
+                    <TxLink hash={last.transactionHash}>{rewardText(last.args.amount, q, s.symbol)}</TxLink>
                   ) : (
                     <span>{DEPLOYED && logs.isLoading ? <Skeleton w="4rem" /> : "none yet"}</span>
                   )}
@@ -81,12 +81,12 @@ export function StakeView() {
         </ul>
       </Panel>
 
-      <YourStake nextAt={nextAt} now={now} />
+      <YourStake epoch={epoch} nextAt={nextAt} now={now} />
     </div>
   );
 }
 
-function YourStake({ nextAt, now }: { nextAt?: number; now: number }) {
+function YourStake({ epoch, nextAt, now }: { epoch?: bigint; nextAt?: number; now: number }) {
   const mounted = useMounted();
   const { address } = useAccount();
   if (!mounted) return <Skeleton w="100%" h="10rem" className="block" />;
@@ -97,10 +97,10 @@ function YourStake({ nextAt, now }: { nextAt?: number; now: number }) {
         <ConnectButton />
       </Panel>
     );
-  return <Staker user={address} nextAt={nextAt} now={now} />;
+  return <Staker user={address} epoch={epoch} nextAt={nextAt} now={now} />;
 }
 
-function Staker({ user, nextAt, now }: { user: Address; nextAt?: number; now: number }) {
+function Staker({ user, epoch, nextAt, now }: { user: Address; epoch?: bigint; nextAt?: number; now: number }) {
   const me = useReadContracts({
     contracts: [
       { ...S, functionName: "stakers", args: [user] },
@@ -130,11 +130,15 @@ function Staker({ user, nextAt, now }: { user: Address; nextAt?: number; now: nu
   const stakeSym = hasStake ? mySym : pick;
   const wei = parseAmount(amt);
   const unWei = parseAmount(unAmt);
-  // WifStaking activates a stake placed in epoch e at the start of e+2 (one full epoch after the next boundary).
-  const mins = nextAt ? Math.max(1, Math.ceil((nextAt + 3600 - now) / 60)) : null;
+  const { label: activation, mins } = activationText(epoch, nextAt, now);
+  // `stakers().pendingStake` keeps matured buckets until the next interaction; activeOf() already counts them (S9).
+  const matured = activeOf !== undefined && activeOf > active ? activeOf - active : 0n;
+  const waiting = pendingStake > matured ? pendingStake - matured : 0n;
   const reward = pend?.[1] ?? 0n;
   const rq = market.data?.[pend?.[0] ?? stockId];
   const blocked = gate.status === "restricted";
+  const geoWait = gate.status === "loading";
+  const stakingUrl = addrUrl(TF.WifStaking);
   const after = (m: string) => () => {
     setMsg(m);
     me.refetch();
@@ -146,7 +150,7 @@ function Staker({ user, nextAt, now }: { user: Address; nextAt?: number; now: nu
       if (!wei) return;
       const id = STOCKS.find((s) => s.symbol === stakeSym)!.id;
       const r = await tx.run([approve(WIF, TF.WifStaking, wei, "$WIF"), { label: "Stake $WIF", call: { address: TF.WifStaking, abi: wifStakingAbi as unknown as Abi, functionName: "stake", args: [wei, id] } }]);
-      if (r) after(`Staked. You start earning ${stakeSym} after one full epoch${mins ? ` (in ${mins} min)` : ""}.`)();
+      if (r) after(`Staked. It ${activation}${mins ? ` (in about ${mins} min)` : ""} and earns ${stakeSym} from the first distribute after that.`)();
     });
   const call = (label: string, fn: string, args: readonly unknown[], done: string, stockLeg = false) => {
     const go = async () => {
@@ -170,12 +174,13 @@ function Staker({ user, nextAt, now }: { user: Address; nextAt?: number; now: nu
         )}
       </div>
       {blocked && <Notice tone="warn">{GEO_BLOCKED} Staking and claiming earn stock, so they are off in your region.</Notice>}
+      <GeoLoadingNote status={gate.status} />
 
       <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Fig k="Wallet $WIF" v={wifBal.data !== undefined ? token(wifBal.data) : undefined} />
-        <Fig k="Active" v={activeOf !== undefined ? token(activeOf) : undefined} sub={hasStake ? `earning ${mySym}` : undefined} />
-        <Fig k="Activating" v={st ? token(pendingStake) : undefined} />
-        <Fig k="Reward to claim" v={pend ? (rq ? `${shares18(sharesOf(reward, rq))} ${STOCKS[pend[0]]?.symbol}` : token(reward)) : undefined} accent />
+        <Fig k="Wallet $WIF" v={wifBal.data !== undefined ? token(wifBal.data) : undefined} href={`${EXPLORER}/address/${user}?tab=tokens`} />
+        <Fig k="Active" v={activeOf !== undefined ? token(activeOf) : undefined} sub={hasStake ? `earning ${mySym}` : undefined} href={stakingUrl} />
+        <Fig k="Activating" v={st && activeOf !== undefined ? token(waiting) : undefined} sub={waiting > 0n ? `earns from epoch ${epoch !== undefined ? (epoch + 2n).toString() : "e+2"}` : undefined} href={stakingUrl} />
+        <Fig k="Reward to claim" v={pend ? rewardText(reward, rq, STOCKS[pend[0]]?.symbol ?? "") : undefined} href={stakingUrl} accent />
       </dl>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -187,19 +192,19 @@ function Staker({ user, nextAt, now }: { user: Address; nextAt?: number; now: nu
             <input id="stake-amt" inputMode="decimal" value={amt} onChange={(e) => setAmt(e.target.value)} placeholder="$WIF amount" className={cx(inputCls, "num sm:flex-1")} aria-invalid={amt !== "" && !wei} />
             {wifBal.data !== undefined && <Button variant="secondary" onClick={() => setAmt(formatUnits(wifBal.data!, 18))}>Max</Button>}
           </div>
-          <Button className="w-full" disabled={!wei || blocked || tx.busy || (wifBal.data !== undefined && wei > wifBal.data)} onClick={stake}>Approve and stake</Button>
-          <p className="text-xs text-muted">New stake starts earning after one full epoch, so nobody can grab a payout by staking just before it.</p>
+          <Button className="w-full" disabled={!wei || blocked || geoWait || tx.busy || (wifBal.data !== undefined && wei > wifBal.data)} onClick={stake}>Approve and stake</Button>
+          <p className="text-xs text-muted">A stake placed now {activation}{mins ? ` (about ${mins} min)` : ""}, so nobody can grab a payout by staking just before a distribute.</p>
         </section>
 
         <section aria-labelledby="manage-h" className="space-y-4">
           <h3 id="manage-h" className="font-semibold">Manage</h3>
-          <Button className="w-full" disabled={reward === 0n || blocked || tx.busy} onClick={() => call("Claim to Jar", "claim", [], "Claimed. The reward stock is in your Jar.", true)}>
+          <Button className="w-full" disabled={reward === 0n || blocked || geoWait || tx.busy} onClick={() => call("Claim to Jar", "claim", [], "Claimed. The reward stock is in your Jar.", true)}>
             Claim to Jar
           </Button>
           {hasStake && (
             <div className="space-y-2">
               <StockSelect value={pick} onChange={setPick} label="Switch reward stock" name="switch-stock" />
-              <Button variant="secondary" className="w-full" disabled={pick === mySym || blocked || tx.busy} onClick={() => call(`Switch to ${pick}`, "switchStock", [STOCKS.find((s) => s.symbol === pick)!.id], `Switched. You earn ${pick} after one full epoch.`, true)}>
+              <Button variant="secondary" className="w-full" disabled={pick === mySym || blocked || geoWait || tx.busy} onClick={() => call(`Switch to ${pick}`, "switchStock", [STOCKS.find((s) => s.symbol === pick)!.id], `Switched. Your stake earns ${pick} once it is active: it ${activation}.`, true)}>
                 Switch to {pick}
               </Button>
             </div>
@@ -235,11 +240,34 @@ function Staker({ user, nextAt, now }: { user: Address; nextAt?: number; now: nu
   );
 }
 
-function Fig({ k, v, sub, accent }: { k: string; v?: string; sub?: string; accent?: boolean }) {
+/** Contract truth (WifStaking._matured): a stake placed in epoch e is active from the start of epoch e+2. */
+export function activationText(epoch: bigint | undefined, nextAt: number | undefined, now: number) {
+  const label = epoch !== undefined ? `activates at the start of epoch ${(epoch + 2n).toString()}` : "activates at the start of the second epoch from now";
+  const mins = nextAt ? Math.max(1, Math.ceil((nextAt + 3600 - now) / 60)) : null;
+  return { label, mins };
+}
+
+/** Reward in displayed shares; "—" when the quote is unavailable (never the raw amount presented as shares). */
+function rewardText(raw: bigint, q: StockQuote | undefined, sym: string) {
+  const sh = sharesOf(raw, q);
+  return sh === null ? `${DASH} ${sym} (price unavailable)` : `${shares18(sh)} ${sym}`;
+}
+
+/** Figure linked to the explorer page that holds the number (invariant: every onchain number links). */
+function Fig({ k, v, sub, accent, href }: { k: string; v?: string; sub?: string; accent?: boolean; href?: string }) {
+  const value = v ?? <Skeleton w="4rem" />;
   return (
     <div className={cx("rounded-xl border p-3", accent ? "border-accent/40 bg-accent-soft" : "border-line")}>
       <dt className="text-xs text-muted">{k}</dt>
-      <dd className="num mt-1 text-lg font-semibold">{v ?? <Skeleton w="4rem" />}</dd>
+      <dd className="num mt-1 text-lg font-semibold">
+        {href && v ? (
+          <a href={href} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-sm underline decoration-line underline-offset-4 hover:decoration-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" aria-label={`${k}: ${v}. View on the explorer`}>
+            {value}
+          </a>
+        ) : (
+          value
+        )}
+      </dd>
       {sub && <dd className="text-xs text-muted">{sub}</dd>}
     </div>
   );

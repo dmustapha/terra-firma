@@ -107,6 +107,7 @@ async function fetchRoundData(feed: Address, n: number): Promise<{ price8: bigin
  * same inputs never reverts BadRound for a recent buy. Returns null when `ts` precedes the feed (row goes "unpriced").
  */
 export async function roundAtLive(t: RoundTable, ts: number, latestRound?: Awaited<ReturnType<typeof latestPrice8>>) {
+  if (!Number.isFinite(ts)) throw new Error(`roundAtLive: bad timestamp ${ts}`); // NaN would select the last round
   const rows = t.rounds;
   if (rows.length === 0 || rows[0][2] > ts) return null;
   const last = rows[rows.length - 1];
@@ -119,7 +120,7 @@ export async function roundAtLive(t: RoundTable, ts: number, latestRound?: Await
   // Case 2: no newer round exists onchain, or the latest round is not after ts.
   const latest = latestRound ?? (await latestPrice8(t.feed)); // caller may pass this feed's latest round, read once per card
   const latestN = nOf(latest.roundId);
-  if (latestN <= last[0]) return { roundId: PHASE_BASE + BigInt(last[0]), price8: BigInt(last[1]), updatedAt: last[2] };
+  if (latestN <= last[0]) return { roundId: PHASE_BASE + BigInt(last[0]), price8: normalize8(t.feed, last[0], BigInt(last[1])), updatedAt: last[2] };
   if (latest.updatedAt <= ts) return { roundId: latest.roundId, price8: normalize8(t.feed, latestN, latest.price8), updatedAt: latest.updatedAt };
   // Case 3: binary-search the live rounds between the table's last row and the latest round.
   let lo = last[0];
@@ -130,7 +131,7 @@ export async function roundAtLive(t: RoundTable, ts: number, latestRound?: Await
     if (r.updatedAt !== 0 && r.updatedAt <= ts) lo = mid;
     else hi = mid - 1;
   }
-  const r = lo === last[0] ? { price8: BigInt(last[1]), updatedAt: last[2] } : await roundData(t.feed, lo);
+  const r = lo === last[0] ? { price8: normalize8(t.feed, lo, BigInt(last[1])), updatedAt: last[2] } : await roundData(t.feed, lo);
   return { roundId: PHASE_BASE + BigInt(lo), price8: normalize8(t.feed, lo, r.price8), updatedAt: r.updatedAt };
 }
 

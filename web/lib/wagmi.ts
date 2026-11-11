@@ -6,6 +6,13 @@ import { PUBLIC_RPC } from "./config";
 
 const wcProjectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID;
 
+/** WalletConnect v2 (Robinhood Wallet, mobile MetaMask) needs a project id; without it only injected + Coinbase show. */
+export const HAS_WALLETCONNECT = !!wcProjectId;
+
+if (typeof window === "undefined" && !wcProjectId && process.env.NODE_ENV === "production") {
+  console.warn("[terra-firma] NEXT_PUBLIC_WC_PROJECT_ID is not set: the wallet dialog will not offer WalletConnect (see .env.example).");
+}
+
 /** Connectors touch browser APIs, so they are only built in the browser. */
 function connectors() {
   if (typeof window === "undefined") return [];

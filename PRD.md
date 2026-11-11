@@ -32,7 +32,7 @@ Terra Firma is a meme terminal with a savings account bolted to it.
 5. **Safety layer:** Chainlink staleness and paused checks plus min-out bands on every stock fill, ownerless verified contracts, $WIF never priced for value and never sold, restricted-jurisdiction geofence on the stock leg, and a SECURITY.md that discloses the third-party owned hook on the WIF/ETH pool.
 
 ### Why This Wins
-Judging criteria are verbatim from the rules: "a real reason to use $wif, a flywheel that holds up, and something that works and is built well" (no weights published; config.json derives near-equal 34/38/38).
+Judging criteria are verbatim from the rules: "a real reason to use $wif, a flywheel that holds up, and something that works and is built well" (no weights published; config.json derives near-equal 34/62/62).
 
 | Judging Criterion | Weight | How We Excel |
 |---|:---:|---|
@@ -145,10 +145,10 @@ Hero flow = Thesis field 4 HERO FLOW as amended by AMEND-1 (canonical in WINNER-
 ### Flow 4 (F4): Stake $WIF, pick a reward stock
 1. `/stake` shows: your $WIF, current epoch countdown, each of the 6 sub-pools (stock, total staked, last epoch reward), the burn counter.
 2. User picks a stock (default NVDA), enters an amount, approves $WIF to WifStaking, signs `stake(amount, stockId)`.
-3. UI shows "Active from next epoch (in 23 min)" (anti-JIT).
+3. UI shows "Active after one full epoch (from e+2)" (anti-JIT).
 4. After each distribute, the user's pending reward grows; **Claim to Jar** signs `claim()` and the stock lands in their Jar.
 5. **Unstake** signs `requestUnstake(amount)`: stops earning immediately; **Withdraw** unlocks 24h later.
-- Edge E4a: user switches reward stock → `switchStock(stockId)` claims pending first, takes effect next epoch.
+- Edge E4a: user switches reward stock → `switchStock(stockId)` claims pending first, the moved stake re-activates after one full epoch (e+2).
 - Edge E4b: SPY/QQQ feeds stale on weekends → that sub-pool's buy is skipped and its ETH share carries to the next epoch (no forced fill at a stale price).
 
 ### Flow 5 (F5): Meme terminal trade with sweep (hero step 3)
@@ -168,7 +168,7 @@ Hero flow = Thesis field 4 HERO FLOW as amended by AMEND-1 (canonical in WINNER-
 - Edge E6a: zero balance → empty state with "Your Jar is empty. Convert a meme or trade one." plus Hindsight CTA.
 
 ### Flow 7 (F7): Distribute epoch (keeper or anyone)
-1. Each hour the keeper reads `FeePool.canDistribute()`; if the epoch elapsed and ETH balance >= threshold, it sends `distribute(wifMinOut)` with `wifMinOut` from a V4Quoter quote minus 3%.
+1. Each hour the keeper reads `FeePool.canDistribute()`; if the epoch elapsed and ETH balance >= threshold, it sends `distribute()` (gas limit 3,500,000).
 2. FeePool buys $WIF (capped at `maxWifBuyEth` per call), burns all bought $WIF, buys each active sub-pool's stock, notifies WifStaking, emits `Distributed(epoch, wifBurned, stockBought[])`.
 3. `/stake` and `/proof` show the new burn and stream.
 - Edge E7a: epoch not elapsed → revert `EpochNotElapsed` (keeper skips).
@@ -264,21 +264,21 @@ event Withdrawn(address indexed user, address indexed stock, uint256 amount);
 - **Purpose:** turn fees into $WIF burn and the staker stream.
 - **Interface:**
 ```solidity
-function distribute(uint256 wifMinOut) external;          // permissionless, once per epoch
+function distribute() external;                            // permissionless, once per epoch (no caller min-out: debug S-1)
 function canDistribute() external view returns (bool);
 function epoch() external view returns (uint256);         // (block.timestamp - start) / 1 hours
 event Distributed(uint256 indexed epoch, uint256 ethIn, uint256 wifBurned, uint256[6] stockBought, uint256 carried);
 error EpochNotElapsed(); error BelowThreshold();
 ```
-- **Rules:** split 50/50 (OD2) with EQUAL legs: each leg = min(half the balance, `MAX_WIF_BUY_ETH` = 0.01 ETH); anything above the caps carries to the next epoch. The burn leg buys through the v4 hooked WIF/ETH pool, then `WIF.burn(all WIF held)`. Each swap requires a gas floor (400k burn / 450k per stock leg) and an empty (out-of-gas) revert reason aborts the whole call instead of skipping, so a caller cannot void an epoch by starving gas (`test_distributeGasStarvationReverts`); real swap failures emit `BurnSkipped`/`StockBuySkipped` and carry. Stock half split by WifStaking's active stake per sub-pool; each sub-pool buy uses StockOracle min-out (band 3%); stale feed → skip and carry. Sub-pools with zero active stake get no ETH (their share redistributes across active ones; if no stakers at all, the stock half carries).
-- **Constraints:** the contract never reads a $WIF spot price for value (Thesis INVARIANT 1). `wifMinOut` is a caller-supplied slippage guard only; the per-call cap bounds manipulation to dust even at `wifMinOut = 0`.
+- **Rules:** split 50/50 (OD2) with EQUAL legs: each leg = min(half the balance, `MAX_WIF_BUY_ETH` = 0.01 ETH); anything above the caps carries to the next epoch. The burn leg buys through the v4 hooked WIF/ETH pool, then `WIF.burn(all WIF held)`. Each swap requires a gas floor (400k burn / 450k per stock leg) and an out-of-gas swap (detected by the 63/64 gas rule, not by the revert data) aborts the whole call instead of skipping, so a caller cannot void an epoch by starving gas, while a hook that reverts with any data, even empty, is skipped and its ETH carried (`test_distributeGasStarvationReverts`); real swap failures emit `BurnSkipped`/`StockBuySkipped` and carry. Stock half split by WifStaking's active stake per sub-pool; each sub-pool buy uses StockOracle min-out (band 3%); stale feed → skip and carry. Sub-pools with zero active stake get no ETH (their share redistributes across active ones; if no stakers at all, the stock half carries).
+- **Constraints:** the contract never reads a $WIF spot price for value (Thesis INVARIANT 1). There is no caller-supplied min-out (a caller could otherwise force-skip the burn every epoch); the per-epoch cap `MAX_WIF_BUY_ETH` bounds any sandwich of the burn leg to dust.
 
 ### C4 WifStaking
 - **Purpose:** stake $WIF to earn a real-stock stream in a chosen stock.
 - **Interface:**
 ```solidity
-function stake(uint256 amount, uint8 stockId) external;   // active from next epoch
-function switchStock(uint8 stockId) external;              // claims, moves next epoch
+function stake(uint256 amount, uint8 stockId) external;   // active from epoch e+2
+function switchStock(uint8 stockId) external;              // claims, re-activates at e+2
 function requestUnstake(uint256 amount) external;          // stops earning now
 function withdraw() external;                              // after 24h
 function claim() external;                                 // rewards -> Jar.credit(user, stock, amt, 3)
@@ -335,7 +335,7 @@ event CardMinted(address indexed wallet, uint8 stockId, uint256 usdPaid8, uint25
 ### C10 Keeper
 - **Purpose:** hourly distribute until 2026-11-16 17:30 UTC.
 - **Interface:** `scripts/keeper.ts` run by `.github/workflows/keeper.yml` (`cron: '7 * * * *'`), plus manual `workflow_dispatch`.
-- **Rules:** if `canDistribute()` and fee balance >= `KEEPER_MIN_ETH` (0.0002 ETH), quote `wifMinOut` and send `distribute`; otherwise log "skip". Writes the last run summary to the workflow log; `/proof` reads FeePool events directly, so keeper state is never trusted.
+- **Rules:** if `canDistribute()` and fee balance >= `KEEPER_MIN_ETH` (0.0002 ETH), send `distribute()` with gas limit 3,500,000; otherwise log "skip". Writes the last run summary to the workflow log; `/proof` reads FeePool events directly, so keeper state is never trusted.
 
 ### C11 Data scripts
 - `scripts/build-registry.ts` → `web/data/memes.json` (token, symbol, decimals, firstBlock, pools[] with kind/key/path/fee/liquidity) from spike-pool-keys.json + DexScreener + Initialize logs.
@@ -386,7 +386,7 @@ event CardMinted(address indexed wallet, uint8 stockId, uint256 usdPaid8, uint25
 | Oracle stale | any stock action | "Stock prices are paused right now (market data closed). Try again soon." |
 | Terminal | buy preview | "Buy ≈ 40.8 PONS · 2% (0.00006 ETH) goes to your Jar as NVDA · 0.5% fee builds the $WIF burn" |
 | Terminal | WIF selected (sell) | "Terra Firma never sells $WIF. Stake it to earn real stock instead." |
-| Stake | stake placed | "Staked. You start earning NVDA from the next epoch (in 23 min)." |
+| Stake | stake placed | "Staked. You start earning NVDA after one full epoch (active from epoch e+2, ~1–2 h)." |
 | Stake | unstake | "Unstaking stops rewards now. Your $WIF unlocks in 24h." |
 | Jar | empty | "Your Jar is empty. Convert a meme or make a trade to start." |
 | Proof | header | "Every number here is read from Robinhood Chain mainnet. Click anything to verify." |
@@ -544,7 +544,7 @@ event CardMinted(address indexed wallet, uint8 stockId, uint256 usdPaid8, uint25
 
 ### Scene 5: Stake $WIF, earn real stocks (1:50–2:25) [obligation d]
 **Screen:** `/stake`: pick NVDA sub-pool, stake $WIF; show a staker wallet's pending reward after a real epoch; **Claim to Jar**.
-**Voiceover:** "The other half of the fee buys real stock for $WIF stakers. Pick the stock you want: NVDA, Tesla, Google, SanDisk, SPY or QQQ. Stake $WIF and your Jar fills with it every hour. New stakes start next epoch, so nobody can game the payout."
+**Voiceover:** "The other half of the fee buys real stock for $WIF stakers. Pick the stock you want: NVDA, Tesla, Google, SanDisk, SPY or QQQ. Stake $WIF and your Jar fills with it every hour. New stakes wait one full epoch before they earn, so nobody can game the payout."
 **Action:** claim tx → Jar shows "reward" source line growing.
 
 ### Scene 6: Built to be checked (2:25–2:45)
@@ -561,7 +561,7 @@ event CardMinted(address indexed wallet, uint8 stockId, uint256 usdPaid8, uint25
 | Demo user wallet | fresh EOA `DEMO_ADDR` funded by Dami (~0.004 ETH, ~1,000 $WIF) | RH mainnet 4663 | Dami (funding), seed-demo.ts (checks) |
 | Meme holdings with history | >= 3 memes bought with ETH via Universal Router (e.g. PONS, WALLET, one Pons-hook meme), ~$1 each | RH mainnet | seed-demo.ts `seedMemes` (buys via TerraRouter.buy with sweep 0 the first time so the card has history) |
 | Jar balance | >= 1 convert + >= 2 sweeps credited (NVDA) | Jar contract | seed-demo.ts `seedJar` |
-| $WIF stake | 500 $WIF staked to NVDA sub-pool, active >= 1 epoch before recording | WifStaking | seed-demo.ts `seedStake` |
+| $WIF stake | ~150–500 $WIF staked to NVDA sub-pool, placed >= 2 epochs before recording (active from e+2) | WifStaking | seed-demo.ts `seedStake` |
 | Fee pool history | >= 2 `Distributed` events with nonzero `wifBurned` and NVDA reward | FeePool | keeper / seed-demo.ts `seedDistribute` |
 | Staker pending reward | > 0 NVDA claimable | WifStaking.pending(DEMO_ADDR) | produced by the above, never minted |
 

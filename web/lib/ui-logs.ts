@@ -37,9 +37,16 @@ async function rangeLogs(address: Address[], from: bigint, to: bigint, depth = 0
   }
 }
 
-export async function getLogsChunked(address: Address[], from: bigint, to: bigint): Promise<Log[]> {
+/** Inclusive [from, to] block ranges of at most `chunk` blocks. Empty when from > to. */
+export function chunkRanges(from: bigint, to: bigint, chunk = CHUNK): [bigint, bigint][] {
+  if (chunk <= 0n) throw new Error("chunk must be positive");
   const ranges: [bigint, bigint][] = [];
-  for (let s = from; s <= to; s += CHUNK) ranges.push([s, s + CHUNK - 1n > to ? to : s + CHUNK - 1n]);
+  for (let s = from; s <= to; s += chunk) ranges.push([s, s + chunk - 1n > to ? to : s + chunk - 1n]);
+  return ranges;
+}
+
+export async function getLogsChunked(address: Address[], from: bigint, to: bigint): Promise<Log[]> {
+  const ranges = chunkRanges(from, to);
   const out: Log[] = [];
   for (let i = 0; i < ranges.length; i += GROUP) {
     const part = await Promise.all(ranges.slice(i, i + GROUP).map(([a, b]) => rangeLogs(address, a, b)));
@@ -89,4 +96,99 @@ export async function blockTimes(blocks: bigint[]): Promise<Map<bigint, number>>
   const got = await Promise.all(need.map((b) => publicClient.getBlock({ blockNumber: b })));
   got.forEach((b, i) => times.set(need[i], Number(b.timestamp)));
   return new Map(blocks.map((b) => [b, times.get(b)!]));
+}
+
+// ---- Pure helpers (unit-tested in ui-logs.test.ts) ----
+
+/** Router events that put stock into a user's Jar. `Deposited` replaced `Swept` for TerraRouter.deposit. */
+export const SAVING_EVENTS: ReadonlySet<string> = new Set(["Swept", "Converted", "Deposited"]);
+
+type UserLog = { eventName: string; args: object };
+const userOf = (l: UserLog) => (l.args as { user?: unknown }).user;
+
+/** A user's Jar-building router events (sweep, convert, direct deposit). */
+export function savingEventsOf<L extends UserLog>(router: readonly L[], user: string): L[] {
+  const u = user.toLowerCase();
+  return router.filter((l) => SAVING_EVENTS.has(l.eventName) && typeof userOf(l) === "string" && (userOf(l) as string).toLowerCase() === u);
+}
+
+/** Consecutive UTC days ending today (or yesterday, if today has none yet) that contain at least one timestamp. */
+export function streakDays(timestamps: number[], nowMs: number): number {
+  const days = new Set(timestamps.map((s) => Math.floor(s / 86400)));
+  let d = Math.floor(nowMs / 86_400_000);
+  if (!days.has(d)) d -= 1;
+  let n = 0;
+  while (days.has(d - n)) n++;
+  return n;
+}
+
+/** Run `fn` over `items` with at most `limit` in flight; results keep input order. A rejection is kept, not thrown. */
+export async function mapLimit<T, R>(items: readonly T[], limit: number, fn: (x: T) => Promise<R>): Promise<PromiseSettledResult<R>[]> {
+  const out: PromiseSettledResult<R>[] = new Array(items.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length) {
+      const i = next++;
+      try {
+        out[i] = { status: "fulfilled", value: await fn(items[i]) };
+      } catch (reason) {
+        out[i] = { status: "rejected", reason };
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.max(1, Math.min(limit, items.length)) }, worker));
+  return out;
+}
+
+/** Ticker event, same shape /api/stream sends (bigints as decimal strings). */
+export interface TickerEvent {
+  type: "traded" | "swept" | "deposited" | "converted" | "distributed" | "credited" | "cardMinted";
+  tx: string;
+  block: number;
+  args: Record<string, string | boolean | string[]>;
+}
+
+const KINDS: Record<string, TickerEvent["type"]> = {
+  Traded: "traded",
+  Swept: "swept",
+  Deposited: "deposited",
+  Converted: "converted",
+  Distributed: "distributed",
+  Credited: "credited",
+  CardMinted: "cardMinted",
+};
+
+type DecodedLog = { eventName: string; args: object; transactionHash: string; blockNumber: bigint | number };
+
+export const tickerKey = (e: Pick<TickerEvent, "tx" | "type">) => `${e.tx}-${e.type}`;
+
+/** Decoded logs -> ticker events (unknown event names are dropped). */
+export function toTickerEvents(logs: readonly DecodedLog[]): TickerEvent[] {
+  return logs.flatMap((l) => {
+    const type = KINDS[l.eventName];
+    if (!type) return [];
+    const args = JSON.parse(JSON.stringify(l.args, (_, v) => (typeof v === "bigint" ? v.toString() : v)));
+    return [{ type, tx: l.transactionHash, block: Number(l.blockNumber), args }];
+  });
+}
+
+/** Merge live and backfilled events: de-duplicated by tx+type, newest block first, capped. */
+export function mergeTicker(a: readonly TickerEvent[], b: readonly TickerEvent[], cap = 8): TickerEvent[] {
+  const seen = new Set<string>();
+  return [...a, ...b]
+    .filter((e) => (seen.has(tickerKey(e)) ? false : (seen.add(tickerKey(e)), true)))
+    .sort((x, y) => y.block - x.block)
+    .slice(0, cap);
+}
+
+/** Safe SSE frame parse: a malformed frame yields null instead of throwing in the handler. */
+export function parseFrame(data: string): TickerEvent | null {
+  try {
+    const e = JSON.parse(data) as { type?: unknown; tx?: unknown; block?: unknown; args?: unknown } | null;
+    if (!e || typeof e !== "object" || typeof e.type !== "string" || typeof e.tx !== "string") return null;
+    if (!Object.values(KINDS).includes(e.type as TickerEvent["type"])) return null;
+    return { type: e.type as TickerEvent["type"], tx: e.tx, block: Number(e.block ?? 0), args: (e.args ?? {}) as TickerEvent["args"] };
+  } catch {
+    return null;
+  }
 }

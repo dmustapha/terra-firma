@@ -23,6 +23,7 @@ export async function GET() {
     );
     return NextResponse.json({ rpc: "ok", block: Number(block), deployed, feeds: fresh, feePoolWei: feePoolWei === null ? null : BigInt(feePoolWei).toString() });
   } catch (e) {
-    return NextResponse.json({ rpc: "degraded", error: String(e) }, { status: 503 });
+    console.error(JSON.stringify({ route: "health", error: String(e) })); // detail stays server-side (M-02)
+    return NextResponse.json({ rpc: "degraded", error: "rpc_unavailable" }, { status: 503 });
   }
 }

@@ -28,7 +28,7 @@ tx $WIF "approve(address,uint256)" $ST $W >/dev/null; h=$(tx $ST "stake(uint256,
 cast rpc evm_increaseTime 7300 --rpc-url $R >/dev/null; cast rpc evm_mine --rpc-url $R >/dev/null; say "warped 2h+ (stake placed in epoch e is active from e+2)"
 h=$(tx $ROUTER "buy($RT,address,uint16,uint8,uint256,uint256)" "(2,[],$P3,($Z,$Z,0,0,$Z))" $PONS 0 0 1 0 --value 0.003ether); say "fee-funding trade → $h; feePool=$(cast balance $FP --rpc-url $R)"
 S0=$(cast call $WIF "totalSupply()(uint256)" --rpc-url $R | awk '{print $1}')
-h=$(tx $FP "distribute(uint256)" 1); S1=$(cast call $WIF "totalSupply()(uint256)" --rpc-url $R | awk '{print $1}'); say "distribute → $h; WIF supply delta (burned) = $(python3 -c "print($S0-$S1)")"
+h=$(tx $FP "distribute()" --gas-limit 3500000); S1=$(cast call $WIF "totalSupply()(uint256)" --rpc-url $R | awk '{print $1}'); say "distribute → $h; WIF supply delta (burned) = $(python3 -c "print($S0-$S1)")"
 P=$(cast call $ST "pending(address)(uint8,uint256)" $U --rpc-url $R | tail -1 | awk '{print $1}'); say "staker pending NVDA = $P"
 before=$(jar $NVDA); h=$(tx $ST "claim()"); say "claim → $h; jarNVDA $before → $(jar $NVDA)"
 REC=$(cast call $LENS "recompute((uint8,uint8,uint256,uint80,uint80,uint64)[],uint8)(uint256,uint256,uint256)" "[(0,0,1000000000000000000,18446744073709552165,18446744073709551640,1782222600)]" 0 --rpc-url $R | head -1 | awk '{print $1}'); say "HindsightLens.recompute(1 ETH @ 2026-06-23) usdPaid8 = $REC (expect 165768649010)"

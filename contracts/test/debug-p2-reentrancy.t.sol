@@ -151,7 +151,7 @@ contract ReentrantStaking is IWifStakingPool {
     }
 
     function rollAll() external {
-        pool.distribute(0);
+        pool.distribute();
     }
 
     function activeStake(uint8) external pure returns (uint256) {
@@ -301,7 +301,7 @@ contract DebugP2Reentrancy is Test, TerraConfig {
         evil.setPool(fp);
         vm.deal(address(fp), 0.01 ether);
         vm.expectRevert(REENTRANT); // the real $WIF burn leg runs first, then rollAll() re-enters
-        fp.distribute(1);
+        fp.distribute();
         assertEq(fp.lastEpoch(), 0, "reverted distribute did not advance the epoch");
     }
 }

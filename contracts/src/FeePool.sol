@@ -29,6 +29,8 @@ contract FeePool is ReentrancyGuard {
     /// @dev Gas floors so a caller cannot starve a swap into an out-of-gas "skip" while the epoch still advances.
     uint256 public constant MIN_GAS_BURN_LEG = 400_000;
     uint256 public constant MIN_GAS_STOCK_LEG = 450_000;
+    /// @dev 63/64 rule: a swap that ran out of gas hands back at most ~1/64 of the gas it was given (plus call overhead).
+    uint256 private constant OOG_MARGIN = 10_000;
 
     IUniversalRouter public immutable ur;
     IWIF public immutable wif;
@@ -83,8 +85,9 @@ contract FeePool is ReentrancyGuard {
         return epoch() + 1 > lastEpoch && address(this).balance >= MIN_DISTRIBUTE_ETH;
     }
 
-    /// @param wifMinOut optional slippage guard for the $WIF buy (protection only; the cap bounds any loss to dust).
-    function distribute(uint256 wifMinOut) external nonReentrant {
+    /// @notice Permissionless. The $WIF buy has no caller-chosen minimum (a griefer could otherwise force every burn
+    ///         to skip): it is never priced (INVARIANT 2) and the per-epoch MAX_WIF_BUY_ETH cap bounds any sandwich to dust.
+    function distribute() external nonReentrant {
         uint256 e = epoch();
         if (e + 1 <= lastEpoch) revert EpochNotElapsed();
         uint256 ethIn = address(this).balance;
@@ -94,23 +97,24 @@ contract FeePool is ReentrancyGuard {
         // 50/50 split, each leg capped at MAX_WIF_BUY_ETH per epoch; anything above the caps carries forward.
         uint256 half = ethIn / 2;
         uint256 leg = half > MAX_WIF_BUY_ETH ? MAX_WIF_BUY_ETH : half;
-        uint256 burned = _buyAndBurn(leg, wifMinOut);
+        uint256 burned = _buyAndBurn(leg);
         uint256[6] memory bought = _streamToStakers(leg);
         emit Distributed(e, ethIn, burned, bought, address(this).balance);
     }
 
     // ------------------------------------------------------------------ internals
 
-    function _buyAndBurn(uint256 ethAmount, uint256 minOut) internal returns (uint256 burned) {
+    function _buyAndBurn(uint256 ethAmount) internal returns (uint256 burned) {
         if (ethAmount == 0) return 0;
-        bytes memory input = URCodec.v4EthIn(wifPoolKey, ethAmount, minOut);
+        bytes memory input = URCodec.v4EthIn(wifPoolKey, ethAmount, 0);
         if (gasleft() < MIN_GAS_BURN_LEG) revert InsufficientGas();
+        uint256 g = gasleft();
         try ur.execute{value: ethAmount}(URCodec.one(URCodec.V4_SWAP), URCodec.inputs1(input), block.timestamp) {
             burned = wif.balanceOf(address(this));
             wif.burn(burned);
             totalWifBurned += burned;
         } catch (bytes memory reason) {
-            _revertIfEmpty(reason); // out-of-gas looks like an empty revert: never skip on it
+            _revertIfOutOfGas(g); // never skip (and advance the epoch) on a starved swap
             burned = 0; // third-party hook or pool failure: ETH stays here and carries to the next epoch
             emit BurnSkipped(epoch(), ethAmount, reason);
         }
@@ -134,15 +138,12 @@ contract FeePool is ReentrancyGuard {
         }
     }
 
-    /// @dev Assembly form: the high-level `reason.length == 0` check inside a catch block sends solc 0.8.26 via-IR's
-    ///      optimizer into a near-endless loop (measured: > 10 min vs 1 s), so the same check is written in Yul.
-    function _revertIfEmpty(bytes memory reason) private pure {
-        assembly {
-            if iszero(mload(reason)) {
-                mstore(0x00, 0x1c26714c) // InsufficientGas()
-                revert(0x1c, 0x04)
-            }
-        }
+    /// @dev Out-of-gas is detected by gas left, not by revert data: v4-core wraps hook failures (never empty), and an
+    ///      empty revert with gas to spare is a real failure that must skip and carry, not brick distribute.
+    ///      `gasBefore` is gasleft() just before the try. Gas math only: a `reason.length` check inside a catch block
+    ///      sends solc 0.8.26 via-IR's optimizer into a near-endless loop.
+    function _revertIfOutOfGas(uint256 gasBefore) private view {
+        if (gasleft() <= gasBefore / 64 + OOG_MARGIN) revert InsufficientGas();
     }
 
     function _buyStockFor(uint8 id, uint256 eth) internal returns (uint256 got) {
@@ -151,6 +152,7 @@ contract FeePool is ReentrancyGuard {
         uint256 before = IERC20(token).balanceOf(address(staking));
         bytes memory leg = URCodec.v3(address(staking), minOut, oracle.path(id));
         if (gasleft() < MIN_GAS_STOCK_LEG) revert InsufficientGas();
+        uint256 g = gasleft();
         try ur.execute{value: eth}(
             URCodec.two(URCodec.WRAP_ETH, URCodec.V3_SWAP_EXACT_IN),
             URCodec.inputs2(URCodec.wrap(eth), leg),
@@ -160,7 +162,7 @@ contract FeePool is ReentrancyGuard {
             staking.notifyReward(id, got);
             totalEthToStock += eth;
         } catch (bytes memory reason) {
-            _revertIfEmpty(reason);
+            _revertIfOutOfGas(g);
             got = 0;
             emit StockBuySkipped(epoch(), id, eth, reason);
         }

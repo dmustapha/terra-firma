@@ -12,9 +12,9 @@ import { CHAIN_ID, DEFAULT_SWEEP_BPS, FEE_BPS, STAKER_FEE_BPS, STOCKS, TF } from
 import { REGISTRY, memeByToken } from "@/lib/registry";
 import { DEPLOYED, WIF, publicClient } from "@/lib/ui-chain";
 import { PLAIN } from "@/lib/ui-errors";
-import { eth, parseAmount, shares18, short, token as fmtToken } from "@/lib/ui-format";
+import { eth, orDash, parseAmount, shares18, short, token as fmtToken } from "@/lib/ui-format";
 import { sharesOf } from "@/lib/ui-report";
-import { GEO_BLOCKED, useStockGate } from "./geo-gate";
+import { GEO_BLOCKED, GeoLoadingNote, useStockGate } from "./geo-gate";
 import { getJson, useApproveStep, useStockQuotes, useTx } from "./hooks";
 import { StockSelect } from "./stock-select";
 import { TxStatus } from "./tx-status";
@@ -214,12 +214,13 @@ function useTradeResult() {
     const evs = parseEventLogs({ abi: terraRouterAbi, logs });
     const traded = evs.find((e) => e.eventName === "Traded");
     const swept = evs.find((e) => e.eventName === "Swept");
-    const q = swept && market.data?.[Number(swept.args.stockId)];
+    const q = swept ? market.data?.[Number(swept.args.stockId)] : undefined;
     return {
       tokenAmount: traded?.eventName === "Traded" ? traded.args.tokenAmount : undefined,
       ethAmount: traded?.eventName === "Traded" ? traded.args.ethAmount : undefined,
       fee: traded?.eventName === "Traded" ? traded.args.fee : undefined,
-      stock: swept?.eventName === "Swept" && q ? { sym: STOCKS[Number(swept.args.stockId)].symbol, shares: sharesOf(swept.args.stockOut, q) } : undefined,
+      // Always reported when a sweep happened; shares are null (shown "—") if the quote is not loaded (N4).
+      stock: swept?.eventName === "Swept" ? { sym: STOCKS[Number(swept.args.stockId)].symbol, shares: sharesOf(swept.args.stockOut, q), hash: swept.transactionHash } : undefined,
     };
   };
 }
@@ -231,7 +232,7 @@ function ResultBox({ r, sym, decimals, isBuy }: { r: TradeResult; sym: string; d
     <ul className="space-y-1">
       {isBuy && r.tokenAmount !== undefined && <li>Received <strong className="num">{fmtToken(r.tokenAmount, decimals)} {sym}</strong> in your wallet.</li>}
       {!isBuy && r.ethAmount !== undefined && <li>Sold for <strong className="num">{eth(r.ethAmount)} ETH</strong> gross.</li>}
-      {r.stock && <li><strong className="num">{shares18(r.stock.shares)} {r.stock.sym}</strong> went to your <Link href="/jar" className="underline underline-offset-4">Jar</Link>.</li>}
+      {r.stock && <li><strong className="num">{orDash(r.stock.shares, shares18)} {r.stock.sym}</strong> went to your <Link href="/jar" className="underline underline-offset-4">Jar</Link>.</li>}
       {r.fee !== undefined && <li><span className="num">{eth(r.fee)} ETH</span> fee went to the <AddrLink addr={TF.FeePool}>fee pool</AddrLink> (burns $WIF, pays stakers).</li>}
     </ul>
   );
@@ -248,13 +249,13 @@ function BuyForm({ token, sym, decimals, feeBps, disabled }: { token: Address; s
   const sweep = restricted ? 0 : sweepRaw;
   const wei = parseAmount(amt, 18);
   const dWei = useDebounced(wei?.toString() ?? "");
-  const q = useQuery({
+  const buyOpts = {
     queryKey: ["quote", "buy", token, dWei, sweep, stock, feeBps],
-    enabled: !!dWei && dWei !== "0",
     queryFn: () => getJson<BuyQuote>(`/api/quote?token=${token}&side=buy&amount=${dWei}&sweepBps=${sweep}&stock=${stock}&feeBps=${feeBps}`),
     staleTime: 15_000,
     retry: 1,
-  });
+  };
+  const q = useQuery({ ...buyOpts, enabled: !!dWei && dWei !== "0" });
   const market = useStockQuotes();
   const sq = market.data?.find((s) => s.symbol === stock);
   const tx = useTx();
@@ -268,11 +269,22 @@ function BuyForm({ token, sym, decimals, feeBps, disabled }: { token: Address; s
     if (!q.data || !wei) return;
     const sid = STOCKS.find((s) => s.symbol === stock)!.id;
     const r = await tx.run([
-      { label: `Buy ${sym}`, call: { address: TF.TerraRouter, abi: terraRouterAbi as unknown as Abi, functionName: "buy", args: [q.data.route, token, sweep, sid, BigInt(q.data.minTokenOut), BigInt(q.data.minStockOut)], value: wei } },
+      {
+        label: `Buy ${sym}`,
+        // Fresh quote right before signing (S2); the step label shows the exact minimum the user signs.
+        build: async () => {
+          const f = await qc.fetchQuery({ ...buyOpts, staleTime: 0 });
+          return {
+            label: `Buy ${sym}, at least ${fmtToken(f.minTokenOut, decimals)} ${sym}`,
+            call: { address: TF.TerraRouter, abi: terraRouterAbi as unknown as Abi, functionName: "buy", args: [f.route, token, sweep, sid, BigInt(f.minTokenOut), BigInt(f.minStockOut)], value: wei },
+          };
+        },
+      },
     ]);
     if (r) {
       setResult(parse(r.logs));
       qc.invalidateQueries({ queryKey: ["tf-logs"] });
+      ethBal.refetch();
     }
   };
   const submit = () => (sweep > 0 ? gate.gate(send) : send());
@@ -295,15 +307,16 @@ function BuyForm({ token, sym, decimals, feeBps, disabled }: { token: Address; s
           <Notice className={cx(stale && "opacity-60")}>
             Buy ≈ <strong className="num">{fmtToken(q.data.tokenOut, decimals)} {sym}</strong>
             {sweep > 0 && (
-              <> · {(sweep / 100).toFixed(1)}% (<span className="num">{eth(q.data.ethToStock)} ETH</span>) goes to your Jar as {stock}{sq && <> ≈ <span className="num">{shares18(sharesOf(BigInt(q.data.stockOut), sq))}</span></>}</>
+              <> · {(sweep / 100).toFixed(1)}% (<span className="num">{eth(q.data.ethToStock)} ETH</span>) goes to your Jar as {stock} ≈ <span className="num">{orDash(sharesOf(BigInt(q.data.stockOut), sq), shares18)}</span></>
             )}{" "}
             · {(feeBps / 100).toFixed(1)}% fee (<span className="num">{eth(q.data.fee)} ETH</span>) builds the $WIF burn.
-            <span className="mt-1 block text-xs text-muted">At least <span className="num">{fmtToken(q.data.minTokenOut, decimals)} {sym}</span> or nothing happens.</span>
+            <span className="mt-1 block text-xs text-muted">At least <span className="num">{fmtToken(q.data.minTokenOut, decimals)} {sym}</span> or nothing happens. Re-quoted right before you sign.</span>
           </Notice>
         )}
       </div>
       {over && <p className="text-sm text-danger">That&apos;s more ETH than your wallet holds.</p>}
-      <Button className="w-full" onClick={submit} disabled={!DEPLOYED || !address || disabled || !q.data || !!stale || !!over || tx.busy}>
+      {sweep > 0 && <GeoLoadingNote status={gate.status} />}
+      <Button className="w-full" onClick={submit} disabled={!DEPLOYED || !address || disabled || !q.data || !!stale || !!over || tx.busy || (sweep > 0 && gate.status === "loading")}>
         {!DEPLOYED ? "Opens when contracts are live" : !address ? "Connect a wallet to trade" : tx.busy ? "Working…" : `Buy ${sym}`}
       </Button>
       <TxStatus state={tx.state} onReset={tx.reset} success={result ? <ResultBox r={result} sym={sym} decimals={decimals} isBuy /> : "Done."} />
@@ -322,13 +335,13 @@ function SellForm({ token, sym, decimals, feeBps, disabled }: { token: Address; 
   const sweep = restricted ? 0 : sweepRaw;
   const raw = useMemo(() => parseAmount(amt, decimals), [amt, decimals]);
   const dRaw = useDebounced(raw?.toString() ?? "");
-  const q = useQuery({
+  const sellOpts = {
     queryKey: ["quote", "sell", token, dRaw, sweep, stock, feeBps],
-    enabled: !!dRaw && dRaw !== "0",
     queryFn: () => getJson<SellQuote>(`/api/quote?token=${token}&side=sell&amount=${dRaw}&sweepBps=${sweep}&stock=${stock}&feeBps=${feeBps}`),
     staleTime: 15_000,
     retry: 1,
-  });
+  };
+  const q = useQuery({ ...sellOpts, enabled: !!dRaw && dRaw !== "0" });
   const market = useStockQuotes();
   const sq = market.data?.find((s) => s.symbol === stock);
   const tx = useTx();
@@ -344,7 +357,17 @@ function SellForm({ token, sym, decimals, feeBps, disabled }: { token: Address; 
     const sid = STOCKS.find((s) => s.symbol === stock)!.id;
     const r = await tx.run([
       approve(token, TF.TerraRouter, raw, sym),
-      { label: `Sell ${sym}`, call: { address: TF.TerraRouter, abi: terraRouterAbi as unknown as Abi, functionName: "sell", args: [q.data.route, token, raw, sweep, sid, BigInt(q.data.minEthOut), BigInt(q.data.minStockOut)] } },
+      {
+        label: `Sell ${sym}`,
+        // Re-quote after the approval, right before the sell signature (S2).
+        build: async () => {
+          const f = await qc.fetchQuery({ ...sellOpts, staleTime: 0 });
+          return {
+            label: `Sell ${sym}, at least ${eth(f.minEthOut)} ETH back`,
+            call: { address: TF.TerraRouter, abi: terraRouterAbi as unknown as Abi, functionName: "sell", args: [f.route, token, raw, sweep, sid, BigInt(f.minEthOut), BigInt(f.minStockOut)] },
+          };
+        },
+      },
     ]);
     if (r) {
       setResult(parse(r.logs));
@@ -375,14 +398,15 @@ function SellForm({ token, sym, decimals, feeBps, disabled }: { token: Address; 
         {q.data && (
           <Notice className={cx(stale && "opacity-60")}>
             You get ≈ <strong className="num">{eth(q.data.ethOut)} ETH</strong>
-            {sweep > 0 && <> · <span className="num">{eth(q.data.ethToStock)} ETH</span> goes to your Jar as {stock}{sq && <> ≈ <span className="num">{shares18(sharesOf(BigInt(q.data.stockOut), sq))}</span></>}</>} · fee{" "}
+            {sweep > 0 && <> · <span className="num">{eth(q.data.ethToStock)} ETH</span> goes to your Jar as {stock} ≈ <span className="num">{orDash(sharesOf(BigInt(q.data.stockOut), sq), shares18)}</span></>} · fee{" "}
             <span className="num">{eth(q.data.fee)} ETH</span> builds the $WIF burn.
-            <span className="mt-1 block text-xs text-muted">At least <span className="num">{eth(q.data.minEthOut)} ETH</span> or nothing happens.</span>
+            <span className="mt-1 block text-xs text-muted">At least <span className="num">{eth(q.data.minEthOut)} ETH</span> or nothing happens. Re-quoted right before you sign.</span>
           </Notice>
         )}
       </div>
       {over && <p className="text-sm text-danger">That&apos;s more than your balance.</p>}
-      <Button className="w-full" onClick={submit} disabled={!DEPLOYED || !address || disabled || !q.data || !!stale || over || tx.busy}>
+      {sweep > 0 && <GeoLoadingNote status={gate.status} />}
+      <Button className="w-full" onClick={submit} disabled={!DEPLOYED || !address || disabled || !q.data || !!stale || over || tx.busy || (sweep > 0 && gate.status === "loading")}>
         {!DEPLOYED ? "Opens when contracts are live" : !address ? "Connect a wallet to trade" : tx.busy ? "Working…" : `Approve and sell ${sym}`}
       </Button>
       <TxStatus state={tx.state} onReset={tx.reset} success={result ? <ResultBox r={result} sym={sym} decimals={decimals} isBuy={false} /> : "Done."} />

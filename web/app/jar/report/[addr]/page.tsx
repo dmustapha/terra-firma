@@ -4,7 +4,7 @@ import { isAddress } from "viem";
 import { ReportShare } from "@/components/report-share";
 import { AddrLink, Notice, PageHeader, Panel, Stat } from "@/components/ui";
 import { addrUrl, TF } from "@/lib/config";
-import { short, sig4, usd } from "@/lib/ui-format";
+import { orDash, short, sig4, signedSig4, signedUsd, usd } from "@/lib/ui-format";
 import { jarReport, type JarReport } from "@/lib/ui-report";
 
 export const dynamic = "force-dynamic";
@@ -36,8 +36,8 @@ export default async function ReportPage({ params }: Props) {
       ) : (
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-            <Stat label="Jar value now" value={usd(report.usdNow)} href={addrUrl(TF.Jar)} />
-            <Stat label="Added this week" value={`${report.usdWeek >= 0 ? "+" : ""}${usd(report.usdWeek)}`} sub={`${report.creditsWeek} credit${report.creditsWeek === 1 ? "" : "s"}`} />
+            <Stat label="Jar value now" value={orDash(report.usdNow, usd)} sub={report.usdNow === null ? "A live stock price is unavailable right now" : undefined} href={addrUrl(TF.Jar)} />
+            <Stat label="Added this week" value={signedUsd(report.usdWeek)} sub={`${report.creditsWeek} credit${report.creditsWeek === 1 ? "" : "s"}`} href={addrUrl(TF.Jar)} />
           </div>
           <Panel>
             {report.rows.length === 0 ? (
@@ -52,17 +52,17 @@ export default async function ReportPage({ params }: Props) {
                   {report.rows.map((r) => (
                     <tr key={r.symbol} className="border-t border-line">
                       <th scope="row" className="py-2.5 text-left font-semibold">{r.symbol}</th>
-                      <td className="num py-2.5 text-right">{sig4(r.sharesNow)}</td>
-                      <td className="num py-2.5 text-right text-accent">{r.sharesWeek >= 0 ? "+" : ""}{sig4(r.sharesWeek)}</td>
-                      <td className="num py-2.5 text-right">{usd(r.usdNow)}</td>
+                      <td className="num py-2.5 text-right">{orDash(r.sharesNow, sig4)}</td>
+                      <td className="num py-2.5 text-right text-accent">{signedSig4(r.sharesWeek)}</td>
+                      <td className="num py-2.5 text-right">{orDash(r.usdNow, usd)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             )}
-            <p className="mt-4 text-xs text-muted">As of block {report.asOfBlock}. Read from Jar events and Chainlink live feeds.</p>
+            <p className="mt-4 text-xs text-muted">As of block {report.asOfBlock}. Read from Jar events and Chainlink live feeds. &ldquo;—&rdquo; means that live price could not be read; it is never estimated.</p>
           </Panel>
-          <ReportShare addr={report.user} usdWeek={report.usdWeek} />
+          {report.usdWeek !== null && <ReportShare addr={report.user} usdWeek={report.usdWeek} />}
         </div>
       )}
     </>

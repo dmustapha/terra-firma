@@ -67,10 +67,26 @@ export function parseAmount(s: string, decimals = 18): bigint | null {
 }
 
 /** Percent change between two 8dp USD values. */
-export function pctChange(from: string | bigint, to: string | bigint): number | null {
+export function pctChange(from: string | bigint, to: string | bigint | null | undefined): number | null {
+  if (to === null || to === undefined) return null;
   const a = Number(toBig(from));
   if (a === 0) return null;
   return (Number(toBig(to)) / a - 1) * 100;
 }
 
 export const pct = (n: number) => `${n > 0 ? "+" : ""}${n.toFixed(1)}%`;
+
+/** Shown wherever a chain read failed or a value is unknown. Never replaced by a guess. */
+export const DASH = "—";
+
+/** Format a value that may be unknown: null/undefined -> "—". */
+export const orDash = <T,>(v: T | null | undefined, f: (x: T) => string) => (v === null || v === undefined ? DASH : f(v));
+
+/** 8dp USD that may be unknown (e.g. a meme with no quote today). */
+export const usd8OrDash = (v: string | bigint | null | undefined) => orDash(v, usd8);
+
+/** "+$1.23" / "-$1.23"; "—" when unknown. */
+export const signedUsd = (n: number | null | undefined) => orDash(n, (x) => `${x >= 0 ? "+" : ""}${usd(x)}`);
+
+/** "+1.234" / "-1.234"; "—" when unknown. */
+export const signedSig4 = (n: number | null | undefined) => orDash(n, (x) => `${x >= 0 ? "+" : ""}${sig4(x)}`);

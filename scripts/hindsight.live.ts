@@ -55,6 +55,17 @@ async function main() {
   for (const m of card.memes) {
     assert.equal(BigInt(m.usdPaid8), m.buys.reduce((s, b) => s + BigInt(b.usdPaid8), 0n), `${m.symbol} usdPaid8 total`);
   }
+  // M3: unquoted memes are null (never a fabricated $0), excluded from usdToday8 / usdPaidQuoted8 / worst, and flag partial.
+  const quoted = card.memes.filter((m) => m.usdToday8 !== null);
+  const sum = (rows: typeof card.memes, f: (m: (typeof card.memes)[number]) => string) => rows.reduce((s, m) => s + BigInt(f(m)), 0n);
+  assert.equal(BigInt(card.totals.usdToday8), sum(quoted, (m) => m.usdToday8 as string), "usdToday8 total = sum of quoted memes");
+  assert.equal(BigInt(card.totals.usdPaidQuoted8), sum(quoted, (m) => m.usdPaid8), "usdPaidQuoted8 = paid over quoted memes");
+  assert.equal(BigInt(card.totals.usdPaid8), sum(card.memes, (m) => m.usdPaid8), "usdPaid8 total = sum of all memes");
+  for (const m of card.memes) assert.equal(m.todayReason === null, m.usdToday8 !== null, `${m.symbol} todayReason iff unquoted`);
+  assert.deepEqual(card.unquoted.map((u) => u.token), card.memes.filter((m) => m.usdToday8 === null).map((m) => m.token), "unquoted list");
+  assert.equal(card.partial, card.unquoted.length > 0 || card.scanGaps.length > 0, "partial flag");
+  if (card.worst) assert.ok(quoted.some((m) => m.symbol === card.worst?.symbol), "worst is a quoted meme");
+  console.log(`today: ${quoted.length}/${card.memes.length} memes quoted, partial ${card.partial}, scan gaps ${card.scanGaps.length}`);
   console.log(`PASS hindsight.live: ${buys.length} buys resolved onchain (status 1, from = wallet), pricing arithmetic and totals consistent`);
 }
 

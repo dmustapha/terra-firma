@@ -1,8 +1,10 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAccount } from "wagmi";
+import { HISTORY_ADDR } from "@/lib/ui-chain";
+import { AddressLookup } from "./address-lookup";
 import { ConvertPanel } from "./convert-panel";
 import { MintButton, RecomputeButton, ShareButton } from "./card-actions";
 import { CardSkeleton, HindsightCard } from "./hindsight-card";
@@ -28,6 +30,8 @@ export function AppHome() {
   const [stock, setStock] = useState(params.get("stock") ?? "NVDA");
   const card = useCard(address, stock);
   const [sheet, setSheet] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const onBusy = useCallback((b: boolean) => setBusy(b), []);
 
   const openConvert = () => {
     if (window.matchMedia("(min-width: 768px)").matches) setSheet(true);
@@ -69,14 +73,21 @@ export function AppHome() {
           </div>
         }
       />
-      <ConvertSheet open={sheet} onClose={() => setSheet(false)}>
-        <ConvertPanel card={c} initialStock={stock} onDone={() => setSheet(false)} />
+      <Panel aria-labelledby="lookup-title" className="mt-6 space-y-3">
+        <h2 id="lookup-title" className="font-semibold">Look up any wallet</h2>
+        <p className="text-sm text-muted">Every card is read live from chain. Try a wallet with years of real meme buys, or paste any address.</p>
+        <LinkButton href={`/card/${HISTORY_ADDR}`} variant="secondary">See a wallet with real history</LinkButton>
+        <AddressLookup id="app-lookup" />
+      </Panel>
+      <ConvertSheet open={sheet} locked={busy} onClose={() => setSheet(false)}>
+        <ConvertPanel card={c} initialStock={stock} onDone={() => setSheet(false)} onBusy={onBusy} />
       </ConvertSheet>
     </>
   );
 }
 
-function ConvertSheet({ open, onClose, children }: { open: boolean; onClose: () => void; children: React.ReactNode }) {
+/** Side sheet. While a transaction is in flight (`locked`) it cannot be closed, so its status and hashes stay visible (S4). */
+function ConvertSheet({ open, locked, onClose, children }: { open: boolean; locked: boolean; onClose: () => void; children: React.ReactNode }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const d = ref.current;
@@ -87,15 +98,17 @@ function ConvertSheet({ open, onClose, children }: { open: boolean; onClose: () 
   return (
     <dialog
       ref={ref}
-      onClose={onClose}
+      onCancel={(e) => locked && e.preventDefault()}
+      onClose={() => (locked ? ref.current?.showModal() : onClose())}
       aria-labelledby="convert-title"
       className="mb-0 ml-auto mr-0 mt-0 h-dvh max-h-none w-[min(34rem,100vw)] max-w-none overflow-y-auto border-l border-line bg-surface p-6 text-fg"
     >
       <div className="mb-6 flex items-center justify-between">
         <h2 id="convert-title" className="text-xl font-semibold">Convert memes to real stock</h2>
-        <Button variant="ghost" aria-label="Close" onClick={onClose} className="size-11 px-0">✕</Button>
+        <Button variant="ghost" aria-label={locked ? "Close (disabled while the transaction confirms)" : "Close"} onClick={onClose} disabled={locked} className="size-11 px-0">✕</Button>
       </div>
-      {open && children}
+      {locked && <p className="mb-4 text-sm text-muted" role="status">Keep this open until the transaction confirms.</p>}
+      {(open || locked) && children}
     </dialog>
   );
 }

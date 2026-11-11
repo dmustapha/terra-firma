@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 import { getAddress, isAddress } from "viem";
-import { buildCard } from "@/lib/hindsight";
+import { getCard } from "@/lib/card-cache";
 import { short, usd8 } from "@/lib/ui-format";
 
 export const runtime = "nodejs";
@@ -38,7 +38,7 @@ export default async function Image({ params }: { params: Promise<{ addr: string
     return new ImageResponse(<Shell><div style={{ display: "flex", marginTop: 120, fontSize: 56 }}>Your memes, in real stock.</div></Shell>, size);
   }
   try {
-    const card = await buildCard(getAddress(addr), 0);
+    const card = await getCard(getAddress(addr), 0);
     const empty = card.memes.length === 0;
     return new ImageResponse(
       <Shell>

@@ -8,7 +8,8 @@ import evidence from "@/data/evidence.json";
 import { feePoolAbi, hindsightLensAbi } from "@/lib/abi";
 import { ADDR, CHAIN_ID, FEE_BPS, STAKER_FEE_BPS, DISCOUNT_STAKE, TF, addrUrl, stockBySymbol } from "@/lib/config";
 import type { Card } from "@/lib/hindsight";
-import { CONTRACTS, DEPLOYED, REPO_URL, publicClient } from "@/lib/ui-chain";
+import { DEPLOYED, REPO_URL, SHOWN_CONTRACTS, VERIFIED, publicClient } from "@/lib/ui-chain";
+import { classifyOwnerProbe, type OwnerProbe } from "@/lib/ui-errors";
 import { dateTime, eth, token } from "@/lib/ui-format";
 import { blockTimes, only, type TfLogs } from "@/lib/ui-logs";
 import { lensBuys, RecomputeResult, stockIdOf } from "./card-actions";
@@ -95,7 +96,7 @@ function RubricMap() {
           <Row k="Burn path: hooked WIF/ETH pool"><AddrLink addr={ADDR.wifHook} /></Row>
         </RubricCard>
         <RubricCard id="rb-built" title="Works and built well" claim="Ownerless contracts, a mainnet-fork test suite, and every card recomputable by eth_call.">
-          <Row k={`${CONTRACTS.length} ownerless contracts${DEPLOYED ? ", verified" : ""}`}>
+          <Row k={<OwnerlessClaim />}>
             {DEPLOYED ? <Jump to="contracts">Addresses</Jump> : <span className="text-muted">{PENDING}</span>}
           </Row>
           <Row k={`${evidence.forkTests} fork tests passing`}><Jump to="fork-tests">Command and output</Jump></Row>
@@ -106,16 +107,57 @@ function RubricMap() {
   );
 }
 
+const OWNER_SELECTOR = "0x8da5cb5b"; // owner()
+
+/** eth_call owner() on every shown contract. A revert or empty return = no owner function. RPC failure = no claim. */
+function useOwnerProbes() {
+  return useQuery({
+    queryKey: ["owner-probes"],
+    enabled: DEPLOYED,
+    staleTime: Infinity,
+    queryFn: async () => {
+      const out = await Promise.all(
+        SHOWN_CONTRACTS.map(async (c) => {
+          try {
+            const r = await publicClient.call({ to: c.address, data: OWNER_SELECTOR });
+            return [c.key, classifyOwnerProbe({ data: r.data })] as const;
+          } catch (error) {
+            return [c.key, classifyOwnerProbe({ error })] as const;
+          }
+        }),
+      );
+      return new Map<string, OwnerProbe>(out);
+    },
+  });
+}
+
+/** Rubric line built only from checks that ran: "N of M answer no owner()", plus verified count if recorded. */
+function OwnerlessClaim() {
+  const p = useOwnerProbes();
+  const n = SHOWN_CONTRACTS.length;
+  const verified = SHOWN_CONTRACTS.filter((c) => VERIFIED.has(c.address.toLowerCase())).length;
+  if (!DEPLOYED) return <>{n} contracts, no owner functions by design</>;
+  if (!p.data) return p.error ? <>{n} contracts (owner check unavailable)</> : <Skeleton w="12rem" />;
+  const ownerless = [...p.data.values()].filter((v) => v === "ownerless").length;
+  return <>{ownerless} of {n} contracts answer no owner(){verified > 0 ? `, ${verified} verified on Blockscout` : ""}</>;
+}
+
 function Contracts() {
+  const probes = useOwnerProbes();
   return (
     <Panel id="contracts" aria-labelledby="c-title" className="scroll-mt-24">
       <h2 id="c-title" className="font-semibold">Contracts</h2>
-      <p className="mt-1 text-sm text-muted">No owner, no pause, no upgrade, no admin withdraw (checked by the fork test <code className="font-mono">test_noOwnerFunctions</code>).</p>
+      <p className="mt-1 text-sm text-muted">No owner, no pause, no upgrade, no admin withdraw (checked by the fork test <code className="font-mono">test_noOwnerFunctions</code>). The &ldquo;ownerless&rdquo; badge appears only after a live <code className="font-mono">owner()</code> call on mainnet reverts.</p>
       <ul className="mt-4 divide-y divide-line">
-        {CONTRACTS.map((c) => (
+        {SHOWN_CONTRACTS.map((c) => (
           <li key={c.key} className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="flex items-center gap-2 font-semibold">{c.key} {DEPLOYED && <Badge tone="accent">ownerless</Badge>}</p>
+              <p className="flex flex-wrap items-center gap-2 font-semibold">
+                {c.key}
+                {probes.data?.get(c.key) === "ownerless" && <Badge tone="accent">ownerless</Badge>}
+                {probes.data?.get(c.key) === "has-owner" && <Badge tone="danger">has owner()</Badge>}
+                {VERIFIED.has(c.address.toLowerCase()) && <Badge tone="accent">verified</Badge>}
+              </p>
               <p className="text-sm text-muted">{c.role}</p>
             </div>
             {DEPLOYED ? <AddrLink addr={c.address} className="text-sm" /> : <span className="text-sm text-muted">deploying</span>}
@@ -274,20 +316,20 @@ function Distribute() {
       <h2 id="d-title" className="font-semibold">Run distribute</h2>
       <p className="mt-1 text-sm text-muted">Anyone can trigger the hourly epoch if the keeper hasn&apos;t: half buys and burns $WIF, half buys stakers&apos; stock.</p>
       <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
-        <div><dt className="text-muted">Fee pool balance</dt><dd className="num font-semibold">{!DEPLOYED ? "—" : bal.data !== undefined ? `${eth(bal.data)} ETH` : <Skeleton w="4rem" />}</dd></div>
+        <div><dt className="text-muted">Fee pool balance</dt><dd className="num font-semibold">{!DEPLOYED ? "—" : bal.data !== undefined ? <ExtLink href={addrUrl(TF.FeePool)}>{eth(bal.data)} ETH</ExtLink> : bal.error ? <span className="text-danger">RPC unavailable</span> : <Skeleton w="4rem" />}</dd></div>
         <div><dt className="text-muted">Current epoch</dt><dd className="num font-semibold">{!DEPLOYED ? "—" : can.data?.[1]?.result !== undefined ? String(can.data[1].result) : <Skeleton w="3rem" />}</dd></div>
       </dl>
       <Button
         className="mt-4 w-full"
         disabled={!DEPLOYED || !address || !ok || tx.busy}
         onClick={async () => {
-          await tx.run([{ label: "Distribute", call: { address: TF.FeePool, abi: feePoolAbi as unknown as Abi, functionName: "distribute", args: [0n] } }]);
+          await tx.run([{ label: "Distribute", call: { address: TF.FeePool, abi: feePoolAbi as unknown as Abi, functionName: "distribute", args: [], gas: 3_500_000n } }]);
           can.refetch();
         }}
       >
         {!DEPLOYED ? "Available after deploy" : !address ? "Connect a wallet to run it" : ok ? "Run distribute" : "Not due yet"}
       </Button>
-      <p className="mt-2 text-xs text-muted">wifMinOut = 0 is safe here: the $WIF buy is capped at 0.01 ETH per call, so price games can only shave dust.</p>
+      <p className="mt-2 text-xs text-muted"><code className="font-mono">distribute()</code> takes no arguments. The $WIF buy is capped at 0.01 ETH per epoch, so price games can only shave dust.</p>
       <TxStatus state={tx.state} onReset={tx.reset} success="Distributed. The burn and staker stream are onchain." />
     </Panel>
   );

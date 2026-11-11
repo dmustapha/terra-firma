@@ -1,7 +1,7 @@
 ## Depth Enrichment
 Enrichments this plan builds BEYOND a single-pass / field-floor MVP (CAMPAIGN floor >= 4):
 1. **Onchain verifiability of the front door:** HindsightLens recompute + /proof side-by-side check (a judge can verify any card against Chainlink rounds onchain). Phase P0/P4.
-2. **Real mainnet-fork test suite (38 tests) including adversarial cases** (JIT staking, $WIF sale, route injection, stale oracle, unbacked credit, no-owner surface). Phase P0.
+2. **Real mainnet-fork test suite (62 tests) including adversarial cases** (JIT staking, $WIF sale, route injection, stale oracle, unbacked credit, no-owner surface). Phase P0.
 3. **Receipt-priced Hindsight (F-026)** covering WETH/USDG/stock-paid buys, not just ETH. Phase P1/P2.
 4. **Staker fee discount (F-021):** a second direct $WIF utility without pricing $WIF. Phase P0 (contract) / P5 (UI).
 5. **Live protocol stream over GetBlock WSS (F-022)** with SSE proxy and polling fallback. Phase P5.

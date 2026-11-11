@@ -8,5 +8,5 @@ export const runtime = "edge";
 export function GET(req: Request) {
   const country = req.headers.get("x-vercel-ip-country") ?? "UNKNOWN";
   const list = (restricted as { countries: string[] }).countries;
-  return NextResponse.json({ country, restricted: list.includes(country), unknown: country === "UNKNOWN", list: (restricted as { fetchedAt: string }).fetchedAt });
+  return NextResponse.json({ country, restricted: list.includes(country), unknown: country === "UNKNOWN", list: (restricted as { fetchedAt: string }).fetchedAt }, { headers: { "cache-control": "private, no-store" } });
 }

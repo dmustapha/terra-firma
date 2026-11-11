@@ -47,3 +47,12 @@ export const aggregatorAbi = [
 export const REPO_URL = process.env.NEXT_PUBLIC_REPO_URL || "";
 export const DEMO_ADDR = process.env.NEXT_PUBLIC_DEMO_ADDR || "";
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "";
+export const FRIEND_JARS = process.env.NEXT_PUBLIC_FRIEND_JARS === "1";
+/** Real long-history wallet used as the Scene 2 contrast shot (PRD §6). Its card is read live from chain like any other. */
+export const HISTORY_ADDR = process.env.NEXT_PUBLIC_HISTORY_ADDR || "0x3fDBeB0FC14cca8fDd238Dd21725F0b8585Ab09E";
+
+/** Addresses marked Blockscout-verified in data/deployments.json ("verified": [...]) after `forge verify-contract`. Empty = no badge. */
+export const VERIFIED = new Set(((TF as unknown as { verified?: string[] }).verified ?? []).map((a) => a.toLowerCase()));
+
+/** Contracts shown on /proof: FriendJar only when the feature flag is on. */
+export const SHOWN_CONTRACTS = CONTRACTS.filter((c) => c.key !== "FriendJar" || FRIEND_JARS);

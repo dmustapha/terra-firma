@@ -4,9 +4,9 @@ import { useState, type ReactNode } from "react";
 import { ADDR, EXPLORER, STOCKS } from "@/lib/config";
 import type { Card, CardBuy, CardMeme } from "@/lib/hindsight";
 import { REGISTRY } from "@/lib/registry";
-import { date, pct, pctChange, roundTail, shares18, token, usd8, usd8Label } from "@/lib/ui-format";
+import { DASH, date, pct, pctChange, roundTail, shares18, token, usd8, usd8Label } from "@/lib/ui-format";
 import { Guarantee } from "./guarantee";
-import { AddrLink, Badge, ExtLink, Panel, Skeleton, TxLink, cx } from "./ui";
+import { AddrLink, Badge, ExtLink, Notice, Panel, Skeleton, TxLink, cx } from "./ui";
 
 const payAsset = (b: CardBuy) =>
   b.payKind === 0
@@ -45,15 +45,31 @@ function MemeRow({ m, stock, worst }: { m: CardMeme; stock: (typeof STOCKS)[numb
           {m.symbol}
           {worst && <Badge tone="danger">worst trade</Badge>}
         </span>
-        <span className="num text-right text-sm sm:text-base" aria-label={`paid ${usd8Label(m.usdPaid8)}`}>
-          <span className="text-muted sm:hidden">paid </span>{usd8(m.usdPaid8)}
+        <span className="num text-right text-sm sm:text-base">
+          <span className="text-muted sm:hidden">paid </span>
+          <span aria-hidden>{usd8(m.usdPaid8)}</span>
+          <span className="sr-only">paid {usd8Label(m.usdPaid8)}</span>
         </span>
-        <span className="num text-sm sm:text-right sm:text-base" aria-label={`value today ${usd8Label(m.usdToday8)}`}>
-          <span className="text-muted sm:hidden">today </span>{usd8(m.usdToday8)}
+        <span className="num text-sm sm:text-right sm:text-base">
+          <span className="text-muted sm:hidden">today </span>
+          {m.usdToday8 === null ? (
+            <>
+              <span aria-hidden>{DASH}</span>
+              <span className="ml-1 text-xs text-muted">price unavailable</span>
+              <span className="sr-only">value today unavailable{m.todayReason ? `: ${m.todayReason}` : ""}</span>
+            </>
+          ) : (
+            <>
+              <span aria-hidden>{usd8(m.usdToday8)}</span>
+              <span className="sr-only">value today {usd8Label(m.usdToday8)}</span>
+            </>
+          )}
           {change !== null && <span className={cx("ml-1 text-xs", change < 0 ? "text-danger" : "text-accent")}>{pct(change)}</span>}
         </span>
-        <span className="num text-right text-sm font-semibold text-accent sm:text-base" aria-label={`in ${stock.symbol} ${usd8Label(m.usdCounterfactual8)}`}>
-          <span className="font-normal text-muted sm:hidden">in {stock.symbol} </span>{usd8(m.usdCounterfactual8)}
+        <span className="num text-right text-sm font-semibold text-accent sm:text-base">
+          <span className="font-normal text-muted sm:hidden">in {stock.symbol} </span>
+          <span aria-hidden>{usd8(m.usdCounterfactual8)}</span>
+          <span className="sr-only">in {stock.symbol} {usd8Label(m.usdCounterfactual8)}</span>
         </span>
         <span aria-hidden className={cx("col-span-2 text-xs text-muted transition-transform sm:col-span-1", open && "rotate-180")}>▾</span>
       </button>
@@ -90,21 +106,23 @@ export function HindsightCard({ card, owner = true, stockControl, actions }: { c
         </p>
       </div>
 
+      {card.partial && <PartialBanner card={card} />}
+
       {empty ? (
         <div className="py-6 text-center">
-          <p className="text-2xl font-semibold">None of the 21 memes we track are in this wallet.</p>
+          <p className="text-2xl font-semibold">None of the {REGISTRY.memes.length} memes we track are in this wallet.</p>
           {REGISTRY.memes.length === 0 && <p className="mt-2 text-sm text-muted">The meme registry is still being built, so no tokens were scanned yet.</p>}
         </div>
       ) : (
         <>
           <p className="text-xl font-semibold leading-snug sm:text-2xl">
-            {who} put <span className="num">{usd8(card.totals.usdPaid8)}</span> into memes still held. Today: <span className="num">{usd8(card.totals.usdToday8)}</span>. In {stock.symbol}:{" "}
+            {who} put <span className="num">{usd8(card.totals.usdPaid8)}</span> into memes still held. Today{card.unquoted.length > 0 ? " (priced memes only)" : ""}: <span className="num">{usd8(card.totals.usdToday8)}</span>. In {stock.symbol}:{" "}
             <span className="num text-accent">{usd8(card.totals.usdCounterfactual8)}</span>.
           </p>
           <p className="text-xs text-muted">Gross buys of memes this wallet still holds, priced with the Chainlink round at each buy. Sells and transfers out are not netted; this is not P&amp;L.</p>
           <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <Figure label="Paid" value={usd8(card.totals.usdPaid8)} aria={usd8Label(card.totals.usdPaid8)} />
-            <Figure label="Today" value={usd8(card.totals.usdToday8)} aria={usd8Label(card.totals.usdToday8)} />
+            <Figure label="Today" value={usd8(card.totals.usdToday8)} aria={usd8Label(card.totals.usdToday8)} sub={card.unquoted.length > 0 ? `${card.memes.filter((m) => m.usdToday8 !== null).length} of ${card.memes.length} memes priced; paid for those: ${usd8(card.totals.usdPaidQuoted8)}` : undefined} />
             <Figure label={`In ${stock.symbol}`} value={usd8(card.totals.usdCounterfactual8)} aria={usd8Label(card.totals.usdCounterfactual8)} sub={`${shares18(card.totals.shares18)} shares`} accent />
           </dl>
           {card.worst && (
@@ -150,6 +168,25 @@ export function HindsightCard({ card, owner = true, stockControl, actions }: { c
 
       <Guarantee addr={card.wallet} stock={card.stock} className="border-t border-line pt-4" />
     </Panel>
+  );
+}
+
+/** Server flagged the card incomplete: say exactly what is missing. Totals come from the server; nothing is filled in here. */
+function PartialBanner({ card }: { card: Card }) {
+  return (
+    <Notice tone="warn">
+      <p className="font-semibold">Partial card: some numbers could not be read right now.</p>
+      {card.unquoted.length > 0 && (
+        <p className="mt-1">
+          No price today for {card.unquoted.map((u) => `${u.symbol} (${u.reason})`).join(", ")}. Those show {DASH} and are left out of the Today total.
+        </p>
+      )}
+      {card.scanGaps.length > 0 && (
+        <p className="mt-1">
+          History for {[...new Set(card.scanGaps.map((g) => g.symbol))].join(", ")} could not be read completely, so some buys may be missing. Refresh to retry.
+        </p>
+      )}
+    </Notice>
   );
 }
 

@@ -4,13 +4,13 @@ Files in this phase were written and tested during forge Phase 2; tasks verify p
 #### Task P0.T: Run the full fork suite
 - Architecture: Section "Contract tests"
 - Command: `cd contracts && set -a && source ../../.env.local && set +a && set -o pipefail && RPC_URL=$GETBLOCK_RPC_FRA forge test 2>&1 | grep -E 'PASS|FAIL|Suite|Ran' | tee ../evidence/forge-test.txt | tail -3`
-- Expected: `38 tests passed, 0 failed` (3 suites) and the pipeline exit code is 0
+- Expected: `62 tests passed, 0 failed` (3 suites) and the pipeline exit code is 0
 - Decision tree: DT-7
 - Commit: `test(contracts): 32 mainnet-fork tests green`
 
 ### Phase P0 Gate
 - [ ] `forge build --sizes` shows every contract < 24,576 bytes runtime
-- [ ] 38/38 fork tests pass (evidence/forge-test.txt)
+- [ ] 62/62 fork tests pass (evidence/forge-test.txt)
 - [ ] `cd web && npx tsc --noEmit` clean
 - [ ] INVARIANTS.md NON-NEGOTIABLES 1–6 each map to a passing test
 

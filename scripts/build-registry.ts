@@ -216,7 +216,7 @@ async function main() {
   const raw = JSON.parse(readFileSync(path.join(ROOT, "research", "spike-pool-keys.json"), "utf8")) as Record<string, SpikeKey>;
   const spikeKeys = new Map(Object.entries(raw).map(([k, v]) => [k.toLowerCase(), v]));
   const firstBlock = await firstBlocks(memes.map((m) => m.token), head);
-  const sources = new Set<string>([ADDR.universalRouter, ADDR.universalRouter212, ADDR.poolManager].map((a) => getAddress(a)));
+  const sources = new Set<string>([ADDR.universalRouter, ADDR.universalRouter212, ADDR.poolManager, ...deployedRouter()].map((a) => getAddress(a)));
   const ctx: Ctx = { head, ethUsd, buyWei, spikeKeys, firstBlock, sources };
 
   const built: (Meme & { liq: number })[] = [];
@@ -233,6 +233,14 @@ async function main() {
   };
   writeJson(path.join(WEB_DATA, "memes.json"), registry);
   summarize(registry, head);
+}
+
+/** TerraRouter forwards bought memes to the buyer (Transfer.from = router): a purchase source once deployed. */
+function deployedRouter(): Address[] {
+  const d = JSON.parse(readFileSync(path.join(WEB_DATA, "deployments.json"), "utf8")) as { deployed?: boolean; TerraRouter?: string };
+  if (d.deployed !== true || !d.TerraRouter || /^0x0{40}$/i.test(d.TerraRouter)) return [];
+  console.log(`sources: + TerraRouter ${d.TerraRouter}`);
+  return [getAddress(d.TerraRouter)];
 }
 
 /** Keep only source addresses that are contracts (DexScreener pair ids are data, not trusted). */

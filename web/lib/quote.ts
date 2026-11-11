@@ -160,24 +160,39 @@ export interface BestQuote {
   amountOut: bigint;
 }
 
-/** Quote every registry pool for `token` in one JSON-RPC batch and return the best output. */
-export async function bestQuote(token: Address, side: "buy" | "sell", amountIn: bigint): Promise<BestQuote | null> {
-  const meme = token.toLowerCase() === ADDR.wif.toLowerCase() ? WIF_MEME : memeByToken(token);
-  if (!meme || meme.pools.length === 0 || amountIn === 0n) return null;
-  if (meme === WIF_MEME && side !== "buy") return null; // $WIF is never sold (INVARIANT 1)
-  const calls = meme.pools.map((p) => ({ method: "eth_call", params: [quoteCall(p, token, side, amountIn), "latest"] }));
-  const res = await rpcBatch(calls);
+/** Thrown when every pool quote for a token failed at the RPC layer: "try again", not "no route". */
+export class QuoteUnavailable extends Error {}
+
+/**
+ * Best output across `pools` given their raw quoter results (same order). Returns null when no pool gave a usable quote
+ * (reverted / undecodable / zero liquidity); throws QuoteUnavailable when every result is an RPC error.
+ */
+export function pickBestQuote(pools: PoolEntry[], results: unknown[], token: Address, side: "buy" | "sell"): BestQuote | null {
+  const errors = results.filter((r) => r instanceof RpcError && !isRevert(r)).length;
+  if (pools.length > 0 && errors === pools.length) throw new QuoteUnavailable(`all ${errors} quote calls failed`);
   let best: BestQuote | null = null;
-  res.forEach((r, i) => {
-    if (r instanceof RpcError || typeof r !== "string") return;
+  results.forEach((r, i) => {
+    if (typeof r !== "string") return;
     try {
-      const out = decodeQuote(meme.pools[i], r as Hex);
-      if (!best || out > best.amountOut) best = { route: routeFor(meme.pools[i], token, side), pool: meme.pools[i], amountOut: out };
+      const out = decodeQuote(pools[i], r as Hex);
+      if (out > 0n && (!best || out > best.amountOut)) best = { route: routeFor(pools[i], token, side), pool: pools[i], amountOut: out };
     } catch {
       /* undecodable quote: skip this pool */
     }
   });
   return best;
+}
+
+/** eth_call execution reverted (JSON-RPC code 3 / "execution reverted"): the pool cannot fill, an answer, not an outage. */
+const isRevert = (e: RpcError) => e.code === 3 || /revert/i.test(e.message);
+
+/** Quote every registry pool for `token` in one JSON-RPC batch and return the best output (see pickBestQuote). */
+export async function bestQuote(token: Address, side: "buy" | "sell", amountIn: bigint): Promise<BestQuote | null> {
+  const meme = token.toLowerCase() === ADDR.wif.toLowerCase() ? WIF_MEME : memeByToken(token);
+  if (!meme || meme.pools.length === 0 || amountIn === 0n) return null;
+  if (meme === WIF_MEME && side !== "buy") return null; // $WIF is never sold (INVARIANT 1)
+  const calls = meme.pools.map((p) => ({ method: "eth_call", params: [quoteCall(p, token, side, amountIn), "latest"] }));
+  return pickBestQuote(meme.pools, await rpcBatch(calls), token, side);
 }
 
 /** ETH -> stock quote along the same packed path TerraRouter uses (StockOracle path). */

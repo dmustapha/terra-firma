@@ -33,6 +33,13 @@ let memo = false;
 
 export type StockAccess = "loading" | "restricted" | "needs-attest" | "ok";
 export const GEO_BLOCKED = "Stock purchases aren't available in your region. Your card still works.";
+export const GEO_LOADING = "Checking your region before stock actions… (a second or two)";
+
+/** Visible reason a stock-leg button is disabled while the region check runs (S3). */
+export function GeoLoadingNote({ status }: { status: StockAccess }) {
+  if (status !== "loading") return null;
+  return <p role="status" className="text-sm text-muted">{GEO_LOADING}</p>;
+}
 
 export function useStockAccess() {
   const geo = useQuery({

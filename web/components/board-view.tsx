@@ -4,9 +4,9 @@ import type { ReactNode } from "react";
 import { STOCKS } from "@/lib/config";
 import { DEPLOYED } from "@/lib/ui-chain";
 import { eth, pct, pctChange, usd, usd8 } from "@/lib/ui-format";
-import { only, type TfLogs } from "@/lib/ui-logs";
-import { usdOf, type StockQuote } from "@/lib/ui-report";
-import { useQueries } from "@tanstack/react-query";
+import { mapLimit, only, type TfLogs } from "@/lib/ui-logs";
+import { sumKnown, usdOf, type StockQuote } from "@/lib/ui-report";
+import { useQuery } from "@tanstack/react-query";
 import { useStockQuotes, useTfLogs } from "./hooks";
 import { AddrLink, Notice, Panel, Skeleton, TxLink } from "./ui";
 
@@ -22,7 +22,19 @@ function regretCandidates(logs: TfLogs) {
   return only(logs.lens, "CardMinted")
     .map((l) => ({ l, gap: l.args.usdNow8 - l.args.usdPaid8 }))
     .sort((a, b) => (b.gap > a.gap ? 1 : b.gap < a.gap ? -1 : 0))
-    .slice(0, 25);
+    .slice(0, 10);
+}
+
+/** Re-derive each minted card server-side, at most 3 at a time (each check is a full card build). */
+async function checkCards(cands: ReturnType<typeof regretCandidates>) {
+  const res = await mapLimit(cands, 3, async ({ l: m }) => {
+    const r = await fetch(`/api/card-check?addr=${m.args.wallet}&usdPaid8=${m.args.usdPaid8}&stockId=${m.args.stockId}`);
+    const j = (await r.json().catch(() => ({}))) as { verified?: boolean };
+    if (!r.ok) throw new Error("check failed");
+    return { tx: m.transactionHash, ok: j.verified === true };
+  });
+  const verified = new Set(res.flatMap((x) => (x.status === "fulfilled" && x.value.ok ? [x.value.tx] : [])));
+  return { verified, failed: res.filter((x) => x.status === "rejected").length };
 }
 
 function regret(cands: ReturnType<typeof regretCandidates>, verified: Set<string>): Row[] {
@@ -53,8 +65,11 @@ function jars(logs: TfLogs, quotes: StockQuote[]): Row[] {
     net.set(u, e);
   }
   return [...net.entries()]
-    .map(([who, e]) => ({ who, tx: e.tx, v: [...e.raw.entries()].reduce((a, [i, r]) => a + usdOf(r, quotes[i]), 0) }))
-    .filter((r) => r.v > 0)
+    // A wallet whose stock has no live price is left out of the ranking rather than valued at a guess.
+    .flatMap(([who, e]) => {
+      const v = sumKnown([...e.raw.entries()].map(([i, r]) => usdOf(r, quotes[i])));
+      return v !== null && v > 0 ? [{ who, tx: e.tx, v }] : [];
+    })
     .sort((a, b) => b.v - a.v)
     .slice(0, 10)
     .map((r) => ({ who: r.who, tx: r.tx, main: usd(r.v), sub: "at current Chainlink prices" }));
@@ -76,12 +91,13 @@ function fees(logs: TfLogs): Row[] {
     .map(([who, e]) => ({ who, tx: e.tx, main: `${eth(e.fee)} ETH`, sub: `${e.n} trade${e.n === 1 ? "" : "s"}` }));
 }
 
-function Board({ title, desc, rows, loading, empty }: { title: string; desc: string; rows: Row[]; loading: boolean; empty: string }) {
+function Board({ title, desc, rows, loading, empty, note }: { title: string; desc: string; rows: Row[]; loading: boolean; empty: string; note?: string }) {
   const id = title.replace(/\W+/g, "-").toLowerCase();
   return (
     <Panel aria-labelledby={id}>
       <h2 id={id} className="font-semibold">{title}</h2>
       <p className="mt-1 text-sm text-muted">{desc}</p>
+      {note && <p className="mt-2 text-xs text-warn">{note}</p>}
       {loading ? (
         <div className="mt-4 space-y-2">{[0, 1, 2].map((i) => <Skeleton key={i} w="100%" h="2.75rem" className="block" />)}</div>
       ) : rows.length === 0 ? (
@@ -97,7 +113,7 @@ function Board({ title, desc, rows, loading, empty }: { title: string; desc: str
               </div>
               <div className="flex flex-col items-end text-sm">
                 <AddrLink addr={r.who} />
-                <TxLink hash={r.tx} className="text-xs text-muted">tx</TxLink>
+                <TxLink hash={r.tx} className="inline-flex min-h-11 items-center text-xs text-muted">tx</TxLink>
               </div>
             </li>
           ))}
@@ -111,27 +127,25 @@ export function BoardView() {
   const logs = useTfLogs();
   const quotes = useStockQuotes();
   const cands = logs.data ? regretCandidates(logs.data) : [];
-  const checks = useQueries({
-    queries: cands.map(({ l: m }) => ({
-      queryKey: ["card-check", m.transactionHash],
-      staleTime: 600_000,
-      queryFn: async () => {
-        const r = await fetch(`/api/card-check?addr=${m.args.wallet}&usdPaid8=${m.args.usdPaid8}&stockId=${m.args.stockId}`);
-        const j = (await r.json()) as { verified?: boolean };
-        return { tx: m.transactionHash, ok: j.verified === true };
-      },
-    })),
+  const checks = useQuery({
+    queryKey: ["card-checks", cands.map((c) => c.l.transactionHash).join(",")],
+    enabled: cands.length > 0,
+    staleTime: 600_000,
+    retry: false,
+    queryFn: () => checkCards(cands),
   });
-  const verified = new Set(checks.flatMap((q) => (q.data?.ok ? [q.data.tx] : [])));
+  const verified = checks.data?.verified ?? new Set<string>();
+  const failed = checks.data?.failed ?? 0;
+  const pricesMissing = quotes.data?.some((q) => q.price8 === null || q.multiplier === null);
   if (!DEPLOYED) return <Notice tone="warn">Leaderboards fill from contract events once Terra Firma is live on mainnet.</Notice>;
   if (logs.error) return <Notice tone="danger">Couldn&apos;t read events from the chain. Retrying shortly.</Notice>;
   const l = logs.data;
   const loading = !l;
   return (
     <div className="grid gap-6 lg:grid-cols-3">
-      <Board title="Biggest regret" desc="Minted Hindsight cards, re-verified against chain logs: what was paid vs. what it would be in stock." rows={regret(cands, verified)} loading={loading || checks.some((q) => q.isLoading)} empty="No verified minted cards yet (each mint is re-derived from chain logs before it is ranked)." />
-      <Board title="Biggest Jars" desc="Credited minus withdrawn, per wallet." rows={l && quotes.data ? jars(l, quotes.data) : []} loading={loading || !quotes.data} empty="No Jars yet." />
-      <Board title="Most fees into the burn" desc="Sum of Traded.fee per wallet." rows={l ? fees(l) : []} loading={loading} empty="No routed trades yet." />
+      <Board title="Biggest regret" desc="Minted Hindsight cards, re-verified against chain logs: what was paid vs. what it would be in stock." rows={regret(cands, verified)} loading={loading || (cands.length > 0 && checks.isLoading)} empty="No verified minted cards yet (each mint is re-derived from chain logs before it is ranked)." note={failed > 0 ? `${failed} card check${failed === 1 ? "" : "s"} couldn't run right now; those cards are not ranked.` : undefined} />
+      <Board title="Biggest Jars" desc="Credited minus withdrawn, per wallet." note={pricesMissing ? "Some live stock prices are unavailable; wallets holding those stocks are left out until they read again." : undefined} rows={l && quotes.data ? jars(l, quotes.data) : []} loading={loading || !quotes.data} empty="No Jars yet." />
+      <Board title="Most fees paid" desc="Sum of Traded.fee per wallet (half buys and burns $WIF, half buys stakers' stock)." rows={l ? fees(l) : []} loading={loading} empty="No routed trades yet." />
     </div>
   );
 }

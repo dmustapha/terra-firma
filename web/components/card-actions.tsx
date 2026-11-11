@@ -34,7 +34,7 @@ export function shareUrl(card: Card, origin: string) {
   const text =
     card.memes.length === 0
       ? "My Hindsight card: clean hands, no memes. Check yours on Terra Firma."
-      : `I put ${usd8(card.totals.usdPaid8)} into memes. Today: ${usd8(card.totals.usdToday8)}. In ${card.stock}: ${usd8(card.totals.usdCounterfactual8)}. Every number from Robinhood Chain + Chainlink.`;
+      : `I put ${usd8(card.totals.usdPaid8)} into memes. ${card.unquoted.length > 0 ? "" : `Today: ${usd8(card.totals.usdToday8)}. `}In ${card.stock}: ${usd8(card.totals.usdCounterfactual8)}. Every number from Robinhood Chain + Chainlink.`;
   const url = `${origin}/card/${card.wallet}`;
   return `https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
 }

@@ -66,6 +66,8 @@ contract WifStaking is ReentrancyGuard {
     event Withdrawn(address indexed user, uint256 amount);
     event Claimed(address indexed user, uint8 stockId, uint256 amount);
     event RewardNotified(uint8 indexed stockId, uint256 epoch, uint256 amount, uint256 activeTotal);
+    /// @notice A pending bucket placed in `placedEpoch` matured and its `amount` joined the pool's active stake.
+    event Rolled(uint8 indexed stockId, uint256 placedEpoch, uint256 amount);
 
     error NotFeePool();
     error ZeroAmount();
@@ -266,6 +268,7 @@ contract WifStaking is ReentrancyGuard {
             if (b.amount == 0 || !_matured(b.epoch)) continue;
             rollAccPlusOne[i][b.epoch] = p.acc + 1;
             p.activeTotal += b.amount;
+            emit Rolled(i, b.epoch, b.amount);
             b.amount = 0;
         }
     }
