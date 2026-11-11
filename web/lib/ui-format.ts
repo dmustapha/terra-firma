@@ -1,0 +1,76 @@
+// Display formatting. Inputs are integer strings/bigints from chain or API; nothing is estimated here.
+import { formatUnits, parseUnits } from "viem";
+
+const usdFmt = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+const toBig = (v: string | bigint | number) => (typeof v === "bigint" ? v : BigInt(v));
+
+/** 8-decimal USD integer -> "$1,234.56". */
+export const usd8 = (v: string | bigint) => usdFmt.format(Number(formatUnits(toBig(v), 8)));
+
+/** Accessible label: "41.07 dollars". */
+export const usd8Label = (v: string | bigint) => `${Number(formatUnits(toBig(v), 8)).toFixed(2)} dollars`;
+
+/** USD from a float (already derived from chain integers). */
+export const usd = (n: number) => usdFmt.format(n);
+
+/** 4 significant digits, no scientific notation for normal ranges. */
+export function sig4(n: number): string {
+  if (n === 0) return "0";
+  const abs = Math.abs(n);
+  if (abs >= 10_000) return n.toLocaleString("en-US", { maximumFractionDigits: 0 });
+  return Number(n.toPrecision(4)).toLocaleString("en-US", { maximumSignificantDigits: 4 });
+}
+
+/** 18-decimal shares -> 4 significant digits. */
+export const shares18 = (v: string | bigint) => sig4(Number(formatUnits(toBig(v), 18)));
+
+/** Wei -> ETH with up to 6 decimals. */
+export function eth(v: string | bigint): string {
+  const n = Number(formatUnits(toBig(v), 18));
+  return n.toLocaleString("en-US", { maximumFractionDigits: 6 });
+}
+
+/** Arbitrary token raw -> readable amount (4 significant digits under 10k). */
+export const token = (v: string | bigint, decimals = 18) => sig4(Number(formatUnits(toBig(v), decimals)));
+
+export const short = (h: string, n = 4) => (h.length > 2 * n + 2 ? `${h.slice(0, n + 2)}…${h.slice(-n)}` : h);
+
+/** Last digits of a Chainlink roundId ("…001"). */
+export const roundTail = (r: string) => `…${r.slice(-3)}`;
+
+export const date = (ts: number) =>
+  new Date(ts * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+
+export const dateTime = (ts: number) =>
+  new Date(ts * 1000).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "UTC", timeZoneName: "short" });
+
+/** "12m 04s" / "3h 02m". */
+export function duration(sec: number): string {
+  if (sec <= 0) return "now";
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = Math.floor(sec % 60);
+  if (h > 0) return `${h}h ${String(m).padStart(2, "0")}m`;
+  return `${m}m ${String(s).padStart(2, "0")}s`;
+}
+
+/** parseUnits that returns null instead of throwing on bad input. */
+export function parseAmount(s: string, decimals = 18): bigint | null {
+  const t = s.trim();
+  if (!/^\d*\.?\d*$/.test(t) || t === "" || t === ".") return null;
+  try {
+    return parseUnits(t, decimals);
+  } catch {
+    return null;
+  }
+}
+
+/** Percent change between two 8dp USD values. */
+export function pctChange(from: string | bigint, to: string | bigint): number | null {
+  const a = Number(toBig(from));
+  if (a === 0) return null;
+  return (Number(toBig(to)) / a - 1) * 100;
+}
+
+export const pct = (n: number) => `${n > 0 ? "+" : ""}${n.toFixed(1)}%`;

@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+/* Terra Firma tokens. Dark (bedrock) is the default; light (sandstone) via data-theme="light".
+   A later design pass refines values here only; components use the semantic names below. */
+:root {
+  --bg: #12100d;
+  --surface: #1b1814;
+  --surface-2: #26211b;
+  --line: #3b342b;
+  --fg: #f3ede4;
+  --muted: #b6aa98;
+  --accent: #46d27a;
+  --accent-strong: #5ee08d;
+  --accent-fg: #07160d;
+  --accent-soft: #46d27a1f;
+  --danger: #f7867c;
+  --danger-soft: #f7867c1f;
+  --warn: #f2bd57;
+  --warn-soft: #f2bd571f;
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --bg: #f5efe6;
+  --surface: #fffcf7;
+  --surface-2: #ede5d8;
+  --line: #d6cab8;
+  --fg: #1e1a15;
+  --muted: #5b5144;
+  --accent: #157a3c;
+  --accent-strong: #0f6a32;
+  --accent-fg: #ffffff;
+  --accent-soft: #157a3c1a;
+  --danger: #b42318;
+  --danger-soft: #b423181a;
+  --warn: #8a5a00;
+  --warn-soft: #8a5a001a;
+  color-scheme: light;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --radius-card: 1rem;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+dialog::backdrop {
+  background: rgb(0 0 0 / 0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,6 @@
+{
+ "forkTests": 38,
+ "suites": 3,
+ "command": "cd contracts && RPC_URL=$GETBLOCK_RPC_FRA forge test",
+ "source": "evidence/forge-test.txt"
+}

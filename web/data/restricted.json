@@ -1,0 +1,21 @@
+{
+  "source": "https://docs.robinhood.com/rhj/restricted-jurisdictions",
+  "fetchedAt": "2026-11-11T01:20:26.131Z",
+  "countries": [
+    "US",
+    "CA",
+    "GB",
+    "CH",
+    "CU",
+    "BY",
+    "IR",
+    "KP",
+    "RU",
+    "SY",
+    "UA",
+    "SS",
+    "SD",
+    "MM",
+    "VE"
+  ]
+}
