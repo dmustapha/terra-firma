@@ -1,15 +1,16 @@
 import Link from "next/link";
 import { getAddress } from "viem";
 import { AddressLookup } from "@/components/address-lookup";
-import { LiveFrontPage } from "@/components/front-page";
+import { DepthGauge } from "@/components/depth-gauge";
+import { HeroCore } from "@/components/hero-core";
 import { LiveProof } from "@/components/live-proof";
 import { MobileCheckBar } from "@/components/mobile-check-bar";
-import { LinkButton } from "@/components/ui";
+import { SweepDemo } from "@/components/sweep-demo";
 import { getCard } from "@/lib/card-cache";
 import type { Card } from "@/lib/hindsight";
 import { HISTORY_ADDR } from "@/lib/ui-chain";
 
-// The example edition is the same cached on-chain read /api/hindsight serves (5-min TTL); re-render on that cadence.
+// The example core is the same cached on-chain read /api/hindsight serves (5-min TTL); re-render on that cadence.
 export const revalidate = 300;
 
 async function heroCard(): Promise<Card | null> {
@@ -21,59 +22,82 @@ async function heroCard(): Promise<Card | null> {
   }
 }
 
-/** The way out, as three newspaper columns divided by rules. No boxes. */
-const COLUMNS = [
-  { n: "I", head: "Sweep the dead ones", body: "Tick the memes that died. One transaction swaps them into real stock tokens (each coin needs a one-time approval first).", href: "/jar", cta: "Sweep into your Jar" },
-  { n: "II", head: "It lands as stock", body: "NVDA, TSLA, SPY and more, held in your Jar by an ownerless contract. Yours to withdraw any time. Still aping? Set a slice and part of every trade lands there too.", href: "/trade", cta: "Trade with a slice" },
-  { n: "III", head: "Half the fees burn $WIF", body: "Every trade pays 0.5% (0.3% if you stake 10k $WIF) into a pool. Each epoch, half of it buys $WIF and burns it; half buys stock for stakers.", href: "/stake", cta: "Stake $WIF" },
+const STRATA = [
+  { depth: "0 m", name: "Sediment", head: "Your dead memes", body: "Loose, eroding, worth a sliver of what you aped. Every coin you still hold is read from Robinhood Chain." },
+  { depth: "1 m", name: "The sieve", head: "One sweep", body: "Tick the dead ones and sweep them in one transaction. Still aping? Set a slice and part of every trade drops through too." },
+  { depth: "2 m", name: "Bedrock", head: "Real stock, in your Jar", body: "NVDA, TSLA, SPY and more, held by an ownerless contract. Fees pool up; each epoch half buys $WIF and burns it." },
 ];
 
 export default async function Home() {
   const card = await heroCard();
   return (
     <div>
-      {/* HERO: your wallet is the action; the example edition is the only object on the page. */}
-      <section aria-labelledby="hero-title" className="grid items-center gap-x-16 gap-y-12 pt-6 pb-20 lg:grid-cols-[0.9fr_1.1fr] lg:pt-12">
-        <div>
-          <h1 id="hero-title" className="font-display text-[clamp(3rem,1.2rem+4.4vw,5.5rem)] leading-[0.9] tracking-[-0.03em]">
+      <DepthGauge />
+
+      {/* HERO — surface: the headline + your wallet; the example core drills beside it. */}
+      <section aria-labelledby="hero-title" className="grid items-start gap-x-14 gap-y-12 pt-4 pb-16 lg:grid-cols-[1fr_1fr] lg:pt-6">
+        <div className="lg:pt-10">
+          <p className="eyebrow text-muted">Field report · Robinhood Chain · read live</p>
+          <h1 id="hero-title" className="mt-5 font-display text-[clamp(3.25rem,1.4rem+5vw,6.25rem)] leading-[0.88] tracking-[-0.03em]">
             Your memes died.
             <br />
             <em className="text-accent">NVDA didn&apos;t.</em>
           </h1>
-          <p className="mt-6 max-w-[30ch] font-display text-[1.625rem] leading-snug">Paste your wallet. We print the front page of what it cost you.</p>
+          <p className="mt-6 max-w-[34ch] text-[1.1875rem] leading-relaxed text-fg/85">
+            Drill into any wallet. See what the bag is worth now, and what the same dollars would be in real stock.
+          </p>
           <div id="check" className="mt-8 max-w-[34rem]">
-            <AddressLookup id="lookup" label="Your wallet" placeholder="0x… paste it here" button="Print my edition" primary />
-            <p className="mt-3 text-sm text-muted">Read-only. Nothing to sign. Priced from Robinhood Chain and Chainlink.</p>
+            <AddressLookup id="lookup" label="Your wallet" placeholder="0x… paste it here" button="Drill my wallet" primary />
+            <p className="mt-3 text-sm text-muted">Read-only. Nothing to sign. Every layer is a transaction or a Chainlink round.</p>
           </div>
         </div>
-        <div className="lg:-mr-4">
-          <LiveFrontPage addr={HISTORY_ADDR} initial={card} />
-          <p className="mt-4 text-center text-sm text-muted">
-            Today&apos;s example: a real wallet.{" "}
-            <Link href={`/card/${HISTORY_ADDR}`} className="font-semibold text-fg underline underline-offset-4 hover:text-accent">Read the full edition →</Link>
-          </p>
-        </div>
+        <HeroCore addr={HISTORY_ADDR} initial={card} />
       </section>
 
-      {/* THE WAY OUT: columns and rules, set straight on the paper. */}
-      <section aria-labelledby="out-title" className="rule-head pb-20">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-8 gap-y-2">
-          <h2 id="out-title" className="font-display text-[clamp(2.25rem,1.5rem+2.4vw,3.75rem)] leading-none tracking-[-0.02em]">The way out of a dead bag</h2>
-          <LinkButton href="/jar" className="min-h-12 px-6">Sweep my dead memes</LinkButton>
-        </div>
-        <ol className="mt-10 grid gap-y-10 lg:grid-cols-3">
-          {COLUMNS.map((c, i) => (
-            <li key={c.n} className={i > 0 ? "lg:border-l lg:border-line-strong/30 lg:pl-10" : "lg:pr-10"}>
-              <p className="font-display text-[4.5rem] leading-[0.8] text-accent">{c.n}</p>
-              <h3 className="mt-4 font-display text-[2rem] leading-tight">{c.head}</h3>
-              <p className="mt-3 max-w-[38ch] text-[1.0625rem] leading-relaxed text-fg/85">{c.body}</p>
-              <Link href={c.href} className="mt-4 inline-flex min-h-11 items-center font-semibold underline decoration-accent underline-offset-4 hover:text-accent">{c.cta} →</Link>
+      <div className="strata-seam" aria-hidden />
+
+      {/* THE STRATA — the way out, read as a borehole log. Rules and depth marks, no boxes. */}
+      <section aria-labelledby="strata-title" className="py-20">
+        <p className="eyebrow text-accent">Borehole log</p>
+        <h2 id="strata-title" className="mt-3 max-w-[18ch] font-display text-[clamp(2.5rem,1.6rem+3vw,4.5rem)] leading-[0.92] tracking-[-0.025em]">
+          From loose sediment to <em className="text-accent">solid ground.</em>
+        </h2>
+        <ol className="mt-12">
+          {STRATA.map((s, i) => (
+            <li key={s.name} className="grid gap-x-10 gap-y-2 border-t border-line-strong/40 py-7 sm:grid-cols-[8rem_14rem_1fr] sm:items-baseline">
+              <span className="eyebrow num text-muted">{s.depth} · {String(i + 1).padStart(2, "0")}</span>
+              <span className={`font-display text-[2.25rem] leading-none ${i === 2 ? "text-accent" : i === 0 ? "text-[color:var(--brick)]" : ""}`}>{s.name}</span>
+              <span><b className="text-[1.125rem]">{s.head}.</b> <span className="text-[1.0625rem] text-fg/80">{s.body}</span></span>
             </li>
           ))}
         </ol>
       </section>
 
+      <div className="strata-seam" aria-hidden />
+
+      {/* SET-PIECE 2 — the product performing itself */}
+      <section aria-label="The sweep" className="py-20">
+        <SweepDemo initial={card} />
+      </section>
+
       <LiveProof />
+
+      {/* CLOSER — bedrock, full bleed */}
+      <section aria-labelledby="closer-title" className="bedrock-band bleed">
+        <div className="mx-auto grid max-w-[80rem] items-end gap-10 px-4 py-24 sm:px-6 lg:grid-cols-[1.2fr_1fr] lg:px-8">
+          <div>
+            <p className="eyebrow opacity-75">Terra firma</p>
+            <h2 id="closer-title" className="mt-4 font-display text-[clamp(3rem,1.8rem+4.4vw,6rem)] leading-[0.88] tracking-[-0.03em]">Stand on bedrock.</h2>
+            <p className="mt-5 max-w-[40ch] text-[1.125rem] leading-relaxed opacity-85">Your bag is still sitting in the sediment. Drill it, see the gap, sweep it into something that holds.</p>
+          </div>
+          <div className="rounded-[14px] bg-[color:var(--bg)] p-5 text-fg">
+            <AddressLookup id="lookup-close" label="Your wallet" placeholder="0x… paste it here" button="Drill my wallet" primary />
+            <p className="mt-3 text-sm text-muted">
+              Or <Link href={`/card/${HISTORY_ADDR}`} className="font-semibold underline underline-offset-4">read the example core in full</Link>.
+            </p>
+          </div>
+        </div>
+      </section>
 
       <MobileCheckBar />
     </div>

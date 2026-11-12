@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Instrument_Serif, Public_Sans } from "next/font/google";
+import { IBM_Plex_Mono, Instrument_Serif, Public_Sans } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 import { GroundBand } from "@/components/ground-band";
@@ -8,6 +8,7 @@ import { SiteHeader } from "@/components/site-header";
 import { REPO_URL, SITE_URL } from "@/lib/ui-chain";
 
 const sans = Public_Sans({ variable: "--font-public-sans", subsets: ["latin"], weight: ["400", "500", "600", "700"], style: ["normal", "italic"] });
+const mono = IBM_Plex_Mono({ variable: "--font-plex-mono", subsets: ["latin"], weight: ["400", "500", "600"] });
 const display = Instrument_Serif({ variable: "--font-instrument-serif", subsets: ["latin"], weight: "400", style: ["normal", "italic"] });
 
 export const metadata: Metadata = {
@@ -33,10 +34,11 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className={`${sans.variable} ${display.variable} flex min-h-dvh flex-col antialiased`}>
+      <body className={`${sans.variable} ${display.variable} ${mono.variable} flex min-h-dvh flex-col antialiased`}>
         <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-sm focus:bg-accent focus:px-4 focus:py-2 focus:text-accent-fg">
           Skip to content
         </a>
+        <div aria-hidden className="survey-ground" />
         <Providers>
           <SiteHeader />
           <main id="main" className="mx-auto w-full max-w-[80rem] flex-1 px-4 py-8 sm:px-6 sm:py-10 lg:px-8">

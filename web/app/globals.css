@@ -125,7 +125,7 @@
 
   --font-sans: var(--font-public-sans), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-instrument-serif), "Instrument Serif", "Iowan Old Style", Georgia, serif;
-  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font-mono: var(--font-plex-mono), ui-monospace, "SF Mono", Menlo, monospace;
 
   /* Radius scale: near-square print geometry. Tailwind's own steps collapse onto it. */
   --radius-xs: 2px;
@@ -359,3 +359,60 @@ dialog::backdrop {
 .paper .stamp, .paper-sheet .stamp { --plate: #f7f2e5; --danger: #a13a1c; }
 /* rules-only section heads, set on the ground */
 .rule-head { border-top: 3px double var(--line-strong); padding-top: 0.75rem; }
+
+/* ================= v3 CORE SAMPLE — ground, voice, elevation =================
+   World: a borehole through a dead bag. Ground = survey paper: topographic contour isolines + grain + ONE breathing glow.
+   Elevation doctrine (chit): bg-lightness steps + hairline insets + ONE colored ambient glow. No neutral drop shadows. */
+:root {
+  --contour: rgb(26 23 18 / 0.07);
+  --glow: rgb(63 107 74 / 0.22);
+  --glow-2: rgb(200 144 27 / 0.14);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-quart: cubic-bezier(0.22, 1, 0.36, 1);
+}
+:root[data-theme="dark"] { --contour: rgb(134 179 145 / 0.08); --glow: rgb(134 179 145 / 0.16); --glow-2: rgb(220 176 98 / 0.08); }
+.survey-ground { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+.survey-ground::before { /* contour isolines (survey map), masked so they breathe toward the edges */
+  content: ""; position: absolute; inset: -10%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='640' viewBox='0 0 640 640' fill='none' stroke='%23000' stroke-width='1'%3E%3Cpath d='M-20 120 C 90 60 200 170 320 110 S 540 40 660 120'/%3E%3Cpath d='M-20 150 C 100 95 210 200 320 140 S 550 75 660 150'/%3E%3Cpath d='M-20 182 C 110 130 220 228 320 172 S 555 110 660 182'/%3E%3Cpath d='M-20 300 C 120 250 180 360 330 320 S 520 250 660 300'/%3E%3Cpath d='M-20 334 C 130 288 190 392 330 352 S 525 288 660 334'/%3E%3Cpath d='M-20 470 C 80 430 230 520 360 480 S 560 420 660 470'/%3E%3Cpath d='M-20 502 C 90 466 236 552 360 512 S 565 456 660 502'/%3E%3Cpath d='M-20 536 C 100 500 242 586 360 546 S 570 492 660 536'/%3E%3Cellipse cx='470' cy='230' rx='70' ry='34'/%3E%3Cellipse cx='470' cy='230' rx='40' ry='18'/%3E%3Cellipse cx='150' cy='410' rx='56' ry='26'/%3E%3C/svg%3E");
+  background-size: 640px 640px; opacity: 1;
+  filter: opacity(1);
+  -webkit-mask-image: radial-gradient(120% 90% at 30% 20%, #000 30%, transparent 85%);
+  mask-image: radial-gradient(120% 90% at 30% 20%, #000 30%, transparent 85%);
+  /* tint the black strokes to the contour ink via mix-blend on a colored layer */
+  mix-blend-mode: multiply;
+  opacity: 0.075;
+}
+:root[data-theme="dark"] .survey-ground::before { filter: invert(1) sepia(0.4) hue-rotate(60deg); mix-blend-mode: screen; opacity: 0.06; }
+.survey-ground::after { /* the ONE light source: breathing bloom */
+  content: ""; position: absolute; width: 70vw; height: 70vw; right: -18vw; top: -26vw; border-radius: 50%;
+  background: radial-gradient(closest-side, var(--glow), var(--glow-2) 55%, transparent);
+  filter: blur(40px);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .survey-ground::after { animation: bloom 9s ease-in-out infinite alternate; }
+}
+@keyframes bloom { from { transform: scale(1); opacity: 0.85; } to { transform: scale(1.07); opacity: 1; } }
+.eyebrow { font-family: var(--font-mono); font-size: 0.6875rem; font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase; }
+.hairline-step { background: color-mix(in oklab, var(--fg) 3%, transparent); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--fg) 10%, transparent); }
+/* core-sample materials (light: survey paper; dark: night survey) */
+:root {
+  --brick: #9b3b1f; --moss: #2f5c3e;
+  --sed-bg: #e7cdb2; --sed-dot: #9b3b1f;
+  --rock-bg: #3f6b4a; --rock-line: #2a4a33; --rock-void: #d9d0bb; --rock-seam: #1f3a28;
+}
+:root[data-theme="dark"] {
+  --brick: #e39477; --moss: #86b391;
+  --sed-bg: #4a2a1d; --sed-dot: #e39477;
+  --rock-bg: #4f7d5a; --rock-line: #2f5239; --rock-void: #110e0a; --rock-seam: #86b391;
+}
+.core-glow { position: relative; isolation: isolate; }
+.core-glow::before { content: ""; position: absolute; inset: 8% 4% 0; z-index: -1; border-radius: 50%;
+  background: radial-gradient(closest-side, var(--glow), transparent); filter: blur(30px); }
+.drill-tip { width: 11px; height: 14px; background: var(--accent); clip-path: polygon(0 0, 100% 0, 100% 45%, 50% 100%, 0 45%); }
+.drill-bit { width: 22px; height: 30px; background: var(--accent); clip-path: polygon(0 0, 100% 0, 100% 45%, 50% 100%, 0 45%); }
+@media (prefers-reduced-motion: no-preference) { .drill-bit { animation: drill 0.9s var(--ease-quart) infinite alternate; } }
+@keyframes drill { from { transform: translateY(-6px); } to { transform: translateY(6px); } }
+/* bedrock band (closer): the ground beneath everything */
+.bedrock-band { background-color: var(--rock-bg); background-image: repeating-linear-gradient(-35deg, transparent 0 14px, rgb(0 0 0 / 0.14) 14px 16px), radial-gradient(80% 120% at 80% 0%, rgb(255 255 255 / 0.12), transparent 60%); color: #f6f0e1; }
+.strata-seam { height: 10px; background: linear-gradient(var(--line-strong), var(--line-strong)) top/100% 1px no-repeat, repeating-linear-gradient(90deg, var(--line-strong) 0 2px, transparent 2px 9px) bottom/100% 4px no-repeat; opacity: 0.55; }
