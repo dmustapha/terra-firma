@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Terra Firma">
-  <!-- v2 "Horizons": ink tile, three ground horizons settling into a solid moss bedrock -->
-  <rect width="32" height="32" rx="3" fill="#1A1712"/>
-  <path d="M5 9c4-2 8 2 11 0s7-2 11 0" fill="none" stroke="#F1EBDD" stroke-width="2"/>
-  <rect x="5" y="14" width="22" height="3" fill="#86B391"/>
-  <rect x="5" y="19" width="22" height="8" fill="#3F6B4A"/>
-</svg>

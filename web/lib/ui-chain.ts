@@ -1,8 +1,8 @@
 // Client-safe chain helpers: deployment state, a public viem client, extra read ABIs.
 // Never imports server-only modules (rpc, rounds, quote, hindsight).
-import { createPublicClient, http, zeroAddress, type Address } from "viem";
+import { createPublicClient, fallback, http, zeroAddress, type Address } from "viem";
 import { robinhood } from "viem/chains";
-import { ADDR, PUBLIC_RPC, TF } from "./config";
+import { ADDR, BROWSER_RPC, PUBLIC_RPC, TF } from "./config";
 
 /** True only once Deploy.s.sol has written real addresses into data/deployments.json. */
 export const DEPLOYED = (TF as unknown as { deployed?: boolean }).deployed !== false && TF.TerraRouter !== zeroAddress;
@@ -10,7 +10,10 @@ export const DEPLOYED = (TF as unknown as { deployed?: boolean }).deployed !== f
 /** JSON-RPC batching (<= 30 calls per POST) keeps chunked getLogs scans under the public RPC rate limit. */
 export const publicClient = createPublicClient({
   chain: robinhood,
-  transport: http(PUBLIC_RPC, { batch: { batchSize: 30, wait: 20 }, retryCount: 3, retryDelay: 400 }),
+  transport: fallback([
+    http(BROWSER_RPC, { batch: { batchSize: 30, wait: 20 }, retryCount: 2, retryDelay: 400 }),
+    http(PUBLIC_RPC, { batch: { batchSize: 30, wait: 20 }, retryCount: 3, retryDelay: 400 }),
+  ]),
 });
 
 export type ContractKey = "StockOracle" | "Jar" | "WifStaking" | "FeePool" | "TerraRouter" | "HindsightLens" | "FriendJar";

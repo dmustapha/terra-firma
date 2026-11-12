@@ -189,14 +189,14 @@ function TradeBox({ token }: { token: Address }) {
   const { address } = useAccount();
   const fee = useReadContract({ address: TF.TerraRouter, abi: terraRouterAbi, functionName: "feeBps", args: address ? [address] : undefined, chainId: CHAIN_ID, query: { enabled: DEPLOYED && !!address } });
   const feeBps = Number(fee.data ?? FEE_BPS);
-  const sym = info.data?.symbol ?? short(token);
+  const sym = isWif ? "$WIF" : (info.data?.symbol ?? short(token));
 
   return (
     <section aria-label="Trade" className="space-y-5 border-t-[3px] border-double border-line-strong pt-6">
       <div className="flex flex-wrap items-end justify-between gap-2">
-        <h2 className="font-display text-[clamp(2.75rem,2rem+2.6vw,4.5rem)] leading-[0.9] tracking-[-0.025em]">{info.isLoading ? <Skeleton w="6rem" h="1.6rem" /> : isWif ? "$WIF" : sym}</h2>
+        <h2 className="font-display text-[clamp(2.75rem,2rem+2.6vw,4.5rem)] leading-[0.9] tracking-[-0.025em]">{isWif ? "$WIF" : info.isLoading ? <Skeleton w="6rem" h="1.6rem" /> : sym}</h2>
         <div className="flex flex-wrap items-center gap-2 text-sm">
-          {meme ? <Badge tone="accent">tracked meme</Badge> : <Badge>not on our list</Badge>}
+          {isWif ? <Badge tone="accent">$WIF · buy only</Badge> : meme ? <Badge tone="accent">tracked meme</Badge> : <Badge>not on our list</Badge>}
           {meme?.taxed && <Badge tone="danger">taxed token: can&apos;t trade here</Badge>}
           <AddrLink addr={token} />
         </div>

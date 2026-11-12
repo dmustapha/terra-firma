@@ -1,113 +1,121 @@
 {
- "version": 3,
- "status": "complete",
- "autonomous_mode": true,
- "pipeline_run": true,
- "currentPhase": "complete",
- "timestamp": "2026-11-11T20:00:00Z",
- "expected_phases": [
-  "formalize",
-  "refine",
-  "logo_forge"
- ],
- "phase_ledger": [
-  {
-   "phase": "formalize",
-   "started_at": "2026-11-11T16:35:00Z",
-   "completed_at": "2026-11-11T16:45:00Z",
-   "evidence": "DESIGN_SYSTEM.md + brand.json written from web/app/globals.css + layout.tsx; design-tests/tokens.design.test.mjs 6/6 pass"
+  "version": 3,
+  "status": "complete",
+  "autonomous_mode": true,
+  "pipeline_run": true,
+  "currentPhase": "complete",
+  "timestamp": "2026-11-11T20:00:00Z",
+  "expected_phases": [
+    "formalize",
+    "refine",
+    "logo_forge"
+  ],
+  "phase_ledger": [
+    {
+      "phase": "formalize",
+      "started_at": "2026-11-11T16:35:00Z",
+      "completed_at": "2026-11-11T16:45:00Z",
+      "evidence": "DESIGN_SYSTEM.md + brand.json written from web/app/globals.css + layout.tsx; design-tests/tokens.design.test.mjs 6/6 pass"
+    },
+    {
+      "phase": "refine",
+      "started_at": "2026-11-11T17:00:00Z",
+      "completed_at": "2026-11-11T19:30:00Z",
+      "evidence": ".craft-law.json exit 0 (craft-lint over web/, CF-1..7 ran; tool bugs fixed + planted-red verified); Lighthouse desktop 98/100/100/100, mobile 80/100/100/100 (simulated LCP; observed 186ms); 4 persona critiques (design, technical, user+coverage, zero-context) \u2192 1 fix iteration, 14 items; tsc + 133 tests + build pass; 10 pages scrollWidth 375 via CDP mobile emulation"
+    },
+    {
+      "phase": "logo_forge",
+      "started_at": "2026-11-11T19:35:00Z",
+      "completed_at": "2026-11-11T19:55:00Z",
+      "evidence": "3 SVG variants (web/public/logo-v1..3.svg), mockups screenshots/logo-mockups/variants.png (16/32/64/128, dark, header, tab); v1 auto-selected; exported logo.svg, logo.png 512, favicon.ico 16/32/48, app/icon.svg"
+    }
+  ],
+  "decisions": {
+    "tier": "A",
+    "tierReason": "upstream design phase ran the full generate+qa flow (proposals, scored selection, ui-revamp polish, QA APPROVED)"
   },
-  {
-   "phase": "refine",
-   "started_at": "2026-11-11T17:00:00Z",
-   "completed_at": "2026-11-11T19:30:00Z",
-   "evidence": ".craft-law.json exit 0 (craft-lint over web/, CF-1..7 ran; tool bugs fixed + planted-red verified); Lighthouse desktop 98/100/100/100, mobile 80/100/100/100 (simulated LCP; observed 186ms); 4 persona critiques (design, technical, user+coverage, zero-context) \u2192 1 fix iteration, 14 items; tsc + 133 tests + build pass; 10 pages scrollWidth 375 via CDP mobile emulation"
+  "formalize": {
+    "designSystemWritten": true,
+    "brandJsonWritten": true,
+    "tokensExtracted": 31,
+    "designApplied": true,
+    "briefRead": true,
+    "testsEmitted": 6
   },
-  {
-   "phase": "logo_forge",
-   "started_at": "2026-11-11T19:35:00Z",
-   "completed_at": "2026-11-11T19:55:00Z",
-   "evidence": "3 SVG variants (web/public/logo-v1..3.svg), mockups screenshots/logo-mockups/variants.png (16/32/64/128, dark, header, tab); v1 auto-selected; exported logo.svg, logo.png 512, favicon.ico 16/32/48, app/icon.svg"
-  }
- ],
- "decisions": {
-  "tier": "A",
-  "tierReason": "upstream design phase ran the full generate+qa flow (proposals, scored selection, ui-revamp polish, QA APPROVED)"
- },
- "formalize": {
-  "designSystemWritten": true,
-  "brandJsonWritten": true,
-  "tokensExtracted": 31,
-  "designApplied": true,
-  "briefRead": true,
-  "testsEmitted": 6
- },
- "craftAudit": {
-  "pass": true,
-  "violations": [],
-  "artifact": ".craft-law.json"
- },
- "refine": {
   "craftAudit": {
-   "pass": true,
-   "violations": []
+    "pass": true,
+    "violations": [],
+    "artifact": ".craft-law.json"
   },
-  "personaCritique": {
-   "iterations": 1,
-   "personas": [
-    "design-critic",
-    "technical-reviewer",
-    "user+feature-coverage",
-    "zero-context hero test"
-   ],
-   "remainingIssues": [
-    "BuyForm/SellForm duplication in trade-terminal.tsx (tech #5) not refactored: risk to tested trade flow late in the run",
-    "abi `as unknown as Abi` casts lose call typing (tech #13)",
-    "mobile Lighthouse perf 80 under simulated throttling (observed LCP 186ms)",
-    "Dami-taste: primary CTA moss vs ink (DH-13)"
-   ]
+  "refine": {
+    "craftAudit": {
+      "pass": true,
+      "violations": []
+    },
+    "personaCritique": {
+      "iterations": 1,
+      "personas": [
+        "design-critic",
+        "technical-reviewer",
+        "user+feature-coverage",
+        "zero-context hero test"
+      ],
+      "remainingIssues": [
+        "BuyForm/SellForm duplication in trade-terminal.tsx (tech #5) not refactored: risk to tested trade flow late in the run",
+        "abi `as unknown as Abi` casts lose call typing (tech #13)",
+        "mobile Lighthouse perf 80 under simulated throttling (observed LCP 186ms)",
+        "Dami-taste: primary CTA moss vs ink (DH-13)"
+      ]
+    },
+    "lighthouse": {
+      "desktop": "evidence/design/lighthouse-desktop.json",
+      "mobile": "evidence/design/lighthouse-mobile.json"
+    }
   },
-  "lighthouse": {
-   "desktop": "evidence/design/lighthouse-desktop.json",
-   "mobile": "evidence/design/lighthouse-mobile.json"
+  "parityFloor": {
+    "note": "Tier A, design phase ran in this repo; mockup = proposals/proposal-3.html",
+    "justifications": [
+      "pixel-offset shadow philosophy: no blur by design",
+      "no glass by design"
+    ]
+  },
+  "logo_forge": {
+    "variantsGenerated": 4,
+    "selectedVariant": "c2-seal-seedling (Dami pick); responsive: engraved PNG large, simplified vector small",
+    "selection": "[AUTO] favicon legibility + tie to the Fig. 1 signature; first-draft v2 rejected (read as an eject symbol at 16px), first-draft v1 redrawn (read as an app window)",
+    "rejected": [
+      "v2: generic layered-ground mark, no tie to the product"
+    ],
+    "refinementRejected": "r1 edit had a gradient ghost-hill artifact",
+    "sizesTested": [
+      256,
+      64,
+      32,
+      16
+    ],
+    "darkBgTested": true
+  },
+  "logo_provider": "stablestudio",
+  "logo_provider_chain": [
+    {
+      "provider": "fal",
+      "result": "failed: HTTP 401 Invalid API key"
+    },
+    {
+      "provider": "stablestudio (agentcash)",
+      "result": "skipped: paid from Dami's USDC wallet; minimal-spend rule"
+    },
+    {
+      "provider": "svg_fallback",
+      "result": "used"
+    }
+  ],
+  "artifacts": {
+    "designSystem": "DESIGN_SYSTEM.md",
+    "brandJson": "brand.json",
+    "logo": "web/public/logo.svg",
+    "screenshots": [
+      "screenshots/"
+    ]
   }
- },
- "parityFloor": {
-  "note": "Tier A, design phase ran in this repo; mockup = proposals/proposal-3.html",
-  "justifications": [
-   "pixel-offset shadow philosophy: no blur by design",
-   "no glass by design"
-  ]
- },
- "logo_forge": {
-  "variantsGenerated": 3,
-  "selectedVariant": "logo-v1.svg",
-  "selection": "[AUTO] favicon legibility + tie to the Fig. 1 signature; first-draft v2 rejected (read as an eject symbol at 16px), first-draft v1 redrawn (read as an app window)",
-  "rejected": [
-   "v2: generic layered-ground mark, no tie to the product"
-  ]
- },
- "logo_provider": "svg_fallback",
- "logo_provider_chain": [
-  {
-   "provider": "fal",
-   "result": "failed: HTTP 401 Invalid API key"
-  },
-  {
-   "provider": "stablestudio (agentcash)",
-   "result": "skipped: paid from Dami's USDC wallet; minimal-spend rule"
-  },
-  {
-   "provider": "svg_fallback",
-   "result": "used"
-  }
- ],
- "artifacts": {
-  "designSystem": "DESIGN_SYSTEM.md",
-  "brandJson": "brand.json",
-  "logo": "web/public/logo.svg",
-  "screenshots": [
-   "screenshots/"
-  ]
- }
 }

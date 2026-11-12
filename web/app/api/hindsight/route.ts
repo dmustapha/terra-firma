@@ -3,11 +3,13 @@
 // (wallet, stock), in-flight de-duplication, bounded size, global build concurrency cap).
 import { NextResponse } from "next/server";
 import { isAddress, getAddress } from "viem";
-import { cardFailure, getCard } from "@/lib/card-cache";
+import { cardFailure, getCard, getCardWithin } from "@/lib/card-cache";
 import { stockBySymbol, type StockId } from "@/lib/config";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
+/** Answer 503 + Retry-After before maxDuration so a slow cold build never surfaces as a platform 504. */
+const ROUTE_DEADLINE_MS = 50_000;
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
@@ -17,7 +19,7 @@ export async function GET(req: Request) {
   if (!stock) return NextResponse.json({ error: "bad_stock" }, { status: 400 });
   const t0 = Date.now();
   try {
-    const card = await getCard(getAddress(addr), stock.id as StockId);
+    const card = await getCardWithin(getAddress(addr), stock.id as StockId, ROUTE_DEADLINE_MS, getCard);
     console.log(JSON.stringify({ route: "hindsight", ms: Date.now() - t0, memes: card.memes.length, partial: card.partial }));
     return NextResponse.json(card);
   } catch (e) {

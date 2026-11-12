@@ -65,3 +65,20 @@ describe("/api/card-check", () => {
     expect(await res.json()).toEqual({ error: "rpc_unavailable", retryAfter: 5 });
   });
 });
+
+describe("stress DH-9: route deadline", () => {
+  it("answers 503 busy with Retry-After when a cold build outlives the route deadline (never a platform 504)", async () => {
+    vi.useFakeTimers();
+    try {
+      getCard.mockImplementation(() => new Promise(() => {})); // a build that never finishes in time
+      const pending = get(hindsight, `/api/hindsight?addr=${WALLET}`);
+      await vi.advanceTimersByTimeAsync(50_000);
+      const res = await pending;
+      expect(res.status).toBe(503);
+      expect(res.headers.get("retry-after")).toBe("5");
+      expect(await res.json()).toEqual({ error: "busy", retryAfter: 5 });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});

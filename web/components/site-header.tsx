@@ -9,6 +9,7 @@ import { cx } from "./ui";
 
 const NAV = [
   { href: "/app", label: "My card" },
+  { href: "/app/convert", label: "Convert" },
   { href: "/trade", label: "Trade" },
   { href: "/jar", label: "My Jar" },
   { href: "/stake", label: "Stake $WIF" },
@@ -18,7 +19,9 @@ const NAV = [
 /** Broadsheet masthead on "/", a compact one elsewhere. One Connect button, one pre-deploy line. No horizontal overflow at 375. */
 export function SiteHeader() {
   const path = usePathname();
-  const active = (href: string) => path === href || path.startsWith(`${href}/`);
+  // "/app" is a prefix of "/app/convert": the longest matching nav href wins, so only one tab is ever active.
+  const match = NAV.map((n) => n.href).filter((h) => path === h || path.startsWith(`${h}/`)).sort((a, b) => b.length - a.length)[0];
+  const active = (href: string) => href === match;
   const linkCls = (href: string) =>
     cx(
       "inline-flex min-h-11 items-center border-b-2 px-1 text-[0.9375rem] font-medium transition-[color,border-color] duration-150",
@@ -31,7 +34,7 @@ export function SiteHeader() {
       <div className="mx-auto flex w-full max-w-[80rem] items-center justify-between gap-2 px-4 sm:gap-4 py-2.5 sm:px-6 lg:px-8">
         <Link href="/" className="flex min-w-0 shrink items-center gap-2 rounded-sm font-display text-[1.375rem] leading-none sm:gap-2.5 sm:text-[1.875rem] whitespace-nowrap transition-opacity duration-150 hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-fg">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/mark-512.png" alt="" width={40} height={40} className="seal size-9 shrink-0 rounded-full object-cover object-[50%_30%] [transform:scale(1.55)] [clip-path:circle(32%_at_50%_42%)] sm:size-11" />
+          <img src="/logo.svg" alt="" width={44} height={44} className="seal size-9 shrink-0 sm:size-11" />
           <span>Terra <i className="text-accent">Firma</i></span>
         </Link>
         <nav aria-label="Main" className="max-lg:hidden">

@@ -109,3 +109,67 @@ describe("cardFailure (M-02: stable codes, no detail)", () => {
     expect(JSON.stringify(f)).not.toContain("secret");
   });
 });
+
+describe("stress DH-9: fail fast instead of a platform 504", () => {
+  it("a queued acquire that waits past waitMs leaves the queue with Busy and does not leak a slot", async () => {
+    const l = createLimiter(1, 2, 3);
+    const r1 = await l.acquire();
+    const late = l.acquire(20);
+    await expect(late).rejects.toMatchObject({ retryAfter: 3 });
+    expect([l.active, l.queued]).toEqual([1, 0]);
+    const next = l.acquire(1000);
+    r1(); // the slot goes to the live waiter, not the timed-out one
+    const r2 = await next;
+    expect([l.active, l.queued]).toEqual([1, 0]);
+    r2();
+    expect(l.active).toBe(0);
+  });
+
+  it("a waiter granted before its deadline is not rejected later", async () => {
+    const l = createLimiter(1, 1);
+    const r1 = await l.acquire();
+    const w = l.acquire(30);
+    r1();
+    const r2 = await w;
+    await new Promise((r) => setTimeout(r, 50));
+    expect(l.active).toBe(1);
+    r2();
+  });
+
+  it("the cache refuses a build that cannot get a slot within queueWaitMs, and does not cache the failure", async () => {
+    const gate = deferred();
+    let calls = 0;
+    const cache = createCardCache({
+      build: async (w) => {
+        calls++;
+        await gate.p;
+        return fakeCard(w);
+      },
+      concurrency: 1,
+      queue: 5,
+      queueWaitMs: 20,
+    });
+    const first = cache.get(addr(1), 0);
+    await expect(cache.get(addr(2), 0)).rejects.toBeInstanceOf(Busy);
+    gate.resolve();
+    await first;
+    await expect(cache.get(addr(2), 0)).resolves.toMatchObject({ wallet: addr(2) }); // retried, not a cached failure
+    expect(calls).toBe(2);
+  });
+
+  it("getCardWithin answers Busy at the deadline while the build keeps going", async () => {
+    const { getCardWithin } = await import("./card-cache");
+    const gate = deferred();
+    let finished = false;
+    const slow = async (w: Address) => {
+      await gate.p;
+      finished = true;
+      return fakeCard(w);
+    };
+    await expect(getCardWithin(A, 0, 20, slow)).rejects.toBeInstanceOf(Busy);
+    gate.resolve();
+    await new Promise((r) => setTimeout(r, 5));
+    expect(finished).toBe(true);
+    await expect(getCardWithin(A, 0, 1000, async (w) => fakeCard(w))).resolves.toMatchObject({ wallet: A });
+  });
+});

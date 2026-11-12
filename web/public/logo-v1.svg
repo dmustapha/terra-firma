@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Terra Firma">
-  <!-- v1 "Fig. 1": paid datum (dashed), eroded meme column (empty, sliver), bedrock stock column (moss) -->
-  <rect x="1.25" y="1.25" width="29.5" height="29.5" rx="2" fill="#F1EBDD" stroke="#1A1712" stroke-width="2.5"/>
-  <path d="M5 8h22" stroke="#1A1712" stroke-width="2" stroke-dasharray="2.5 1.5"/>
-  <rect x="5" y="24" width="10" height="2.5" fill="#1A1712"/>
-  <rect x="17" y="10" width="10" height="16.5" fill="#3F6B4A"/>
-</svg>

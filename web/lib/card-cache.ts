@@ -16,10 +16,12 @@ export interface CardCacheOptions {
   max?: number;
   concurrency?: number;
   queue?: number;
+  /** Longest a request may wait in the build queue before it is refused with Busy (fail fast, never a 504). */
+  queueWaitMs?: number;
   now?: () => number;
 }
 
-export function createCardCache({ build, ttlMs = 300_000, max = 200, concurrency = 3, queue = 6, now = Date.now }: CardCacheOptions) {
+export function createCardCache({ build, ttlMs = 300_000, max = 200, concurrency = 3, queue = 6, queueWaitMs = 20_000, now = Date.now }: CardCacheOptions) {
   const entries = new Map<string, Entry>();
   const builds = createLimiter(concurrency, queue);
 
@@ -30,7 +32,7 @@ export function createCardCache({ build, ttlMs = 300_000, max = 200, concurrency
   };
 
   async function limitedBuild(wallet: Address, stockId: StockId): Promise<Card> {
-    const release = await builds.acquire(); // throws Busy when the queue is full
+    const release = await builds.acquire(queueWaitMs); // throws Busy when the queue is full or the wait runs out
     try {
       return await build(wallet, stockId);
     } finally {
@@ -64,6 +66,19 @@ const shared = createCardCache({ build: buildCard });
 
 /** The process-wide cached card getter every route and page uses instead of calling buildCard directly. */
 export const getCard = (wallet: Address, stockId: StockId = 0) => shared.get(wallet, stockId);
+
+/**
+ * The card, or Busy once `ms` passes. Routes use this to answer 503 + Retry-After before the platform's function
+ * timeout (60 s) turns a slow cold build into a 504; the build itself keeps running and lands in the cache, so the
+ * client's retry is served from it.
+ */
+export function getCardWithin(wallet: Address, stockId: StockId, ms: number, get = getCard): Promise<Card> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Busy(5)), ms);
+  });
+  return Promise.race([get(wallet, stockId), deadline]).finally(() => clearTimeout(timer));
+}
 
 /** Stable client-facing failure for a card build (detail stays in server logs, never in the body). */
 export function cardFailure(e: unknown): { status: 503; body: { error: "busy" | "rpc_unavailable"; retryAfter: number }; headers: Record<string, string> } {

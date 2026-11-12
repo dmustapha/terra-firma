@@ -1,8 +1,8 @@
 // wagmi config: Robinhood Chain mainnet (4663) only, public RPC transport.
-import { createConfig, http } from "wagmi";
+import { createConfig, fallback, http } from "wagmi";
 import { coinbaseWallet, injected, walletConnect } from "wagmi/connectors";
 import { robinhood } from "viem/chains";
-import { PUBLIC_RPC } from "./config";
+import { BROWSER_RPC, PUBLIC_RPC } from "./config";
 
 const wcProjectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID;
 
@@ -32,7 +32,7 @@ function connectors() {
 export const wagmiConfig = createConfig({
   chains: [robinhood],
   connectors: connectors(),
-  transports: { [robinhood.id]: http(PUBLIC_RPC, { batch: true }) },
+  transports: { [robinhood.id]: fallback([http(BROWSER_RPC, { batch: true }), http(PUBLIC_RPC, { batch: true })]) },
   ssr: true,
 });
 

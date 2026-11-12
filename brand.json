@@ -71,11 +71,22 @@
     "rule",
     "ink"
   ],
-  "logoPath": "public/logo.svg",
+  "logoPath": "web/public/logo.svg",
   "logoFiles": {
     "svg": "web/public/logo.svg",
     "png512": "web/public/logo.png",
     "favicon": "web/app/favicon.ico",
     "appIcon": "web/app/icon.svg"
+  },
+  "logo": {
+    "mark": "web/public/logo.svg (simplified seal vector, small sizes + header)",
+    "primary": "web/public/logo-seal.png (engraved seal, 512, large uses)",
+    "png512": "web/public/logo.png",
+    "favicon": "web/app/favicon.ico",
+    "appleIcon": "web/app/apple-icon.png",
+    "ogImage": "web/app/opengraph-image.png",
+    "concept": "Seal with seedling: double-ruled ring, a seedling rising from shifting ink meme strata over moss bedrock (Stock Tokens). Chosen by Dami 2026-11-12.",
+    "provider": "stablestudio nano-banana-pro concept c2; small-size mark hand-built as vector of c2",
+    "conceptsDir": "design-assets/logo-gen"
   }
 }
