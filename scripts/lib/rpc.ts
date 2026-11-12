@@ -18,7 +18,7 @@ export const TOO_MANY_LOGS = (e: unknown) =>
   e instanceof RpcError && /exceeds limit|more than 10000|10000 results|query returned more/i.test(e.message);
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-const MIN_GAP_MS = 260; // ~4 POSTs per second across the whole process
+const MIN_GAP_MS = Number(process.env.RPC_MIN_GAP_MS ?? 260); // ~4 POSTs/s across the whole process (override to go slower)
 let nextSlot = 0;
 
 /** Global pacing: every outgoing POST (raw or viem) waits for its slot. */

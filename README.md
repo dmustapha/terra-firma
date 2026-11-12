@@ -116,7 +116,9 @@ own demo wallet and are disclosed as team transactions, not organic volume.
 | First $WIF stake (`Staked`) | [`0x15551573...4bcd8f`](https://robinhoodchain.blockscout.com/tx/0x15551573a7f3ff7cfbb2ab11ce3e2b8141c64701a5ea014984b9fcd7374bcd8f) |
 | First `Distributed` with a $WIF burn, first staker claim, first card mint | Not yet onchain. `scripts/proof.ts` prints them the block they land; the live [/proof](https://terra-firma-henna.vercel.app/proof) page reads them directly. |
 
-<!-- REGRET_INDEX -->
+### Robinhood Chain Regret Index (block 112,356,207)
+
+A one-off, block-numbered snapshot: the top 20 wallet holders of WALLET and ROBINHOOD (2 of the 5 most liquid registry memes), 40 wallets, 8 with priced buys. They paid **$645,484.77** for memes they still hold, worth **$961,625.40** today; the same money in NVDA Stock Tokens would be worth **$479,438.87**. Only **1 of 8** would be better off in NVDA at this block: Terra Firma measures the outcome either way, it does not assume regret. Table, method and caveats: [`submission/regret-index.md`](submission/regret-index.md); rerun with `RPC_MIN_GAP_MS=500 pnpm tsx scripts/regret-index.ts`.
 
 ### Verify it yourself in 60 seconds
 

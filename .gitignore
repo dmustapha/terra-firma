@@ -11,3 +11,4 @@ contracts/broadcast/
 contracts/deployments/4663.fork.json
 .vercel/
 *.log
+scripts/.cache/
