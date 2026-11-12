@@ -1,6 +1,6 @@
 # Terra Firma — onchain proof (Robinhood Chain mainnet 4663)
 
-Generated 2026-11-12T07:01:28.163Z by `pnpm tsx scripts/proof.ts` from RPC logs, deployment block 111602102 to head 112340661. Every number below is a sum of onchain events; rerun the script to recompute.
+Generated 2026-11-12T07:31:39.431Z by `pnpm tsx scripts/proof.ts` from RPC logs, deployment block 111602102 to head 112357645. Every number below is a sum of onchain events; rerun the script to recompute.
 
 ## Contracts
 | Contract | Address |
@@ -21,7 +21,7 @@ Generated 2026-11-12T07:01:28.163Z by `pnpm tsx scripts/proof.ts` from RPC logs,
 | First sweep trade (Swept) | [`0x7f5b2f1fb864bce8ac6f2fb0fdfebfbf5758997ad1a3bf7ea3cd5cff89551b53`](https://robinhoodchain.blockscout.com/tx/0x7f5b2f1fb864bce8ac6f2fb0fdfebfbf5758997ad1a3bf7ea3cd5cff89551b53) |
 | First Distributed with WIF burn | [`0xbd23368477c98de488447b1c20895b8d438bdba9977d63b8f01835899d0287c0`](https://robinhoodchain.blockscout.com/tx/0xbd23368477c98de488447b1c20895b8d438bdba9977d63b8f01835899d0287c0) |
 | First stake (Staked) | [`0x15551573a7f3ff7cfbb2ab11ce3e2b8141c64701a5ea014984b9fcd7374bcd8f`](https://robinhoodchain.blockscout.com/tx/0x15551573a7f3ff7cfbb2ab11ce3e2b8141c64701a5ea014984b9fcd7374bcd8f) |
-| First staker claim (Claimed) | not yet (no such event onchain) |
+| First staker claim (Claimed) | [`0x37441924dfa9af929f8c4e13dd584801658e802689f81bd2ff26839aad223834`](https://robinhoodchain.blockscout.com/tx/0x37441924dfa9af929f8c4e13dd584801658e802689f81bd2ff26839aad223834) |
 | First card mint (CardMinted) | not yet (no such event onchain) |
 
 ## Totals
@@ -39,5 +39,5 @@ Generated 2026-11-12T07:01:28.163Z by `pnpm tsx scripts/proof.ts` from RPC logs,
 | Burn sources agree | yes |
 | Stock streamed to stakers | NVDA 0.000087790798490783, TSLA 0, GOOGL 0, SNDK 0, SPY 0, QQQ 0 |
 | Jars (distinct credited users) | 1 |
-| Staker claims | 0 (0 stock) |
+| Staker claims | 1 (0.000087790798490733 stock) |
 | Cards minted | 0 |

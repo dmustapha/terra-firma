@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-11-12T07:01:28.169Z",
+  "generatedAt": "2026-11-12T07:31:39.432Z",
   "chainId": 4663,
   "fromBlock": 111602102,
-  "head": 112340661,
+  "head": 112357645,
   "contracts": {
     "StockOracle": "0xA79a67F16262DEF44f1DDaeF247d96a0a36EdA81",
     "Jar": "0xa921DCaF524c4A50f46F26543B0EA3DBD2a4d5bF",
@@ -18,7 +18,7 @@
     "sweepTrade": "0x7f5b2f1fb864bce8ac6f2fb0fdfebfbf5758997ad1a3bf7ea3cd5cff89551b53",
     "distributeWithBurn": "0xbd23368477c98de488447b1c20895b8d438bdba9977d63b8f01835899d0287c0",
     "stake": "0x15551573a7f3ff7cfbb2ab11ce3e2b8141c64701a5ea014984b9fcd7374bcd8f",
-    "claim": null,
+    "claim": "0x37441924dfa9af929f8c4e13dd584801658e802689f81bd2ff26839aad223834",
     "cardMint": null
   },
   "totals": {
@@ -44,8 +44,8 @@
       "QQQ": "0"
     },
     "jars": 1,
-    "claims": 0,
-    "claimedWei": "0",
+    "claims": 1,
+    "claimedWei": "87790798490733",
     "cardsMinted": 0
   }
 }
