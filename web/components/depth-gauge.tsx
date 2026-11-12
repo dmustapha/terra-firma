@@ -28,7 +28,7 @@ export function DepthGauge() {
     return () => { removeEventListener("scroll", on); removeEventListener("resize", on); };
   }, []);
   return (
-    <div ref={ref} aria-hidden className="depth-gauge pointer-events-none fixed top-24 bottom-10 left-5 z-30 hidden w-10 2xl:block">
+    <div ref={ref} aria-hidden className="depth-gauge pointer-events-none fixed top-24 bottom-10 left-3 z-30 hidden w-10 xl:block">
       <span className="absolute inset-y-0 left-3 w-px bg-line-strong/40" />
       <span className="absolute top-0 left-3 w-[3px] -translate-x-px bg-accent" style={{ height: "calc(var(--p, 0) * 100%)" }} />
       {Array.from({ length: 21 }, (_, i) => (

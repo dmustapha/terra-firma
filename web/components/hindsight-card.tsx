@@ -5,7 +5,7 @@ import { ADDR, STOCKS } from "@/lib/config";
 import type { Card, CardBuy, CardMeme } from "@/lib/hindsight";
 import { REGISTRY } from "@/lib/registry";
 import { DASH, date, pct, pctChange, roundTail, shares18, token, usd8, usd8Label } from "@/lib/ui-format";
-import { FrontPage } from "./front-page";
+import { WalletCore } from "./wallet-core";
 import { Guarantee } from "./guarantee";
 import { AddrLink, Badge, Notice, TxLink, cx } from "./ui";
 
@@ -95,9 +95,7 @@ export function HindsightCard({ card, owner = true, stockControl, actions }: { c
   const stock = STOCKS.find((s) => s.symbol === card.stock) ?? STOCKS[0];
   return (
     <div aria-label={`Hindsight edition for wallet ${card.wallet}`} className="space-y-10">
-      <div className="mx-auto max-w-[56rem]">
-        <FrontPage card={card} owner={owner} />
-      </div>
+      <WalletCore card={card} owner={owner} />
 
       {card.partial && <PartialBanner card={card} />}
 
@@ -184,22 +182,24 @@ export function CardSkeleton() {
     { what: "Today's value", how: "Reading live prices for the memes still held" },
   ];
   return (
-    <div aria-busy="true" className="mx-auto max-w-[56rem]">
-      <div className="paper-sheet">
-        <article aria-labelledby="press-title" className="paper px-5 pt-4 pb-6 sm:px-8 sm:pt-5">
-          <p className="border-b-[3px] border-double border-[color:var(--ink)] pb-2 text-center font-display text-[clamp(1.6rem,1.1rem+1.6vw,2.5rem)] leading-none">The Hindsight Edition</p>
-          <h2 id="press-title" className="mt-5 font-display text-[clamp(2.2rem,1.5rem+2.6vw,3.75rem)] leading-[0.92] uppercase">Going to press</h2>
-          <p role="status" className="mt-3 font-display text-[1.375rem] italic">Reading {memes} for this wallet. <span className="num not-italic">{t}s</span>, usually 5–15.{t > 20 ? " Taking longer than usual; still reading." : ""}</p>
-          <ol className="mt-5 border-t border-[color:var(--ink)]">
-            {steps.map((s) => (
-              <li key={s.what} className="flex items-baseline justify-between gap-4 border-b border-[color:var(--ink)]/30 py-3">
-                <span><b>{s.what}</b><span className="block text-[0.875rem] opacity-75">{s.how}</span></span>
-                <span aria-hidden className="inking size-2.5 shrink-0 rounded-full bg-[color:var(--moss)]" />
-              </li>
-            ))}
-          </ol>
-          <p className="mt-4 text-[0.875rem] opacity-80">Nothing is estimated: the edition is set in type only after every buy and its Chainlink round are read.</p>
-        </article>
+    <div aria-busy="true" aria-labelledby="press-title" className="grid items-center gap-x-16 gap-y-8 py-10 lg:grid-cols-[0.85fr_1.15fr]">
+      <div className="flex min-h-[24rem] flex-col items-center justify-center gap-5">
+        <span aria-hidden className="drill-bit" />
+        <span aria-hidden className="h-40 w-px bg-[repeating-linear-gradient(var(--line-strong)_0_6px,transparent_6px_12px)]" />
+      </div>
+      <div>
+        <p className="eyebrow text-muted">Drilling</p>
+        <h2 id="press-title" className="mt-4 font-display text-[clamp(2.4rem,1.5rem+3vw,4.25rem)] leading-[0.92]">Reading {memes} for this wallet.</h2>
+        <p role="status" className="num mt-3 text-muted">{t}s · usually 5–15{t > 20 ? ". Taking longer than usual; still reading." : "."}</p>
+        <ol className="mt-6">
+          {steps.map((s) => (
+            <li key={s.what} className="flex items-baseline justify-between gap-4 border-t border-line-strong/30 py-3">
+              <span><b>{s.what}</b><span className="block text-sm text-muted">{s.how}</span></span>
+              <span aria-hidden className="inking size-2.5 shrink-0 rounded-full bg-accent" />
+            </li>
+          ))}
+        </ol>
+        <p className="mt-4 text-sm text-muted">Nothing is estimated: the core is drawn only after every buy and its Chainlink round are read.</p>
       </div>
     </div>
   );

@@ -4,7 +4,7 @@
 // through the sieve and they fuse into a NVDA layer. Figures: today's bag value from the card; NVDA price now = the card's
 // counterfactual / shares (its live Chainlink read). Labelled as an estimate: the real minimum is quoted from Chainlink at signing.
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Card } from "@/lib/hindsight";
 import { HISTORY_ADDR } from "@/lib/ui-chain";
 import { usd, usd8 } from "@/lib/ui-format";
@@ -17,6 +17,25 @@ export function SweepDemo({ initial }: { initial: Card | null }) {
   const q = useCard(HISTORY_ADDR, "NVDA");
   const c = q.data ?? initial;
   const [phase, setPhase] = useState<"idle" | "falling" | "done">("idle");
+  const box = useRef<HTMLDivElement>(null);
+  // performs on its own: runs when it scrolls into view (money moment), then again every 7s while visible
+  useEffect(() => {
+    const el = box.current;
+    if (!el || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return setPhase("done");
+    let timers: number[] = [];
+    let loop = 0;
+    const play = () => {
+      timers.forEach(clearTimeout);
+      setPhase("idle");
+      timers = [window.setTimeout(() => setPhase("falling"), 400), window.setTimeout(() => setPhase("done"), 1800)];
+    };
+    const io = new IntersectionObserver(([e]) => {
+      window.clearInterval(loop);
+      if (e.isIntersecting) { play(); loop = window.setInterval(play, 7000); }
+    }, { threshold: 0.4 });
+    io.observe(el);
+    return () => { io.disconnect(); window.clearInterval(loop); timers.forEach(clearTimeout); };
+  }, []);
   if (!c || c.memes.length === 0) return null;
   const bag = Number(c.totals.usdToday8) / 1e8;
   const price = Number(c.totals.usdCounterfactual8) / 1e8 / (Number(c.totals.shares18) / 1e18);
@@ -37,13 +56,13 @@ export function SweepDemo({ initial }: { initial: Card | null }) {
         </p>
         <div className="mt-7 flex flex-wrap items-center gap-4">
           <LinkButton href="/jar" className="min-h-12 px-6">Sweep my dead memes</LinkButton>
-          <button type="button" onClick={run} disabled={phase === "falling"} className="min-h-11 font-semibold underline decoration-accent underline-offset-4 hover:text-accent disabled:opacity-50">
-            {phase === "done" ? "Run it again" : "Watch this wallet's sweep"}
+          <button type="button" onClick={() => { setPhase("idle"); window.setTimeout(run, 60); }} disabled={phase === "falling"} className="min-h-11 font-semibold underline decoration-accent underline-offset-4 hover:text-accent disabled:opacity-50">
+            {phase === "falling" ? "Sweeping…" : "Run it again"}
           </button>
         </div>
       </div>
 
-      <div className="relative" aria-live="polite">
+      <div ref={box} className="relative">
         {/* sediment: the dead coins */}
         <div className="flex flex-wrap justify-center gap-2 pb-6">
           {c.memes.slice(0, 6).map((m, i) => (
@@ -57,16 +76,16 @@ export function SweepDemo({ initial }: { initial: Card | null }) {
         {/* the sieve */}
         <div className="relative h-4 border-y border-line-strong [background:repeating-linear-gradient(90deg,var(--line-strong)_0_2px,transparent_2px_9px)] opacity-70" />
         {/* bedrock layer that forms */}
-        <div className="mt-6 overflow-hidden">
-          <div className={cx("origin-bottom rounded-[3px] bg-[color:var(--rock-bg)] [background-image:repeating-linear-gradient(-35deg,transparent_0_6px,var(--rock-line)_6px_7.5px)] transition-[transform,opacity] duration-700 [transition-timing-function:var(--ease-out)]",
-            phase === "done" ? "h-16 scale-y-100 opacity-100" : "h-16 scale-y-0 opacity-0")} />
+        <div className="relative mt-6 h-16 overflow-hidden rounded-[3px] border border-dashed border-line-strong/50">
+          <div className={cx("absolute inset-0 ","origin-bottom rounded-[3px] bg-[color:var(--rock-bg)] [background-image:repeating-linear-gradient(-35deg,transparent_0_6px,var(--rock-line)_6px_7.5px)] transition-[transform,opacity] duration-700 [transition-timing-function:var(--ease-out)]",
+            phase === "done" ? "scale-y-100 opacity-100" : "scale-y-0 opacity-0")} />
         </div>
-        <p className={cx("mt-4 text-center transition-opacity duration-500", phase === "done" ? "opacity-100" : "opacity-0")}>
+        <p className={cx("mt-4 min-h-[7.5rem] text-center transition-opacity duration-500", phase === "done" ? "opacity-100" : "opacity-30")}>
           <span className="eyebrow block text-muted">Lands in the Jar as</span>
           <span className="num font-display text-[2.75rem] leading-none">≈ {shares < 0.01 ? shares.toFixed(5) : shares.toFixed(3)} {c.stock}</span>
           <span className="mt-1 block text-sm text-muted">{usd(bag)} of memes at {c.stock} {usd(price)} (Chainlink), less the 0.5% fee. An estimate; the real minimum is quoted when you sign.</span>
         </p>
-        {phase !== "done" && <p className="eyebrow mt-4 text-center text-muted">bedrock forms here</p>}
+        
         {q.error && !c && <p className="text-danger">Chain busy.</p>}
         <Link href={`/card/${c.wallet}`} className="sr-only">This wallet&apos;s full core</Link>
       </div>
