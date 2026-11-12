@@ -126,24 +126,27 @@ export function ConvertPanel({ card, initialStock = "NVDA", onDone, onBusy }: { 
     <div className="space-y-6">
       {gate.dialog}
       {candidates.length === 0 ? (
-        <Notice>No convertible memes in this wallet. $WIF is never converted; stake it instead.</Notice>
+        <div className="well-bore px-6 py-8">
+          <p className="relative font-display text-deck">Nothing loose to sieve here.</p>
+          <p className="relative mt-2 text-sm text-muted">No convertible memes in this wallet. $WIF is never converted; stake it instead.</p>
+        </div>
       ) : (
         <fieldset>
-          <legend className="mb-2 text-sm text-muted">Memes to sell</legend>
-          <ul className="border-t border-fg">
+          <legend className="eyebrow mb-3 text-muted">Sediment to sieve · memes to sell</legend>
+          <ul className="well-bore overflow-hidden px-2 py-2 sm:px-3">
             {candidates.map((m, i) => {
               const q = quotes[i];
               const err = q.error as Error | null;
               const disabled = !!err || memeByToken(m.token)?.taxed;
               return (
-                <li key={m.token}>
-                  <label className={cx("flex min-h-11 items-center gap-3 border-b border-line px-3 py-2.5 transition-colors duration-150 has-[:checked]:bg-accent-soft has-[:checked]:shadow-[inset_3px_0_0_var(--accent)] has-[:focus-visible]:outline-2 has-[:focus-visible]:-outline-offset-2 has-[:focus-visible]:outline-fg", disabled ? "opacity-60" : "cursor-pointer hover:bg-accent-06")}>
+                <li key={m.token} className="border-b border-line last:border-b-0">
+                  <label className={cx("relative flex min-h-14 items-center gap-3 rounded-[14px] px-3 py-3 transition-colors duration-150 has-[:checked]:bg-accent-soft has-[:checked]:shadow-[inset_3px_0_0_var(--accent)] has-[:focus-visible]:outline-2 has-[:focus-visible]:-outline-offset-2 has-[:focus-visible]:outline-fg", disabled ? "opacity-60" : "cursor-pointer hover:bg-accent-06")}>
                     <input type="checkbox" className="size-5 accent-[var(--accent)]" disabled={disabled} checked={picked.has(m.token) && !disabled} onChange={() => toggle(m.token)} />
                     <span className="flex-1">
-                      <span className="font-semibold">{m.symbol}</span>{" "}
-                      <span className="num text-sm text-muted">{fmtToken(m.holding)} · {usd8OrDash(todayOf(m))}{todayOf(m) === null && <span className="ml-1 text-xs">(price unavailable)</span>}</span>
+                      <span className="font-display text-2xl leading-none text-[color:var(--brick)]">{m.symbol}</span>{" "}
+                      <span className="num block font-mono text-xs text-muted sm:ml-2 sm:inline">{fmtToken(m.holding)} · {usd8OrDash(todayOf(m))}{todayOf(m) === null && <span className="ml-1 text-xs">(price unavailable)</span>}</span>
                     </span>
-                    <span className="num text-right text-sm">
+                    <span className="num text-right font-mono text-sm">
                       {q.isLoading ? <Skeleton w="5rem" /> : err ? <span className="text-danger">{err.message === "No Uniswap route for this token." ? "no route" : err.message}</span> : `≈ ${orDash(sharesOf(BigInt(q.data!.stockOut), sq), shares18)} ${stock}`}
                     </span>
                   </label>

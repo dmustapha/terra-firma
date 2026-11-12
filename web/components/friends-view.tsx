@@ -14,25 +14,33 @@ import { GEO_BLOCKED, GeoLoadingNote, useStockGate } from "./geo-gate";
 import { useMounted, useStockQuotes, useTfLogs, useTx } from "./hooks";
 import { StockSelect } from "./stock-select";
 import { TxStatus } from "./tx-status";
-import { AddrLink, Button, Notice, Panel, Skeleton, inputCls } from "./ui";
+import { AddrLink, Button, Notice, Panel, Skeleton, cx, inputCls } from "./ui";
 
 const F = { address: TF.FriendJar, abi: friendJarAbi as unknown as Abi };
+const PLATE = "plate-lit -mx-2 px-5 py-7 sm:-mx-4 sm:px-10 sm:py-10";
 
 export function FriendsView() {
   const mounted = useMounted();
   const { address } = useAccount();
-  if (!DEPLOYED) return <Notice tone="warn">Friend Jars open when the Terra Firma contracts are live on Robinhood Chain.</Notice>;
+  if (!DEPLOYED)
+    return (
+      <section aria-label="Friend Jars" className={PLATE}>
+        <p className="eyebrow text-accent">Not drilled yet</p>
+        <p className="mt-3 max-w-[26ch] font-display text-[clamp(2rem,1.4rem+2vw,3rem)] leading-[0.95]">Friend Jars open when the Terra Firma contracts are live on Robinhood Chain.</p>
+      </section>
+    );
   if (!mounted) return <Skeleton w="100%" h="10rem" className="block" />;
   if (!address)
     return (
-      <Panel className="flex flex-col items-start gap-4">
-        <p className="text-lg">Connect a wallet to start or join a Friend Jar.</p>
+      <section aria-label="Friend Jars" className={cx(PLATE, "flex flex-col items-start gap-5")}>
+        <p className="eyebrow text-accent">Bring the group chat</p>
+        <p className="max-w-[24ch] font-display text-[clamp(2rem,1.4rem+2vw,3rem)] leading-[0.95]">Connect a wallet to start or join a Friend Jar.</p>
         <ConnectButton />
-      </Panel>
+      </section>
     );
   return (
-    <div className="space-y-6">
-      <div className="grid gap-6 lg:grid-cols-2">
+    <div className="space-y-12">
+      <div className={cx(PLATE, "grid gap-x-12 gap-y-10 lg:grid-cols-2")}>
         <Create />
         <Join />
       </div>
@@ -53,7 +61,8 @@ function Create() {
     if (ev) setCreated(ev.args.id);
   };
   return (
-    <Panel aria-labelledby="create-h" className="space-y-4">
+    <section aria-labelledby="create-h" className="min-w-0 space-y-4">
+      <p className="eyebrow text-muted">Sink a new bore</p>
       <h2 id="create-h" className="font-display text-deck">Start a Friend Jar</h2>
       <StockSelect value={stock} onChange={setStock} label="Jar stock" name="fj-stock" />
       <div>
@@ -62,7 +71,7 @@ function Create() {
       </div>
       <Button className="w-full" disabled={invite.length < 6 || tx.busy} onClick={create}>Create</Button>
       <TxStatus state={tx.state} onReset={tx.reset} success={created !== null ? <>Created Friend Jar #{created.toString()}. Friends join with id {created.toString()} and your code.</> : "Created."} />
-    </Panel>
+    </section>
   );
 }
 
@@ -72,7 +81,8 @@ function Join() {
   const tx = useTx();
   const valid = /^\d+$/.test(id) && invite.length > 0;
   return (
-    <Panel aria-labelledby="join-h" className="space-y-4">
+    <section aria-labelledby="join-h" className="min-w-0 space-y-4 border-line max-lg:border-t-[3px] max-lg:border-double max-lg:border-line-strong max-lg:pt-8 lg:border-l lg:pl-12">
+      <p className="eyebrow text-muted">Drop into a friend&apos;s bore</p>
       <h2 id="join-h" className="font-display text-deck">Join with an invite</h2>
       <div>
         <label htmlFor="fj-id" className="text-sm text-muted">Jar id</label>
@@ -84,7 +94,7 @@ function Join() {
       </div>
       <Button className="w-full" disabled={!valid || tx.busy} onClick={() => tx.run([{ label: "Join Friend Jar", call: { ...F, functionName: "join", args: [BigInt(id), invite] } }])}>Join</Button>
       <TxStatus state={tx.state} onReset={tx.reset} success="Joined. Contribute ETH below to buy into the Jar's stock." />
-    </Panel>
+    </section>
   );
 }
 
@@ -92,11 +102,18 @@ function MyJars({ user }: { user: Address }) {
   const logs = useTfLogs();
   const ids = [...new Set(only(logs.data?.friend ?? [], "Joined").filter((l) => l.args.member.toLowerCase() === user.toLowerCase()).map((l) => l.args.id))];
   if (logs.isLoading) return <Skeleton w="100%" h="6rem" className="block" />;
-  if (ids.length === 0) return <Panel><p className="text-muted">You&apos;re not in any Friend Jar yet.</p></Panel>;
   return (
-    <div className="grid gap-4 md:grid-cols-2">
-      {ids.map((id) => <JarCard key={id.toString()} id={id} user={user} />)}
-    </div>
+    <Panel aria-labelledby="my-fj">
+      <p className="eyebrow text-muted">Shared bedrock</p>
+      <h2 id="my-fj" className="mt-2 font-display text-deck">Your Friend Jars</h2>
+      {ids.length === 0 ? (
+        <p className="mt-3 font-display text-xl">You&apos;re not in any Friend Jar yet. <em className="text-accent">Start one above and bring the group chat to bedrock.</em></p>
+      ) : (
+        <div className="mt-5 grid gap-5 md:grid-cols-2">
+          {ids.map((id) => <JarCard key={id.toString()} id={id} user={user} />)}
+        </div>
+      )}
+    </Panel>
   );
 }
 
@@ -122,9 +139,9 @@ function JarCard({ id, user }: { id: bigint; user: Address }) {
       r.refetch();
     });
   return (
-    <Panel className="space-y-4">
+    <div className="well-bore space-y-4 px-5 py-6 sm:px-7 [&>*:not(dialog)]:relative">
       {gate.dialog}
-      <h3 className="font-semibold">Friend Jar #{id.toString()} · {STOCKS[stockId]?.symbol}</h3>
+      <h3><span className="eyebrow block text-muted">Friend Jar #{id.toString()}</span><span className="font-display text-[2.5rem] leading-none">{STOCKS[stockId]?.symbol}</span></h3>
       <p className="num text-sm text-muted">
         Your share: {quotes.data ? <AddrLink addr={TF.FriendJar}>{orDash(sharesOf(myStock, q), shares18)} {STOCKS[stockId]?.symbol}</AddrLink> : <Skeleton w="5rem" />} · whole Jar{" "}
         {pot !== undefined && quotes.data ? <AddrLink addr={TF.FriendJar}>{orDash(sharesOf(pot, q), shares18)}</AddrLink> : "…"}
@@ -143,6 +160,6 @@ function JarCard({ id, user }: { id: bigint; user: Address }) {
         Exit with my share
       </Button>
       <TxStatus state={tx.state} onReset={tx.reset} />
-    </Panel>
+    </div>
   );
 }

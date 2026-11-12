@@ -3,12 +3,12 @@
 import type { ReactNode } from "react";
 import { STOCKS } from "@/lib/config";
 import { DEPLOYED } from "@/lib/ui-chain";
-import { DASH, eth, pct, pctChange, usd, usd8 } from "@/lib/ui-format";
+import { eth, pct, pctChange, usd, usd8 } from "@/lib/ui-format";
 import { mapLimit, only, type TfLogs } from "@/lib/ui-logs";
 import { sumKnown, usdOf, type StockQuote } from "@/lib/ui-report";
 import { useQuery } from "@tanstack/react-query";
 import { useStockQuotes, useTfLogs } from "./hooks";
-import { AddrLink, Notice, Panel, RuledTable, Skeleton, TxLink } from "./ui";
+import { AddrLink, Notice, Skeleton, TxLink } from "./ui";
 
 interface Row {
   who: string;
@@ -91,62 +91,66 @@ function fees(logs: TfLogs): Row[] {
     .map(([who, e]) => ({ who, tx: e.tx, main: `${eth(e.fee)} ETH`, sub: `${e.n} trade${e.n === 1 ? "" : "s"}` }));
 }
 
-function Board({ title, desc, rows, loading, empty, note }: { title: string; desc: string; rows: Row[]; loading: boolean; empty: string; note?: string }) {
+/** One ranked board: heading on the plate, ranks in a recessed well with display numerals. */
+function Board({ title, eyebrow, desc, rows, loading, empty, note }: { title: string; eyebrow: string; desc: string; rows: Row[]; loading: boolean; empty: ReactNode; note?: string }) {
   const id = title.replace(/\W+/g, "-").toLowerCase();
   return (
-    <Panel aria-labelledby={id}>
-      <h2 id={id} className="font-display text-deck">{title}</h2>
+    <section aria-labelledby={id} className="flex min-w-0 flex-col">
+      <p className="eyebrow text-muted">{eyebrow}</p>
+      <h2 id={id} className="mt-2 font-display text-deck">{title}</h2>
       <p className="mt-1 text-sm text-muted">{desc}</p>
       {note && <p className="mt-2 text-xs text-warn">{note}</p>}
-      {loading ? (
-        <div className="mt-4 space-y-2">{[0, 1, 2].map((i) => <Skeleton key={i} w="100%" h="2.75rem" className="block" />)}</div>
-      ) : rows.length === 0 ? (
-        <p className="mt-4 text-sm text-muted">{empty}</p>
-      ) : (
-        <ol className="mt-4 divide-y divide-line border-t border-fg">
-          {rows.map((r, i) => (
-            <li key={`${r.who}-${r.tx}`} className="flex items-center gap-3 py-3">
-              <span className="num w-6 font-display text-lg text-muted">{i + 1}</span>
-              <div className="min-w-0 flex-1">
-                <p className="num font-semibold">{r.main}</p>
-                {r.sub && <p className="text-xs text-muted">{r.sub}</p>}
-              </div>
-              <div className="flex flex-col items-end text-sm">
-                <AddrLink addr={r.who} />
-                <TxLink hash={r.tx} className="inline-flex min-h-11 items-center text-xs text-muted">receipt</TxLink>
-              </div>
-            </li>
-          ))}
-        </ol>
-      )}
-    </Panel>
+      <div className="well-bore mt-5 flex-1 px-4 py-3 sm:px-5">
+        {loading ? (
+          <div className="relative space-y-2 py-1">{[0, 1, 2].map((i) => <Skeleton key={i} w="100%" h="2.75rem" className="block" />)}</div>
+        ) : rows.length === 0 ? (
+          <p className="relative py-6 font-display text-xl leading-snug">{empty}</p>
+        ) : (
+          <ol className="relative divide-y divide-line">
+            {rows.map((r, i) => (
+              <li key={`${r.who}-${r.tx}`} className="flex items-center gap-3 py-3">
+                <span className={`num w-8 shrink-0 font-display text-[2rem] leading-none ${i === 0 ? "text-accent" : "text-muted"}`}>{i + 1}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="num font-semibold">{r.main}</p>
+                  {r.sub && <p className="text-xs text-muted">{r.sub}</p>}
+                </div>
+                <div className="flex flex-col items-end font-mono text-xs">
+                  <AddrLink addr={r.who} />
+                  <TxLink hash={r.tx} className="inline-flex min-h-11 items-center text-muted">receipt</TxLink>
+                </div>
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
+    </section>
   );
 }
 
 const BOARDS = [
-  { title: "Biggest regret", desc: "Minted Hindsight cards, each rebuilt from Robinhood Chain before it is ranked: what was paid vs. what it would be in stock.", value: "Paid → in stock" },
-  { title: "Biggest Jars", desc: "Stock added minus stock withdrawn, per wallet.", value: "Jar value" },
-  { title: "Most fees paid", desc: "Trade fees paid per wallet (half buys and burns $WIF, half buys stakers' stock).", value: "Fees paid" },
+  { title: "Biggest regret", eyebrow: "Deepest sediment", desc: "Minted Hindsight cards, each rebuilt from Robinhood Chain before it is ranked: what was paid vs. what it would be in stock." },
+  { title: "Biggest Jars", eyebrow: "Most bedrock", desc: "Stock added minus stock withdrawn, per wallet." },
+  { title: "Most fees paid", eyebrow: "Heaviest drills", desc: "Trade fees paid per wallet (half buys and burns $WIF, half buys stakers' stock)." },
 ];
 
-/** Before the contracts are live: the three boards as ruled tables with their real column heads and no values. */
+const EMPTY = {
+  regret: <>No verified cards yet. Mint yours and it gets rebuilt from Robinhood Chain before it ranks.</>,
+  jars: <>No Jars yet. <em className="text-accent">Be the first to stand on bedrock.</em></>,
+  fees: <>No routed trades yet. <em className="text-accent">First trade takes the top spot.</em></>,
+};
+
+const PLATE = "plate-lit -mx-2 grid gap-x-10 gap-y-12 px-5 py-7 sm:-mx-4 sm:px-10 sm:py-10 lg:grid-cols-3";
+
+/** Before the contracts are live: the three boards with their real headings and an honest empty well (no placeholder figures). */
 function BoardShape() {
-  const blank = [0, 1, 2].map(() => [DASH, DASH, DASH]);
   return (
-    <div className="space-y-3">
-      <div className="grid gap-6 lg:grid-cols-3">
-        {BOARDS.map((b) => {
-          const id = b.title.replace(/\W+/g, "-").toLowerCase();
-          return (
-            <Panel key={b.title} aria-labelledby={id}>
-              <h2 id={id} className="font-display text-deck">{b.title}</h2>
-              <p className="mt-1 text-sm text-muted">{b.desc}</p>
-              <RuledTable className="mt-4" caption={`${b.title} (no entries yet)`} heads={["Wallet", b.value, "Receipt"]} rows={blank} />
-            </Panel>
-          );
-        })}
+    <div className="space-y-4">
+      <div className={PLATE}>
+        {BOARDS.map((b, i) => (
+          <Board key={b.title} {...b} rows={[]} loading={false} empty={[EMPTY.regret, EMPTY.jars, EMPTY.fees][i]} />
+        ))}
       </div>
-      <p className="text-sm text-muted">First entries appear after the first routed trade.</p>
+      <p className="text-sm text-muted">The boards open when the contracts are live on Robinhood Chain. First entries appear after the first routed trade.</p>
     </div>
   );
 }
@@ -170,10 +174,10 @@ export function BoardView() {
   const l = logs.data;
   const loading = !l;
   return (
-    <div className="grid gap-6 lg:grid-cols-3">
-      <Board title={BOARDS[0].title} desc={BOARDS[0].desc} rows={regret(cands, verified)} loading={loading || (cands.length > 0 && checks.isLoading)} empty="No verified minted cards yet (each mint is rebuilt from Robinhood Chain before it is ranked)." note={failed > 0 ? `${failed} card check${failed === 1 ? "" : "s"} couldn't run right now; those cards are not ranked.` : undefined} />
-      <Board title={BOARDS[1].title} desc={BOARDS[1].desc} note={pricesMissing ? "Some live stock prices are unavailable; wallets holding those stocks are left out until they read again." : undefined} rows={l && quotes.data ? jars(l, quotes.data) : []} loading={loading || !quotes.data} empty="No Jars yet." />
-      <Board title={BOARDS[2].title} desc={BOARDS[2].desc} rows={l ? fees(l) : []} loading={loading} empty="No routed trades yet." />
+    <div className={PLATE}>
+      <Board {...BOARDS[0]} rows={regret(cands, verified)} loading={loading || (cands.length > 0 && checks.isLoading)} empty={EMPTY.regret} note={failed > 0 ? `${failed} card check${failed === 1 ? "" : "s"} couldn't run right now; those cards are not ranked.` : undefined} />
+      <Board {...BOARDS[1]} note={pricesMissing ? "Some live stock prices are unavailable; wallets holding those stocks are left out until they read again." : undefined} rows={l && quotes.data ? jars(l, quotes.data) : []} loading={loading || !quotes.data} empty={EMPTY.jars} />
+      <Board {...BOARDS[2]} rows={l ? fees(l) : []} loading={loading} empty={EMPTY.fees} />
     </div>
   );
 }

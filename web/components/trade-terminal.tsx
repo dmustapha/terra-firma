@@ -18,7 +18,7 @@ import { GEO_BLOCKED, GeoLoadingNote, useStockGate } from "./geo-gate";
 import { getJson, useApproveStep, useStockQuotes, useTx } from "./hooks";
 import { StockSelect } from "./stock-select";
 import { TxStatus } from "./tx-status";
-import { AddrLink, Badge, Button, Notice, Panel, Skeleton, TxLink, cx, inputCls } from "./ui";
+import { AddrLink, Badge, Button, Notice, Skeleton, TxLink, cx, inputCls } from "./ui";
 
 type Route = { kind: number; v2Path: Address[]; v3Path: Hex; key: { currency0: Address; currency1: Address; fee: number; tickSpacing: number; hooks: Address } };
 interface BuyQuote { route: Route; tokenOut: string; ethToStock: string; stockOut: string; fee: string; minTokenOut: string; minStockOut: string }
@@ -57,22 +57,27 @@ export function TradeTerminal({ initialToken }: { initialToken?: string }) {
   const tokenAddr = initialToken && isAddress(initialToken) ? getAddress(initialToken) : undefined;
   if (!tokenAddr)
     return (
-      <div className="space-y-6">
-        <PasteCa />
-        {initialToken && <Notice tone="danger">That isn&apos;t a valid token address.</Notice>}
+      <section aria-label="Meme terminal" className={PLATE}>
+        <div className="space-y-4">
+          <PasteCa />
+          {initialToken && <Notice tone="danger">That isn&apos;t a valid token address.</Notice>}
+        </div>
         <Trending wide />
-      </div>
+      </section>
     );
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
-      <div className="space-y-6">
+    <section aria-label="Meme terminal" className={cx(PLATE, "grid gap-x-10 gap-y-8 lg:grid-cols-[minmax(0,1fr)_22rem]")}>
+      <div className="min-w-0 space-y-8">
         <PasteCa current={tokenAddr} />
         <TradeBox token={tokenAddr} key={tokenAddr} />
       </div>
       <Trending current={tokenAddr} />
-    </div>
+    </section>
   );
 }
+
+/** The page's one lit plate: the whole terminal sits on it. */
+const PLATE = "plate-lit -mx-2 px-5 py-7 sm:-mx-4 sm:px-10 sm:py-10";
 
 function PasteCa({ current }: { current?: Address }) {
   const router = useRouter();
@@ -80,14 +85,14 @@ function PasteCa({ current }: { current?: Address }) {
   const [err, setErr] = useState(false);
   return (
     <form
-      className="flex flex-col gap-2 sm:flex-row sm:flex-wrap"
+      className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end"
       onSubmit={(e) => {
         e.preventDefault();
         if (!isAddress(v.trim())) return setErr(true);
         router.push(`/trade/${getAddress(v.trim())}`);
       }}
     >
-      <label htmlFor="ca" className="sr-only">Token contract address</label>
+      <label htmlFor="ca" className="eyebrow text-muted sm:basis-full">Load a token · contract address</label>
       <input
         id="ca"
         value={v}
@@ -111,28 +116,29 @@ function PasteCa({ current }: { current?: Address }) {
 /** Tracked memes by pool liquidity. `wide` = the page's main body (no token loaded): two columns of rows on lg. */
 function Trending({ current, wide = false }: { current?: Address; wide?: boolean }) {
   return (
-    <Panel aria-labelledby="trending-title" className="h-fit">
-      <h2 id="trending-title" className="font-display text-deck">Trending by liquidity</h2>
+    <section aria-labelledby="trending-title" className={cx("h-fit min-w-0", wide && "mt-10")}>
+      <p className="eyebrow text-muted">Loose sediment · by pool liquidity</p>
+      <h2 id="trending-title" className="mt-2 font-display text-deck">Trending by liquidity</h2>
       {wide && <p className="mt-1 text-sm text-muted">Pick a meme to load it, or paste any contract address above.</p>}
       {TRENDING.length === 0 ? (
-        <p className="mt-3 text-sm text-muted">The list of tracked memes isn&apos;t ready yet. Paste any contract address above.</p>
+        <p className="mt-4 text-sm text-muted">The list of tracked memes isn&apos;t ready yet. Paste any contract address above.</p>
       ) : (
-        <ul className={cx("mt-3 border-t border-fg", wide && "lg:grid lg:grid-cols-2 lg:gap-x-10")}>
+        <ul className={cx("well-bore mt-4 px-3 py-3 sm:px-5", wide && "lg:grid lg:grid-cols-2 lg:gap-x-10")}>
           {[{ token: WIF, symbol: "WIF", liq: null as number | null }, ...TRENDING.filter((m) => m.token.toLowerCase() !== WIF.toLowerCase()).map((m) => ({ token: m.token, symbol: m.symbol, liq: liq(m) }))].map((m) => (
-            <li key={m.token}>
+            <li key={m.token} className="relative border-b border-line last:border-b-0">
               <Link
                 href={`/trade/${m.token}`}
                 aria-current={current?.toLowerCase() === m.token.toLowerCase() ? "page" : undefined}
-                className={cx("flex min-h-11 items-center justify-between gap-3 border-b border-line px-2 transition-[background-color,transform] duration-150 hover:translate-x-0.5 hover:bg-accent-06 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-fg", current?.toLowerCase() === m.token.toLowerCase() && "bg-accent-soft shadow-[inset_3px_0_0_var(--accent)]")}
+                className={cx("flex min-h-14 items-baseline justify-between gap-3 rounded-[12px] px-3 py-2.5 transition-[background-color,transform] duration-150 hover:translate-x-0.5 hover:bg-accent-06 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-fg", current?.toLowerCase() === m.token.toLowerCase() && "bg-accent-soft shadow-[inset_3px_0_0_var(--accent)]")}
               >
-                <span className="font-semibold">{m.symbol === "WIF" ? "$WIF" : m.symbol}</span>
-                <span className="num py-1 text-right text-sm text-muted">{m.liq === null ? "buy only: Terra Firma never sells $WIF." : `$${Math.round(m.liq).toLocaleString("en-US")} in pool`}</span>
+                <span className="font-display text-[1.75rem] leading-none">{m.symbol === "WIF" ? "$WIF" : m.symbol}</span>
+                <span className="num text-right font-mono text-xs text-muted">{m.liq === null ? "buy only: Terra Firma never sells $WIF." : `$${Math.round(m.liq).toLocaleString("en-US")} in pool`}</span>
               </Link>
             </li>
           ))}
         </ul>
       )}
-    </Panel>
+    </section>
   );
 }
 
@@ -176,9 +182,9 @@ function TradeBox({ token }: { token: Address }) {
   const sym = info.data?.symbol ?? short(token);
 
   return (
-    <Panel className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-display text-title">{info.isLoading ? <Skeleton w="6rem" h="1.6rem" /> : isWif ? "$WIF" : sym}</h2>
+    <section aria-label="Trade" className="space-y-5 border-t-[3px] border-double border-line-strong pt-6">
+      <div className="flex flex-wrap items-end justify-between gap-2">
+        <h2 className="font-display text-[clamp(2.75rem,2rem+2.6vw,4.5rem)] leading-[0.9] tracking-[-0.025em]">{info.isLoading ? <Skeleton w="6rem" h="1.6rem" /> : isWif ? "$WIF" : sym}</h2>
         <div className="flex flex-wrap items-center gap-2 text-sm">
           {meme ? <Badge tone="accent">tracked meme</Badge> : <Badge>not on our list</Badge>}
           {meme?.taxed && <Badge tone="danger">taxed token: can&apos;t trade here</Badge>}
@@ -197,7 +203,7 @@ function TradeBox({ token }: { token: Address }) {
           <SellForm token={token} sym={sym} decimals={info.data?.decimals ?? 18} feeBps={feeBps} disabled={!!meme?.taxed || !!info.error} />
         )}
       </div>
-    </Panel>
+    </section>
   );
 }
 
@@ -205,15 +211,20 @@ function TradeBox({ token }: { token: Address }) {
 function SweepControls({ sweep, setSweep, stock, setStock, restricted }: { sweep: number; setSweep: (n: number) => void; stock: string; setStock: (s: string) => void; restricted: boolean }) {
   if (restricted) return <Notice tone="warn">{GEO_BLOCKED} Your trade still works; the Jar slice is off.</Notice>;
   return (
-    <div className="space-y-4">
-      <div>
-        <label htmlFor="sweep" className="flex justify-between text-sm">
-          <span className="text-muted">Slice to your Jar</span>
-          <span className="num font-semibold">{(sweep / 100).toFixed(1)}%</span>
+    <div className="well-bore space-y-4 px-5 py-6 sm:px-7">
+      <div className="relative">
+        <label htmlFor="sweep" className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
+          <span>
+            <span className="eyebrow block text-accent">Keep a slice · to bedrock</span>
+            <span className="mt-1 block text-sm text-muted">This share of the trade lands in your Jar as real stock.</span>
+          </span>
+          <span className="num font-display text-[clamp(3.5rem,2.6rem+3vw,5rem)] leading-[0.85] text-accent">{(sweep / 100).toFixed(1)}%</span>
         </label>
-        <input id="sweep" type="range" min={0} max={1000} step={50} value={sweep} onChange={(e) => setSweep(Number(e.target.value))} className="mt-2 h-11 w-full cursor-pointer accent-[var(--accent)]" aria-valuetext={`${(sweep / 100).toFixed(1)} percent`} />
+        <input id="sweep" type="range" min={0} max={1000} step={50} value={sweep} onChange={(e) => setSweep(Number(e.target.value))} className="mt-3 h-11 w-full cursor-pointer accent-[var(--accent)]" aria-valuetext={`${(sweep / 100).toFixed(1)} percent`} />
       </div>
-      <StockSelect value={stock} onChange={setStock} label="Jar stock" name="sweep-stock" />
+      <div className="relative">
+        <StockSelect value={stock} onChange={setStock} label="Jar stock" name="sweep-stock" />
+      </div>
     </div>
   );
 }
