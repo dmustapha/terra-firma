@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-11-12T05:44:45.221Z",
+  "generatedAt": "2026-11-12T06:13:45.282Z",
   "chainId": 4663,
   "fromBlock": 111602102,
-  "head": 112297999,
+  "head": 112314215,
   "contracts": {
     "StockOracle": "0xA79a67F16262DEF44f1DDaeF247d96a0a36EdA81",
     "Jar": "0xa921DCaF524c4A50f46F26543B0EA3DBD2a4d5bF",
