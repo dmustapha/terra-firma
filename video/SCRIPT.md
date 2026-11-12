@@ -1,40 +1,54 @@
-# SCRIPT: Terra Firma demo film
+# SCRIPT: Terra Firma demo film (v3, one argument, human tone)
 
-Narrator: Dami (own voice, voicebooth). Every line is also the burned-in caption. Times are on the FILM clock of `video/TIMING-PLAN.md` (total **2:48.39**, under the form's 3-minute limit), timed to `rough_cut_v4.mp4` plus the read-only captures in `recordings/extra/`; every number matches what is on screen at that moment.
+Narrator: Dami, own voice in the voicebooth. Each section is ONE continuous thought; read it as running speech, the line breaks are only for recording. Thread carried through the film: what if that meme money had gone somewhere solid? Rules applied: Dami's demo-video standards (one argument, bridging lines, ~2.6 words/s) and human writing style (full sentences, uneven lengths, no em dashes, no AI scaffolding). Picture: rough_cut_v4 per video/TIMING-PLAN.md, total 2:48.4. Every claim checked against what is on screen in that window.
 
-Arc: hook (1-4) -> what it is + how it works over footage (5-6) -> real mainnet walkthrough, every flow (7-25) -> proof (26-27) -> who it's for + limits (28-29) -> close (30).
+## the pain (0.2s to 16.8s, 40 words, 2.41 w/s)
+On screen: card 0x3fDB: $18,421 into $0.35, In NVDA $16,972
 
-How to read it: lowercase on purpose, like telling a friend. One row is one breath; pause at full stops. "nvda" = "n-v-d-a", "pons" = "ponz", "wif" = "wif". Keep each line inside its window.
+> this is a real wallet on robinhood chain. it put about eighteen thousand dollars into memes, and what's left today is worth thirty five cents. the same money in nvda, at the same moments, would be close to seventeen thousand.
 
-| # | t (s) | end (s) | line | on screen |
-|---|---|---|---|---|
-| 1 | 0.2 | 4.2 | this wallet put eighteen thousand four hundred dollars into memes. | public card 0x3fDB…b09E reveal: 'This wallet turned $18,421 into $0.35. In NVDA: $16,972.' counter rolls to $16,971 left on the table (loader 0-9 s cut) |
-| 2 | 4.5 | 7.7 | today those memes are worth thirty five cents. | hold on '$0.35' (slow push-in on the eroded meme layer) |
-| 3 | 7.9 | 12.2 | the same dollars in nvda would be worth almost seventeen thousand. | hold on 'In NVDA: $16,972' |
-| 4 | 12.5 | 16.8 | each buy priced at its own chainlink round. measured, not estimated. | 'The ledger, coin by coin.' |
-| 5 | 17.1 | 23.0 | this is terra firma. a router keeps a slice of every meme trade as stock. | 'From loose sediment to solid ground.' bands |
-| 6 | 23.3 | 28.8 | a jar holds it. fees burn wif and pay stakers. all real, on mainnet. | 'From loose sediment to solid ground.' bands |
-| 7 | 29.0 | 31.9 | first i buy a meme. no slice. | Trade WALLET: 0.0003 ETH, slice 0.0%, quote ~41.25 WALLET |
-| 8 | 32.2 | 36.8 | one confirmation, through uniswap. forty one wallet in. | Confirmed in wallet: buy WALLET (tx nonce 14->15) |
-| 9 | 37.1 | 42.6 | my card: one dollar in, sixty cents now. in nvda, still a dollar. | My card loading |
-| 10 | 42.9 | 46.5 | this meme is going nowhere. so i convert it. | Convert: WALLET ticked, NVDA, quote ~0.003688 NVDA, click |
-| 11 | 46.7 | 53.5 | two signatures. the meme is sold, and real nvda lands in my jar. | Approve WALLET (step 1 of 2) |
-| 12 | 53.7 | 61.1 | my jar. a dollar twenty five of real stock tokens. no admin key, i withdraw any time. | open Jar, loading |
-| 13 | 61.4 | 66.4 | but you don't have to stop trading memes. you just keep a slice. | back to Trade, load PONS |
-| 14 | 66.7 | 75.2 | two percent of this buy lands in my jar as nvda. same transaction. | slice 2.0% to NVDA, 0.0003 ETH, quote ~4.034 PONS |
-| 15 | 75.4 | 81.4 | selling works the same way. two pons out, with a slice to the jar. | Sell tab |
-| 16 | 81.6 | 86.9 | every trade pays a half percent fee. that's where wif comes in. | Confirmed in wallet: sell PONS |
-| 17 | 87.1 | 96.6 | i buy wif. terra firma only ever buys wif. it never sells it. | Trending list: click $WIF (buy only) |
-| 18 | 96.8 | 104.9 | then i stake it to nvda. stake ten thousand and your fee drops to point three percent. | Stake $WIF. Earn real stock. next epoch timer, 11.07 $WIF burned |
-| 19 | 105.2 | 109.1 | a hundred wif, activating next epoch. | wallet 215.5, activating 100 |
-| 20 | 109.4 | 113.9 | each epoch, the fee pool splits. anyone can run it. | Proof: Don't trust the core. 11.07 $WIF burned |
-| 21 | 114.1 | 119.4 | half buys wif and burns it. eleven point three six burned this epoch. | Dispatches: Epoch 23 paid out: 11.36 $WIF burned |
-| 22 | 119.6 | 122.7 | the other half buys stock for stakers. | Stake page: 22.43 $WIF burned |
-| 23 | 122.9 | 127.0 | claimed, straight into my jar as nvda. | Confirmed in wallet: claim |
-| 24 | 127.2 | 132.0 | last, i mint my card. the contract recomputes it from chainlink, | card loading |
-| 25 | 132.2 | 138.9 | then burns one wif. minted onchain. | Approve 1 $WIF (step 1 of 2) |
-| 26 | 139.1 | 143.5 | it hits the leaderboard. biggest regrets, biggest jars. | Leaderboard: Who got buried. Who hit bedrock. biggest regret, biggest jars, most fees |
-| 27 | 143.7 | 152.5 | don't trust me. every number is read from the chain, and any card can be recomputed onchain. | Proof: 22.43 $WIF burned |
-| 28 | 152.8 | 158.5 | it's for meme traders on robinhood chain, and wif holders paid in stock. | board: three core tubes filling |
-| 29 | 158.8 | 163.5 | tracked memes only. not profit and loss. unaudited, so keep it small. | proof 'How to check every claim' |
-| 30 | 163.8 | 168.2 | that's terra firma. stand on wif. sweep the rest into stock. | home 'Stand on bedrock.' band |
+## why i built it (17.1s to 28.8s, 29 words, 2.48 w/s)
+On screen: home: sediment / sieve / bedrock + system labels
+
+> i built terra firma because most of us have a number like that and never look at it. it shows you yours, then helps you do something about it.
+
+## see your number (29.0s to 42.6s, 34 words, 2.50 w/s)
+On screen: Trade WALLET 0% -> Received 41.25 WALLET -> card $1 into $0.60, In NVDA $1
+
+> this is my own wallet on mainnet. i buy a meme through uniswap like i normally would, and my card tells me straight away: a dollar in, sixty cents left, nvda still a dollar.
+
+## convert (42.9s to 61.1s, 45 words, 2.47 w/s)
+On screen: Convert -> approve + convert -> You own 0.003688 NVDA -> Jar $1.25, Withdraw
+
+> that one isn't coming back, so i convert it. two signatures, the meme is sold, and what comes out lands in my jar as real nvda stock tokens. nobody has an admin key to the jar, so i can take it out whenever i want.
+
+## keep a slice (61.4s to 81.4s, 46 words, 2.30 w/s)
+On screen: PONS buy 2% -> NVDA slice to Jar -> sell 2 PONS at 2%
+
+> i'm not going to pretend people will stop trading memes, so the app doesn't ask you to. when i buy pons i leave a two percent slice on, and in that same transaction a bit of nvda goes into my jar. selling works the same way.
+
+## where wif comes in (81.6s to 109.1s, 64 words, 2.33 w/s)
+On screen: fee quote line -> $WIF buy only, buy 0.0001 ETH -> Stake page, NVDA, 10,000 -> 0.3% badge, 100 activating
+
+> this is where wif comes in. every trade pays a half percent fee, and that money only ever buys wif, it never sells it. if you hold wif you can stake it and choose which stock you get paid in. i stake a hundred and pick nvda, and if you stake ten thousand your own trades get cheaper, point three percent instead of half.
+
+## the hourly split (109.4s to 127.0s, 43 words, 2.44 w/s)
+On screen: Proof Run distribute -> Epoch 23 paid out 11.36 $WIF burned -> Distributed -> Claimed
+
+> once an hour anyone can run the fee pool, and it splits what it's collected. half of it buys wif and burns it, eleven point three six this time, and the other half buys stock for stakers. mine goes straight into my jar.
+
+## mint and the loop (127.2s to 143.5s, 39 words, 2.39 w/s)
+On screen: card -> Mint -> Minted onchain 1 $WIF burned -> Leaderboard
+
+> you can also mint your card. the contract works the numbers out again from chainlink, burns one wif, and puts it on the leaderboard. so the more people trade, the more wif burns and the more stock stakers get.
+
+## proof (143.7s to 152.5s, 20 words, 2.27 w/s)
+On screen: Proof: 22.43 burned, dispatches
+
+> every transaction you just saw is on the proof page, so you don't have to take my word for it.
+
+## who it's for, limits (152.8s to 168.2s, 38 words, 2.47 w/s)
+On screen: board tubes -> proof claims -> Stand on bedrock
+
+> it's for people trading memes on robinhood chain and for wif holders who want stock. it only prices memes it tracks, it isn't profit and loss, and it's not audited yet, so keep it small. that's terra firma.
+
