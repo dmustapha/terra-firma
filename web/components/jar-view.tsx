@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -23,12 +24,25 @@ export function JarView() {
   if (!mounted) return <Skeleton w="100%" h="12rem" className="block" />;
   if (!address)
     return (
-      <div className="space-y-6">
-        <Panel className="flex flex-col items-start gap-4">
-          <p className="font-display text-deck">Connect a wallet to see your Jar.</p>
-          <ConnectButton />
-        </Panel>
-        <JarShape />
+      <div className="grid gap-x-16 gap-y-8 border-t-[3px] border-double border-line-strong pt-8 lg:grid-cols-2">
+        <div>
+          <p className="font-display text-[clamp(2rem,1.4rem+2vw,3rem)] leading-[1]">Your dead memes go in. Real stock comes out.</p>
+          <p className="mt-4 max-w-[44ch] text-[1.0625rem] leading-relaxed text-fg/85">
+            The Jar holds the stock tokens you sweep into: NVDA, TSLA, SPY and more. An ownerless contract keeps them; only you can withdraw.
+          </p>
+          <div className="mt-6 flex flex-wrap items-center gap-4">
+            <ConnectButton label="Connect to open your Jar" />
+            <Link href="/#check" className="font-semibold underline decoration-accent underline-offset-4 hover:text-accent">First, see what your bag cost you →</Link>
+          </div>
+        </div>
+        <div className="lg:border-l lg:border-line-strong/30 lg:pl-16">
+          <p className="mb-2 text-sm font-semibold text-muted">What a Jar can hold</p>
+          <ul className="columns-2 gap-8 text-[1.0625rem]">
+            {STOCKS.map((s) => (
+              <li key={s.symbol} className="border-b border-line py-2"><b>{s.symbol}</b> <span className="text-muted">{s.name}</span></li>
+            ))}
+          </ul>
+        </div>
       </div>
     );
   return <Jar user={address} />;
