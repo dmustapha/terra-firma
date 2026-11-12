@@ -1,0 +1,254 @@
+{
+  "status": "blocked",
+  "blocked_reasons": [
+    "missing_required_input: .deploy-state.json (deploy-to-github ran but wrote no state file; live URL verified https://terra-firma-henna.vercel.app)",
+    "actual-take cross-review pending: recordings/take1.mov in progress; claude_rederive rehearsal-take + crossreview-exit-gate must run on the finished take"
+  ],
+  "run_profile": "CAMPAIGN",
+  "audio_strategy": "separate",
+  "pacing_mode": "gap",
+  "footguns_critical": 1,
+  "footguns_high": 3,
+  "footguns_low": 6,
+  "footguns_acknowledged": false,
+  "critical_note": "FG-002 is a sequencing footgun already FIXED in DEMO-SCRIPT order (convert half); acknowledge to clear",
+  "wow_moments_total": 11,
+  "wow_moments_verified": 10,
+  "wow_moments_degraded": 0,
+  "wow_moments_broken": 0,
+  "wow_moments_pending_live": [
+    "mint_card"
+  ],
+  "steps": [
+    {
+      "id": "connect",
+      "ran_live": true,
+      "evidence": "recordings/take1.mov (connect to 0x7204\u202605aa in Zerion, 2026-11-12)",
+      "outcome": "PASS"
+    },
+    {
+      "id": "hindsight_card",
+      "ran_live": true,
+      "evidence": "/api/hindsight 0x3fDB\u2026 asOfBlock 112360875 paid 18216.08 cf 16697.24",
+      "livetest_ref": ".livetest-state.json coldStranger PASS 13.2s",
+      "outcome": "PASS"
+    },
+    {
+      "id": "buy",
+      "ran_live": true,
+      "evidence": "submission/proof.md First routed trade 0xffe2d390\u2026",
+      "outcome": "PASS"
+    },
+    {
+      "id": "convert",
+      "ran_live": true,
+      "evidence": "submission/proof.md First convert 0xc5500b3c\u2026",
+      "outcome": "PASS"
+    },
+    {
+      "id": "buy_with_slice",
+      "ran_live": true,
+      "evidence": "submission/proof.md First sweep 0x7f5b2f1f\u2026",
+      "outcome": "PASS"
+    },
+    {
+      "id": "sell",
+      "ran_live": true,
+      "evidence": "submission/proof.md routed trades include the PONS sell (Traded isBuy=false) from 0x7204\u2026",
+      "outcome": "PASS"
+    },
+    {
+      "id": "stake",
+      "ran_live": true,
+      "evidence": "submission/proof.md First stake 0x15551573\u2026",
+      "outcome": "PASS"
+    },
+    {
+      "id": "distribute_burn",
+      "ran_live": true,
+      "evidence": "submission/proof.md First Distributed with burn 0xbd233684\u2026 11.0666 WIF, 3 burn reads agree",
+      "outcome": "PASS"
+    },
+    {
+      "id": "claim",
+      "ran_live": true,
+      "evidence": "submission/proof.md First staker claim 0x37441924\u2026",
+      "outcome": "PASS"
+    },
+    {
+      "id": "mint_card",
+      "ran_live": false,
+      "evidence": "no CardMinted onchain yet; fork-tested in contracts/test/stress-p5.t.sol (DH-12)",
+      "outcome": "PENDING",
+      "disposition": "first live run happens in the take (scene 12); requires FG-002 order (card not empty)"
+    },
+    {
+      "id": "proof_recompute",
+      "ran_live": true,
+      "livetest_ref": ".livetest-state.json (V2 exact-value)",
+      "evidence": "/proof recompute box",
+      "outcome": "PASS"
+    }
+  ],
+  "hazards": [
+    {
+      "id": "FG-001",
+      "disposition": "accepted",
+      "reason": "Blockaid review pending; Dami ruling DH-14: cut from footage"
+    },
+    {
+      "id": "FG-002",
+      "disposition": "fixed",
+      "proof": "DEMO-SCRIPT.md scene 8 converts HALF the WALLET so the card is non-empty at mint"
+    },
+    {
+      "id": "FG-003",
+      "disposition": "fixed",
+      "proof": "DEMO-SCRIPT pre-check: FeePool.canDistribute() before scene 14; fee trades precede it"
+    },
+    {
+      "id": "FG-004",
+      "disposition": "accepted",
+      "reason": "latency only; warm cache + tagged cut; real fix HyperSync needs Envio token"
+    },
+    {
+      "id": "FG-005",
+      "disposition": "fixed",
+      "proof": "refresh after confirm (DEMO-SCRIPT scene 7)"
+    },
+    {
+      "id": "FG-006",
+      "disposition": "fixed",
+      "proof": "script line 24 attributes the reward to the active stake"
+    },
+    {
+      "id": "FG-007",
+      "disposition": "fixed",
+      "proof": "pre-recording checklist: attestation accepted before take"
+    },
+    {
+      "id": "FG-008",
+      "disposition": "fixed",
+      "proof": "commit dc7565b /api/rpc proxy"
+    },
+    {
+      "id": "FG-009",
+      "disposition": "fixed",
+      "proof": "open /proof early, film after fill"
+    },
+    {
+      "id": "FG-010",
+      "disposition": "fixed",
+      "proof": "single dark theme for the take"
+    }
+  ],
+  "demo_steps": [
+    "connect",
+    "hindsight_card",
+    "buy",
+    "convert",
+    "buy_with_slice",
+    "sell",
+    "stake",
+    "distribute_burn",
+    "claim",
+    "mint_card",
+    "proof_recompute"
+  ],
+  "recordings": [
+    {
+      "scene_id": "take1-mainnet",
+      "file_path": "/Users/MAC/wif-hack/recordings/take1.mov",
+      "duration_seconds": null,
+      "audio_strategy": "separate",
+      "resolution_source": "3024x1964 (crop/scale to 1920x1080 in post)"
+    }
+  ],
+  "narration_chunks": {
+    "film": [
+      "this wallet put eighteen thousand two hundred dollars into memes on robinhood chain.",
+      "today those memes are worth five cents.",
+      "the same dollars in nvda, bought at the same moments, would be worth sixteen thousand seven hundred.",
+      "every buy priced with the chainlink round of that moment. measured, not estimated.",
+      "this is terra firma. your hindsight, then solid ground: real stock tokens you own.",
+      "three ownerless contracts.",
+      "a router that trades memes and keeps a slice as stock. a jar that holds it. a fee pool that turns fees into burned wif and stock for stakers.",
+      "everything next is real, on robinhood chain mainnet, from my own wallet.",
+      "i connect.",
+      "first, i buy a meme like anyone would. a few cents of eth, through uniswap.",
+      "my card shows what i paid, what it's worth, and what it would be in nvda.",
+      "this meme is going nowhere. so i convert it.",
+      "one confirmation. the meme is sold, and real nvda lands in my jar.",
+      "no admin key. i can take my stock out any time.",
+      "but you don't have to stop trading memes. you just keep a slice.",
+      "i buy pons with two percent to my jar. one transaction: the meme, plus a slice of nvda.",
+      "and sell it back. buys and sells, on every kind of uniswap pool here.",
+      "every trade pays a half percent fee. that's where wif comes in.",
+      "i buy wif and stake it. stakers pick a stock. mine is nvda.",
+      "stake ten thousand and your fee drops to point three percent.",
+      "every epoch the fee pool splits. half buys wif and burns it. half buys stock for stakers.",
+      "anyone can run it. i press run distribute.",
+      "wif bought and burned, and the burn checks out three separate ways.",
+      "the other half is waiting for me. i claim it, into my jar as nvda.",
+      "last, i mint my card. it burns one wif, after the contract recomputes it from chainlink.",
+      "it's on the leaderboard now. biggest regrets, biggest jars.",
+      "don't trust me. every transaction you just watched is on the proof page.",
+      "and the contract itself can price any card, so you can check my numbers.",
+      "who is it for? anyone on robinhood chain holding memes they know the ending of.",
+      "wif holders. every trade buys wif, burns wif, and pays stakers in stock.",
+      "and traders who won't stop. let every trade leave a little stock behind.",
+      "what it doesn't promise: it covers tracked memes and eth, usdg or stock buys. the rest shows as unpriced.",
+      "it's not profit and loss. and it's unaudited, so keep it small.",
+      "that's terra firma. stand on wif. sweep the rest into stock."
+    ]
+  },
+  "script_path": "video/SCRIPT.md",
+  "voicebooth_lines": "video/voicebooth-lines.txt",
+  "demo_script_path": "/Users/MAC/wif-hack/tf-v2/DEMO-SCRIPT.md",
+  "footguns_path": "/Users/MAC/wif-hack/tf-v2/DEMO-FOOTGUNS.md",
+  "phase_ledger": [
+    {
+      "phase": "footgun_inventory",
+      "started_at": "2026-11-12T07:44:53Z",
+      "completed_at": "2026-11-12T07:44:53Z",
+      "evidence": "DEMO-FOOTGUNS.md: 10 footguns (1 CRITICAL sequencing FG-002, 3 HIGH, 6 LOW)"
+    },
+    {
+      "phase": "wow_verification",
+      "started_at": "2026-11-12T07:44:53Z",
+      "completed_at": "2026-11-12T07:44:53Z",
+      "evidence": "10/11 wow flows have real mainnet first-of-kind txs in submission/proof.md; mint pending live"
+    },
+    {
+      "phase": "recording_env_checklist",
+      "started_at": "2026-11-12T07:44:53Z",
+      "completed_at": "2026-11-12T07:44:53Z",
+      "evidence": "audio_strategy=separate (voicebooth VO), pacing_mode=gap; screencapture 3024x1964 verified (test.mov)"
+    },
+    {
+      "phase": "pre_recording_checklist",
+      "started_at": "2026-11-12T07:44:53Z",
+      "completed_at": "2026-11-12T07:44:53Z",
+      "evidence": "DEMO-SCRIPT.md Pre-Recording Setup: 9 items incl. canDistribute pre-check and take log"
+    },
+    {
+      "phase": "script_generation",
+      "started_at": "2026-11-12T07:44:53Z",
+      "completed_at": "2026-11-12T07:44:53Z",
+      "evidence": "video/SCRIPT.md 34 lines ~3:10 + DEMO-SCRIPT.md 21 scenes with [SUB] chunks"
+    },
+    {
+      "phase": "post_recording_deliverables",
+      "started_at": "2026-11-12T07:44:53Z",
+      "completed_at": "2026-11-12T07:44:53Z",
+      "evidence": "recordings[] + narration_chunks written; duration filled after take1 ends"
+    },
+    {
+      "phase": "state_write",
+      "started_at": "2026-11-12T07:44:53Z",
+      "completed_at": "2026-11-12T07:44:53Z",
+      "evidence": ".demo-rehearsal-state.json written status=blocked (2 reasons)"
+    }
+  ],
+  "timestamp": "2026-11-12T07:44:53Z"
+}

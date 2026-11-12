@@ -1,0 +1,18 @@
+# DEMO-FOOTGUNS: Terra Firma
+Generated 2026-11-12 | Recording: real Robinhood Chain mainnet, demo wallet 0x7204…05aa in Dami's Zerion (Dami signs, Claude drives the app) | No fork footage (Dami ruling).
+
+| ID | Source | Description | Severity | Cause | Workaround | Fixable |
+|---|---|---|---|---|---|---|
+| FG-001 | PULSE DH-14 | Zerion (Blockaid) shows a full-page "Malicious DApp" block on connect for `terra-firma-henna.vercel.app` (new domain, filed for review 2026-11-12) | HIGH | wallet-reputation | Click "continue to the site" off-script; CUT every frame of the red page and any warning banner in the edit (Dami ruling DH-14). Never narrate it. | ACCEPT-ONLY (Blockaid review pending) |
+| FG-002 | card-actions.tsx mintCard + Hindsight "memes still held" | Mint (scene 12) mints the card of memes STILL HELD. If scene 4 converts ALL the WALLET and scene 7 sells ALL the PONS, the card is empty at scene 12: nothing meaningful to mint and the leaderboard row shows $0. | CRITICAL (sequencing) | sequencing | Scene 4: convert only HALF the WALLET (or about 75%). Keep the rest so the card still carries WALLET vs NVDA at scene 12. Line 13 still holds ("the meme is sold"). | YES (fixed in DEMO-SCRIPT order) |
+| FG-003 | FeePool.canDistribute (epoch()+1 > lastEpoch && balance >= 0.00001 ETH) | "Run distribute" reads "Not due yet" unless (a) this epoch has not been distributed and (b) the pool holds >= 0.00001 ETH. Last distribute was epoch 22 (07:01Z). | HIGH | precondition | Do scenes 2, 4, 6, 7, 8 first: their 0.5% fees add ~0.000013 ETH. Before scene 10 check `cast call FeePool canDistribute()` = true. If false: wait for the next hourly epoch; never fake it. Hourly keeper will NOT pre-empt (it skips below 0.0002 ETH). | YES |
+| FG-004 | stress DH-9 / STRESS-RESULTS | Cold Hindsight card builds can take tens of seconds (public RPC log scans) and may return a 503 "busy, retry" | HIGH | latency | Open /app once before the take to warm the card cache; if a wait is cut in the edit, tag it "N s skipped" (Plumbline rule). | ACCEPT-ONLY (real fix = HyperSync, needs Envio token) |
+| FG-005 | card cache (5 min) | Right after the scene-2 buy, the card may still show the cached empty state | LOW | latency | Hit refresh / "Drill again" after the tx confirms; cut the wait with a tag. | YES |
+| FG-006 | WifStaking activation | The 100 $WIF staked in scene 9 shows "Activating", not earning. The claim in scene 11 is paid to the EARLIER 159 $WIF stake (active since epoch 22). | LOW | narration-accuracy | Line 24 says "the other half is waiting for me" (true for the active stake). Do not say the new stake earned it. | YES (script wording) |
+| FG-007 | geofence (attestation) | First stock action may show the restricted-jurisdiction attestation dialog | LOW | first-run-dialog | Accept it once before the take or cut it. | YES |
+| FG-008 | public RPC 429 per IP | Parallel pipeline jobs on the same IP rate-limit browser reads | LOW | infra | Browser reads now go via `/api/rpc` (private node). No load jobs during the take. | YES (fixed dc7565b) |
+| FG-009 | deploy screenshots note | /proof shows loading placeholders for ~20-30 s on first paint | LOW | latency | Open /proof early; film after the tables fill. | YES |
+| FG-010 | theme | Dami's Chrome is in dark mode; earlier screenshots light | LOW | consistency | Keep ONE theme for the whole take (dark is fine). | YES |
+
+Non-acknowledgeable check: `.livetest-state.json -> coldStranger.status = PASS` (13.2 s of a 60 s budget). No cold-hero footgun.
+Forbidden cause tag `cold-hero-unavailable`: not used.
