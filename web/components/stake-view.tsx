@@ -293,27 +293,29 @@ export function activationText(epoch: bigint | undefined, nextAt: number | undef
   return { label, mins, staked, earning };
 }
 
-/** Epoch timeline: staked in N, one full waiting epoch N+1, earning from N+2. Each epoch is one hour on Robinhood Chain.
- *  Sits in a recessed well; HTML, not SVG, so labels keep their size; under 640px the three cells stack as rows. */
+/** Core materials, the landing core's swatches: loose sediment, the sieve seam, bedrock hatch. */
+const SED_FILL = "bg-[var(--sed-slab)] [background-image:radial-gradient(color-mix(in_oklab,var(--brick)_28%,transparent)_1px,transparent_1.2px)] [background-size:7px_7px]";
+const SIEVE_FILL = "bg-[var(--sieve-slab)] [background-image:repeating-linear-gradient(90deg,color-mix(in_oklab,var(--fg)_12%,transparent)_0_2px,transparent_2px_12px)]";
+const ROCK_FILL = "bg-[var(--rock-slab)] [background-image:repeating-linear-gradient(-35deg,transparent_0_12px,rgb(0_0_0/0.18)_12px_14px)] [--fg:#f3eddf] [--muted:#d3dcc9] [--accent:#cfe3c9]";
+
+/** Epoch laminae: staked in N, one full waiting epoch N+1, earning from N+2 — three strata laid top-down, each overlapping
+ *  the one above. Earning is bedrock (and the thickest: it keeps going). Each epoch is one hour on Robinhood Chain. */
 function EpochRuler({ staked }: { staked?: string }) {
   const n = staked !== undefined ? BigInt(staked) : undefined;
   const name = (k: bigint, fallback: string) => (n !== undefined ? `epoch ${(n + k).toString()}` : fallback);
-  const cells = [
-    { label: name(0n, "this epoch"), note: "staked now", bar: "bg-accent-32", ink: "text-fg" },
-    { label: name(1n, "next epoch"), note: "one full epoch", bar: "bg-line", ink: "text-fg" },
-    { label: name(2n, "the one after"), note: "earning from here", bar: "bg-accent", ink: "text-accent" },
+  const layers = [
+    { label: name(0n, "this epoch"), note: "staked now", fill: SED_FILL, pad: "pt-3.5 pb-7", ink: "text-fg" },
+    { label: name(1n, "next epoch"), note: "one full epoch", fill: SIEVE_FILL, pad: "pt-3.5 pb-7", ink: "text-fg" },
+    { label: name(2n, "the one after"), note: "earning from here", fill: ROCK_FILL, pad: "pt-4 pb-6", ink: "text-accent" },
   ];
   return (
     <figure className="well-bore mt-6 px-5 py-6 sm:px-7">
-      <p className="eyebrow relative text-muted">Epoch timeline</p>
-      <ol aria-label="Epoch timeline" className="relative mt-4 sm:grid sm:grid-cols-[5fr_5fr_7fr] sm:gap-2">
-        {cells.map((c) => (
-          <li key={c.note} className="flex items-center gap-3 border-b border-line py-2.5 last:border-b-0 sm:block sm:border-b-0 sm:py-0">
-            <span aria-hidden className={cx("block size-4 shrink-0 rounded-full sm:h-3 sm:w-full", c.bar)} />
-            <span className="min-w-0 sm:block sm:pt-3">
-              <i className={cx("font-display text-lg sm:block", c.ink)}>{c.note}</i>
-              <span className={cx("num font-mono text-xs max-sm:ml-2 sm:mt-0.5 sm:block", c.ink)}>{c.label}</span>
-            </span>
+      <p className="eyebrow relative text-muted">Epoch laminae · top to bottom</p>
+      <ol aria-label="Epoch timeline" className="relative mt-4">
+        {layers.map((c, i) => (
+          <li key={c.note} className={cx("relative flex items-baseline justify-between gap-4 rounded-t-[20px] px-5 shadow-[inset_0_1px_0_var(--rim),inset_0_0_0_1px_var(--edge)] sm:px-6", c.fill, c.pad, i > 0 && "-mt-4", i === layers.length - 1 && "rounded-b-[20px]")}>
+            <i className={cx("font-display text-xl sm:text-2xl", c.ink)}>{c.note}</i>
+            <span className={cx("num shrink-0 font-mono text-xs", c.ink)}>{c.label}</span>
           </li>
         ))}
       </ol>

@@ -69,13 +69,21 @@ function Row({ k, children }: { k: ReactNode; children: ReactNode }) {
   );
 }
 
-/** One rubric column; columns are separated by ruled gutters, not boxes. */
-function RubricCard({ id, title, claim, children }: { id: string; title: string; claim: string; children: ReactNode }) {
+/** Light ink on a bedrock slab: the semantic tokens are re-pointed locally, so every link/rule inside reads on moss. */
+const ROCK_INK = "[--fg:#f3eddf] [--muted:#d3dcc9] [--line:rgb(243_237_223/0.28)] [--line-strong:#f3eddf] [--accent:#cfe3c9] [--accent-strong:#e3efdc] [--surface-2:rgb(255_255_255/0.14)] text-fg";
+const SLAB = { sed: "slab-sed", sieve: "slab-sieve", rock: `slab-rock ${ROCK_INK}` } as const;
+
+/** One claim = one stratum slab. Slabs overlap the one above (globals .slab + .slab), so the bottom pad clears the next lip. */
+function RubricCard({ id, title, claim, layer, children }: { id: string; title: string; claim: string; layer: keyof typeof SLAB; children: ReactNode }) {
   return (
-    <section aria-labelledby={id} className="flex flex-col border-line max-lg:border-t max-lg:pt-5 lg:border-l lg:pl-8 lg:first:border-l-0 lg:first:pl-0">
-      <h3 id={id} className="font-display text-deck">{title}</h3>
-      <p className="mt-1 text-sm text-muted">{claim}</p>
-      <ul className="mt-3 divide-y divide-line border-t border-fg">{children}</ul>
+    <section aria-labelledby={id} className={`slab ${SLAB[layer]} px-5 pt-6 sm:px-8 sm:pt-7 ${layer === "rock" ? "pb-6 sm:pb-7" : "pb-12 sm:pb-14"}`}>
+      <div className="grid gap-x-10 gap-y-3 lg:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]">
+        <div>
+          <h3 id={id} className="font-display text-deck">{title}</h3>
+          <p className="mt-1 text-sm text-muted">{claim}</p>
+        </div>
+        <ul className="divide-y divide-line border-t border-fg">{children}</ul>
+      </div>
     </section>
   );
 }
@@ -97,8 +105,8 @@ function RubricMap() {
         <p className="eyebrow text-accent">Three claims · each one checkable</p>
         <h2 id="rubric-title" className="mt-2 font-display text-deck">How to check every claim</h2>
       </div>
-      <div className="grid gap-x-8 gap-y-6 lg:grid-cols-3">
-        <RubricCard id="rb-wif" title="A real reason to use $WIF" claim="Fees buy and burn $WIF, stakers earn real stock, and staking cuts your trade fee.">
+      <div>
+        <RubricCard id="rb-wif" layer="sieve" title="A real reason to use $WIF" claim="Fees buy and burn $WIF, stakers earn real stock, and staking cuts your trade fee.">
           <Row k="First fee-funded $WIF burn">{ev(f?.[2].log?.transactionHash, "not yet")}</Row>
           <Row k="First staker claim">{ev(f?.[3].log?.transactionHash, "not yet")}</Row>
           <Row k={`Fee discount: ${token(DISCOUNT_STAKE)} $WIF staked → ${bps(STAKER_FEE_BPS)} instead of ${bps(FEE_BPS)}`}>
@@ -106,14 +114,14 @@ function RubricMap() {
           </Row>
           <Row k="$WIF token (the router refuses any $WIF sell)"><AddrLink addr={ADDR.wif} /></Row>
         </RubricCard>
-        <RubricCard id="rb-fly" title="A flywheel that holds up" claim="Routed volume pays fees; each epoch burns $WIF and streams stock to stakers. Live totals, no projections.">
+        <RubricCard id="rb-fly" layer="sed" title="A flywheel that holds up" claim="Routed volume pays fees; each epoch burns $WIF and streams stock to stakers. Live totals, no projections.">
           <Row k="Routed volume">{total(l ? volume : undefined, (n) => `${eth(n)} ETH`, addrUrl(TF.TerraRouter))}</Row>
           <Row k="$WIF burned">{total(burned, (n) => token(n), addrUrl(TF.FeePool))}</Row>
           <Row k="ETH streamed to staker stock">{total(toStock, (n) => `${eth(n)} ETH`, addrUrl(TF.FeePool))}</Row>
           <Row k="Latest distribute">{ev(lastDist?.transactionHash, "no distribute yet")}</Row>
           <Row k="Burn path: hooked WIF/ETH pool"><AddrLink addr={ADDR.wifHook} /></Row>
         </RubricCard>
-        <RubricCard id="rb-built" title="Works and built well" claim="Ownerless contracts, tests run against a copy of Robinhood Chain, and every card recomputable onchain.">
+        <RubricCard id="rb-built" layer="rock" title="Works and built well" claim="Ownerless contracts, tests run against a copy of Robinhood Chain, and every card recomputable onchain.">
           <Row k={<OwnerlessClaim />}>
             {DEPLOYED ? <Jump to="contracts">Addresses</Jump> : PENDING}
           </Row>
@@ -207,23 +215,62 @@ function useProofTotals() {
   return { logs, l, traded, volume, fees, burned, toStock };
 }
 
+type Stratum = { label: string; href?: string; ready: boolean; zero: boolean; text: () => string; sub?: string; rock?: boolean; accent?: boolean };
+
+/** BOREHOLE LOG: the live counters as strata down one drawn bore. Burns/stock lay bedrock laminae; a zero is an undrilled (dashed) layer. */
 function Totals() {
   const { l, traded, volume, fees, burned, toStock } = useProofTotals();
-  const v = (ok: boolean, f: () => string) => (!DEPLOYED ? "—" : ok ? f() : <Skeleton w="5rem" h="2.5rem" />);
+  const cards = l ? only(l.lens, "CardMinted").length : 0;
+  const strata: Stratum[] = [
+    { label: "$WIF burned", href: addrUrl(TF.FeePool), ready: burned !== undefined, zero: burned === 0n, text: () => token(burned!), rock: true, accent: true },
+    { label: "ETH to staker stock", href: addrUrl(TF.FeePool), ready: toStock !== undefined, zero: toStock === 0n, text: () => eth(toStock!), rock: true },
+    { label: "Routed trades", href: addrUrl(TF.TerraRouter), ready: !!l, zero: traded.length === 0, text: () => traded.length.toLocaleString("en-US") },
+    { label: "Routed volume", href: addrUrl(TF.TerraRouter), ready: !!l, zero: volume === 0n, text: () => `${eth(volume)} ETH`, sub: l ? `${eth(fees)} ETH in fees` : undefined },
+    { label: "Cards minted", href: addrUrl(TF.HindsightLens), ready: !!l, zero: cards === 0, text: () => cards.toString() },
+  ];
   return (
-    <div id="totals" className="well-bore grid scroll-mt-24 grid-cols-2 gap-x-6 gap-y-7 px-5 py-7 sm:px-8 lg:grid-cols-5">
-      <Figure label="$WIF burned" href={DEPLOYED ? addrUrl(TF.FeePool) : undefined} value={v(burned !== undefined, () => token(burned!))} accent />
-      <Figure label="ETH to staker stock" href={DEPLOYED ? addrUrl(TF.FeePool) : undefined} value={v(toStock !== undefined, () => eth(toStock!))} />
-      <Figure label="Routed trades" href={DEPLOYED ? addrUrl(TF.TerraRouter) : undefined} value={v(!!l, () => traded.length.toLocaleString("en-US"))} />
-      <Figure label="Routed volume" href={DEPLOYED ? addrUrl(TF.TerraRouter) : undefined} value={v(!!l, () => `${eth(volume)} ETH`)} sub={DEPLOYED && l ? `${eth(fees)} ETH in fees` : undefined} />
-      <Figure label="Cards minted" href={DEPLOYED ? addrUrl(TF.HindsightLens) : undefined} value={v(!!l, () => only(l!.lens, "CardMinted").length.toString())} />
+    <div id="totals" className="well-bore scroll-mt-24 px-5 py-7 sm:px-8">
+      <p className="eyebrow relative text-muted">Borehole log · live totals, top to bottom</p>
+      <ol className="relative mt-4 pl-9 sm:pl-14">
+        <span aria-hidden className="absolute inset-y-0 left-3 w-[3px] rounded-full bg-fg/70 sm:left-5" />
+        <span aria-hidden className="drill-tip absolute -bottom-3 left-[8px] sm:left-[16px]" />
+        {strata.map((s, i) => <StratumRow key={s.label} s={s} depth={i} />)}
+      </ol>
     </div>
   );
 }
 
+/** One stratum: a tick off the bore, the label, the figure (explorer-linked), and its lamina strip. */
+function StratumRow({ s, depth }: { s: Stratum; depth: number }) {
+  const value = !DEPLOYED ? "—" : s.ready ? s.text() : <Skeleton w="5rem" h="2.5rem" />;
+  return (
+    <li className="relative grid items-center gap-x-6 gap-y-2 border-t border-fg/15 py-4 first:border-t-0 sm:grid-cols-[minmax(0,1fr)_minmax(8rem,40%)]">
+      <span aria-hidden className="absolute top-1/2 -left-6 h-px w-4 bg-fg/70 sm:-left-9 sm:w-6" />
+      <span aria-hidden className="absolute top-1/2 -left-[3.4rem] hidden -translate-y-1/2 font-mono text-[0.625rem] text-muted sm:block">{String(depth + 1).padStart(2, "0")}</span>
+      <Figure label={s.label} href={DEPLOYED ? s.href : undefined} value={value} sub={DEPLOYED ? s.sub : undefined} accent={s.accent} />
+      <Lamina rock={s.rock} state={!DEPLOYED || (s.ready && s.zero) ? "empty" : s.ready ? "laid" : "reading"} />
+    </li>
+  );
+}
+
+/** The layer itself. Rock = moss hatch (bedrock); otherwise a sieve rule. Empty = dashed outline, never a fake fill. */
+function Lamina({ rock, state }: { rock?: boolean; state: "empty" | "laid" | "reading" }) {
+  if (state === "reading") return <span aria-hidden className="block h-3 rounded-full bg-surface-2" />;
+  if (state === "empty")
+    return (
+      <span className="flex h-7 items-center justify-center rounded-full border border-dashed border-fg/35">
+        <span className="eyebrow text-muted">not yet drilled</span>
+      </span>
+    );
+  const fill = rock
+    ? "h-4 bg-[var(--rock-bg)] [background-image:repeating-linear-gradient(-35deg,var(--rock-line)_0_1.5px,transparent_1.5px_6px)]"
+    : "h-2 bg-[var(--sieve-slab)] [background-image:repeating-linear-gradient(90deg,color-mix(in_oklab,var(--fg)_22%,transparent)_0_2px,transparent_2px_10px)]";
+  return <span aria-hidden className={`block rounded-full shadow-[inset_0_0_0_1px_var(--edge)] ${fill}`} />;
+}
+
 /** A live total: mono eyebrow over a display numeral, linked to the explorer page that holds it. */
 function Figure({ label, value, sub, href, accent }: { label: string; value: ReactNode; sub?: string; href?: string; accent?: boolean }) {
-  const fig = <span className={`num block font-display text-[clamp(2.25rem,1.8rem+1.4vw,3.25rem)] leading-[0.9] tracking-[-0.02em] [overflow-wrap:anywhere] ${accent ? "text-accent" : ""}`}>{value}</span>;
+  const fig = <span className={`num block font-display text-[clamp(2.5rem,2rem+1.8vw,3.75rem)] leading-[0.9] tracking-[-0.02em] [overflow-wrap:anywhere] ${accent ? "text-accent" : ""}`}>{value}</span>;
   return (
     <div className="relative min-w-0">
       <p className="eyebrow text-muted">{label}</p>

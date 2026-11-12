@@ -26,6 +26,8 @@ interface SellQuote { route: Route; ethFromSale: string; ethOut: string; minEthO
 
 const liq = (t: (typeof REGISTRY.memes)[number]) => Math.max(0, ...t.pools.map((p) => p.liquidityUsd));
 const TRENDING = [...REGISTRY.memes].sort((a, b) => liq(b) - liq(a)).slice(0, 12);
+/** Sediment dot-screen (the landing core's meme swatch). */
+const SED_FILL = "bg-[var(--sed-bg)] [background-image:radial-gradient(var(--sed-dot)_1px,transparent_1.2px)] [background-size:6px_6px]";
 
 function useDebounced<T>(v: T, ms = 400) {
   const [d, setD] = useState(v);
@@ -124,15 +126,16 @@ function Trending({ current, wide = false }: { current?: Address; wide?: boolean
         <p className="mt-4 text-sm text-muted">The list of tracked memes isn&apos;t ready yet. Paste any contract address above.</p>
       ) : (
         <ul className={cx("well-bore mt-4 px-3 py-3 sm:px-5", wide && "lg:grid lg:grid-cols-2 lg:gap-x-10")}>
-          {[{ token: WIF, symbol: "WIF", liq: null as number | null }, ...TRENDING.filter((m) => m.token.toLowerCase() !== WIF.toLowerCase()).map((m) => ({ token: m.token, symbol: m.symbol, liq: liq(m) }))].map((m) => (
+          {[{ token: WIF, symbol: "WIF", liq: null as number | null }, ...TRENDING.filter((m) => m.token.toLowerCase() !== WIF.toLowerCase()).map((m) => ({ token: m.token, symbol: m.symbol, liq: liq(m) }))].map((m, _i, all) => (
             <li key={m.token} className="relative border-b border-line last:border-b-0">
               <Link
                 href={`/trade/${m.token}`}
                 aria-current={current?.toLowerCase() === m.token.toLowerCase() ? "page" : undefined}
-                className={cx("flex min-h-14 items-baseline justify-between gap-3 rounded-[12px] px-3 py-2.5 transition-[background-color,transform] duration-150 hover:translate-x-0.5 hover:bg-accent-06 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-fg", current?.toLowerCase() === m.token.toLowerCase() && "bg-accent-soft shadow-[inset_3px_0_0_var(--accent)]")}
+                className={cx("relative flex min-h-14 items-baseline overflow-hidden justify-between gap-3 rounded-[12px] px-3 py-2.5 transition-[background-color,transform] duration-150 hover:translate-x-0.5 hover:bg-accent-06 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-fg", current?.toLowerCase() === m.token.toLowerCase() && "bg-accent-soft shadow-[inset_3px_0_0_var(--accent)]")}
               >
-                <span className="font-display text-[1.75rem] leading-none">{m.symbol === "WIF" ? "$WIF" : m.symbol}</span>
-                <span className="num text-right font-mono text-xs text-muted">{m.liq === null ? "buy only: Terra Firma never sells $WIF." : `$${Math.round(m.liq).toLocaleString("en-US")} in pool`}</span>
+                {m.liq !== null && <LiquidityBand liq={m.liq} max={Math.max(0, ...all.map((x) => x.liq ?? 0))} />}
+                <span className="relative font-display text-[1.75rem] leading-none">{m.symbol === "WIF" ? "$WIF" : m.symbol}</span>
+                <span className="num relative text-right font-mono text-xs text-muted">{m.liq === null ? "buy only: Terra Firma never sells $WIF." : `$${Math.round(m.liq).toLocaleString("en-US")} in pool`}</span>
               </Link>
             </li>
           ))}
@@ -140,6 +143,13 @@ function Trending({ current, wide = false }: { current?: Address; wide?: boolean
       )}
     </section>
   );
+}
+
+/** Strata thickness chart: the band's width is this pool's liquidity over the list's deepest pool (exact ratio, a 3px floor so a non-zero pool stays visible). */
+function LiquidityBand({ liq: v, max }: { liq: number; max: number }) {
+  const w = max > 0 ? (v / max) * 100 : 0;
+  if (w <= 0) return null;
+  return <span aria-hidden className={cx("absolute inset-y-2 left-0 min-w-[3px] rounded-r-full border-y border-r border-[var(--brick)]/40 opacity-45", SED_FILL)} style={{ width: `${w}%` }} />;
 }
 
 function Tabs({ tab, setTab }: { tab: "buy" | "sell"; setTab: (t: "buy" | "sell") => void }) {

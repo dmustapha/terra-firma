@@ -91,46 +91,69 @@ function fees(logs: TfLogs): Row[] {
     .map(([who, e]) => ({ who, tx: e.tx, main: `${eth(e.fee)} ETH`, sub: `${e.n} trade${e.n === 1 ? "" : "s"}` }));
 }
 
-/** One ranked board: heading on the plate, ranks in a recessed well with display numerals. */
-function Board({ title, eyebrow, desc, rows, loading, empty, note }: { title: string; eyebrow: string; desc: string; rows: Row[]; loading: boolean; empty: ReactNode; note?: string }) {
+/** Core materials, drawn with the landing core's swatches (sediment dot-screen, sieve rule, bedrock hatch). */
+const FILL = {
+  sed: "bg-[var(--sed-bg)] [background-image:radial-gradient(var(--sed-dot)_1px,transparent_1.2px)] [background-size:6px_6px]",
+  sieve: "bg-[var(--sieve-slab)] [background-image:repeating-linear-gradient(90deg,color-mix(in_oklab,var(--fg)_18%,transparent)_0_2px,transparent_2px_12px)]",
+  rock: "bg-[var(--rock-bg)] [background-image:repeating-linear-gradient(-35deg,var(--rock-line)_0_2px,transparent_2px_8px)]",
+} as const;
+type Material = keyof typeof FILL;
+/** Light ink re-pointed onto the semantic tokens, for copy set directly on bedrock. */
+const ROCK_INK = "[--fg:#f3eddf] [--muted:#d3dcc9] [--accent:#cfe3c9] text-fg";
+/** Rank 1 is the thickest, most saturated lamina; each rank below thins and fades (floor keeps it legible). */
+const laminaPad = (i: number) => (i === 0 ? "py-5" : i < 3 ? "py-3.5" : "py-2");
+const laminaTint = (i: number) => Math.max(0.3, 1 - i * 0.08);
+/** Behind-text wash per material, capped so muted ink keeps AA on it; the full-strength swatch rides the lamina's left edge. */
+const WASH: Record<Material, number> = { sed: 0.42, sieve: 0.9, rock: 0.22 };
+
+/** One ranked board, drawn as a drill core seen side-on: a tall tube whose ranked rows are its laminae. */
+function Board({ title, eyebrow, desc, rows, loading, empty, note, material }: { title: string; eyebrow: string; desc: string; rows: Row[]; loading: boolean; empty: ReactNode; note?: string; material: Material }) {
   const id = title.replace(/\W+/g, "-").toLowerCase();
+  const bare = !loading && rows.length === 0;
   return (
     <section aria-labelledby={id} className="flex min-w-0 flex-col">
       <p className="eyebrow text-muted">{eyebrow}</p>
       <h2 id={id} className="mt-2 font-display text-deck">{title}</h2>
       <p className="mt-1 text-sm text-muted">{desc}</p>
       {note && <p className="mt-2 text-xs text-warn">{note}</p>}
-      <div className="well-bore mt-5 flex-1 px-4 py-3 sm:px-5">
-        {loading ? (
-          <div className="relative space-y-2 py-1">{[0, 1, 2].map((i) => <Skeleton key={i} w="100%" h="2.75rem" className="block" />)}</div>
-        ) : rows.length === 0 ? (
-          <p className="relative py-6 font-display text-xl leading-snug">{empty}</p>
-        ) : (
-          <ol className="relative divide-y divide-line">
-            {rows.map((r, i) => (
-              <li key={`${r.who}-${r.tx}`} className="flex items-center gap-3 py-3">
-                <span className={`num w-8 shrink-0 font-display text-[2rem] leading-none ${i === 0 ? "text-accent" : "text-muted"}`}>{i + 1}</span>
-                <div className="min-w-0 flex-1">
-                  <p className="num font-semibold">{r.main}</p>
-                  {r.sub && <p className="text-xs text-muted">{r.sub}</p>}
-                </div>
-                <div className="flex flex-col items-end font-mono text-xs">
-                  <AddrLink addr={r.who} />
-                  <TxLink hash={r.tx} className="inline-flex min-h-11 items-center text-muted">receipt</TxLink>
-                </div>
-              </li>
-            ))}
-          </ol>
-        )}
+      <div className={`relative mt-5 flex min-h-[24rem] flex-1 flex-col overflow-hidden rounded-[2.75rem] border-2 border-fg/70 ${bare ? `${FILL.rock} ${ROCK_INK}` : "bg-[var(--well-bg)]"}`}>
+        <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 z-10 h-7 rounded-[50%] border-b-2 border-fg/60 bg-[var(--plate-top)]" />
+        <span aria-hidden className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(90deg,rgb(0_0_0/0.16),transparent_22%,rgb(255_255_255/0.06)_40%,transparent_62%,rgb(0_0_0/0.18))]" />
+        <div className="relative flex flex-1 flex-col pt-7">
+          {loading ? (
+            <div className="space-y-2 px-4 py-3">{[0, 1, 2].map((i) => <Skeleton key={i} w="100%" h="2.75rem" className="block" />)}</div>
+          ) : bare ? (
+            <p className="mt-auto px-6 pb-10 font-display text-xl leading-snug">{empty}</p>
+          ) : (
+            <ol className="divide-y divide-fg/25 border-b border-fg/25">
+              {rows.map((r, i) => (
+                <li key={`${r.who}-${r.tx}`} className={`relative flex items-center gap-3 px-4 sm:px-5 ${laminaPad(i)}`}>
+                  <span aria-hidden className={`absolute inset-0 ${FILL[material]}`} style={{ opacity: laminaTint(i) * WASH[material] }} />
+                  <span aria-hidden className={`absolute inset-y-0 left-0 w-2.5 ${FILL[material]}`} style={{ opacity: laminaTint(i) }} />
+                  <span className={`num relative w-8 shrink-0 font-display leading-none ${i === 0 ? "text-[2.5rem] text-accent" : "text-[2rem] text-muted"}`}>{i + 1}</span>
+                  <div className="relative min-w-0 flex-1">
+                    <p className="num font-semibold">{r.main}</p>
+                    {r.sub && <p className="text-xs text-muted">{r.sub}</p>}
+                  </div>
+                  <div className="relative flex flex-col items-end font-mono text-xs">
+                    <AddrLink addr={r.who} />
+                    <TxLink hash={r.tx} className="inline-flex min-h-11 items-center text-muted">receipt</TxLink>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
+          {!loading && !bare && <span aria-hidden className={`flex-1 ${FILL.rock} opacity-25`} />}
+        </div>
       </div>
     </section>
   );
 }
 
 const BOARDS = [
-  { title: "Biggest regret", eyebrow: "Deepest sediment", desc: "Minted Hindsight cards, each rebuilt from Robinhood Chain before it is ranked: what was paid vs. what it would be in stock." },
-  { title: "Biggest Jars", eyebrow: "Most bedrock", desc: "Stock added minus stock withdrawn, per wallet." },
-  { title: "Most fees paid", eyebrow: "Heaviest drills", desc: "Trade fees paid per wallet (half buys and burns $WIF, half buys stakers' stock)." },
+  { title: "Biggest regret", eyebrow: "Deepest sediment", material: "sed" as Material, desc: "Minted Hindsight cards, each rebuilt from Robinhood Chain before it is ranked: what was paid vs. what it would be in stock." },
+  { title: "Biggest Jars", eyebrow: "Most bedrock", material: "rock" as Material, desc: "Stock added minus stock withdrawn, per wallet." },
+  { title: "Most fees paid", eyebrow: "Heaviest drills", material: "sieve" as Material, desc: "Trade fees paid per wallet (half buys and burns $WIF, half buys stakers' stock)." },
 ];
 
 const EMPTY = {
