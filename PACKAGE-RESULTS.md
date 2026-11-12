@@ -1,13 +1,12 @@
 # PACKAGE-RESULTS.md
 
-status: complete
+status: complete_with_blockers
 
 ## What Just Happened
-The submission package for worldisflat.fun/build is assembled: paste-ready form answers for every field (each counted against its limit), the description, tagline and tech-stack copy, a judge-facing HACKATHON-README with a one-command Verify in 60s block that re-derives the mainnet claims, a three-tier honesty ledger, integration justifications with file and line references and mainnet transactions, organizer feedback with a draft-only outreach note, draft-only launch tweet and thread, a HANDOFF for cold reviewers, screenshots in the new design and the seal logo. It matters because the judges score a real reason to use $WIF and something that works, and every claim in these surfaces now points at a transaction or a command they can run.
+The worldisflat.fun submission bundle was re-run end to end after Dami submitted the entry. The demo film is now public on YouTube (https://youtu.be/4tybHV9ezGc) and plays inline at the top of the repo README from a GitHub-hosted 720p copy. The honesty ledger, sponsor tracks, links, guide, description and tech stack now say what is actually live: Envio HyperSync for card history, the Quicknode Stock Token API cross-check badge on /jar, and Friend Jars at /friends. All 10 submission links return 200. The X thread was redrafted in Dami's voice over the full scope (card, convert, slice, Friend Jars, the $WIF fee loop) and checked against onchain facts (22.43 $WIF burned, 7 verified contracts). It matters because judges and voters click through every surface, and every surface now tells the same true story.
 
 ## Honest Gaps
-- The demo video link is still a placeholder: the film is rendering to `video/out/terra-firma-demo.mp4` and Dami has to upload it to YouTube and paste the link into the form and both READMEs.
-- The submission is not locked: the terminal gate refuses completion until Dami signs in, submits and captures the confirmation, so the package state stays `complete_with_blockers`.
-- The payout wallet and email fields are left for Dami on purpose, since guessing them would be unsafe.
-- `terra-firma` is not pinned on github.com/dmustapha; the GitHub API has no pin call, so Dami has to do it in the profile UI (the surface gate reds on this).
-- The Quicknode badge and HyperSync indexing are built but switched off in production because no tokens are configured, and the copy says so instead of claiming them.
+- The submission confirmation is not captured: the browser tool has no permission on worldisflat.fun, so Dami must re-open the entry before 17:29 UTC, check the demo video field holds the YouTube link, and screenshot it. The terminal gate refuses completion until then.
+- `terra-firma` is not pinned on github.com/dmustapha (profile change, Dami's call).
+- Friend Jars is proven on a mainnet fork against the deployed contract, not with a real group Jar on mainnet; this is disclosed in HONESTY-LEDGER.md.
+- The thread and launch tweet are drafts; nothing is posted, and the posted-thread permalink cannot be surfaced near the hero until Dami posts.

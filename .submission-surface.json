@@ -1,39 +1,38 @@
 {
- "builderProfile": {
-  "repoPinned": false,
-  "coherencePassed": true,
-  "priorWinLocation": "profile",
-  "note": "terra-firma not yet pinned on github.com/dmustapha (pinned: leash, triage-0, 0g-sentinel, adtc-triage-0, veil); GitHub API has no pin mutation, Dami pins it"
- },
- "launchTweet": {
-  "draft": "submission/launch-tweet.draft.md",
-  "autoSent": false,
-  "autoPosted": false
- },
- "mediaPlacement": {
-  "surfaces": [
-   "readme",
-   "showcase",
-   "video"
-  ],
-  "placed": true
- },
- "crossSurfaceParity": {
-  "snapshot": "submission/submitted-surfaces.json",
-  "claimsConsistent": true
- },
- "thread": {
-  "draft": "submission/THREAD.md",
-  "autoSent": false,
-  "autoPosted": false,
-  "handles": [
-   {
-    "name": "World is Flat organizer",
-    "xHandle": "@WIFonRH",
-    "githubHandle": "wifonrh",
-    "verifiedAt": "2026-11-10",
-    "receipt": "research/social-intel.md (timeline read) + worldisflat.fun/build/api/event announcement link x.com/WIFonRH"
-   }
-  ]
- }
+  "builderProfile": {
+    "repoPinned": false,
+    "coherencePassed": true,
+    "priorWinLocation": "profile",
+    "note": "terra-firma not yet pinned on github.com/dmustapha (pinned: leash, triage-0, 0g-sentinel, adtc-triage-0, veil); GitHub API has no pin mutation, Dami pins it"
+  },
+  "launchTweet": {
+    "draft": "submission/launch-tweet.draft.md",
+    "autoSent": false,
+    "autoPosted": false
+  },
+  "mediaPlacement": {
+    "surfaces": [
+      "readme",
+      "showcase",
+      "video"
+    ],
+    "placed": true
+  },
+  "crossSurfaceParity": {
+    "snapshot": "submission/submitted-surfaces.json",
+    "claimsConsistent": true
+  },
+  "thread": {
+    "draft": "submission/THREAD.md",
+    "autoSent": false,
+    "autoPosted": false,
+    "handles": [
+      {
+        "name": "World is Flat",
+        "xHandle": "@WIFonRH",
+        "githubHandle": "wifonrh",
+        "verifiedAt": "2026-11-10"
+      }
+    ]
+  }
 }

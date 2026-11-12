@@ -8,9 +8,10 @@ paste any wallet on robinhood chain and it shows what your memes would be worth 
 then it turns the dead bags into real stock tokens you own,and keeps a slice of every meme trade as stock 🔒
 
 ## Reply under it (links)
+demo: youtu.be/4tybHV9ezGc
 site: terrafirma-wif.vercel.app
 repo: github.com/dmustapha/terra-firma
-22.43 $WIF burned on mainnet so far. vote opens nov 12
+22.43 $WIF burned on mainnet so far. if it makes the top 10, vote opens nov 14
 
 ## Alt (personal stakes)
 my memes are down bad but at least now i can see exactly how much nvda i fumbled 💀
