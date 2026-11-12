@@ -70,7 +70,7 @@ const LABELS = [
 export const SystemLabels: React.FC<{ t: number }> = ({ t }) => {
   const L = plan.labels, out = ramp(t, L.t, L.t + 0.3, L.end - 0.5, L.end - 0.3);
   if (out <= 0) return null;
-  const step = (L.end - L.t - 1.0) / 4;
+  const step = 0.75;
   const on = (i: number) => interpolate(t, [L.t + i * step, L.t + i * step + 0.45], [0, 1], { ...clamp, easing: ease });
   return (
     <AbsoluteFill style={{ opacity: out }}>
@@ -81,14 +81,17 @@ export const SystemLabels: React.FC<{ t: number }> = ({ t }) => {
         <div key={i} style={{ position: "absolute", left: 1606, top: l.y + l.h / 2 - 46, width: 296, opacity: on(i), transform: `translateX(${(1 - on(i)) * 14}px)` }}>
           <Paper style={{ padding: "9px 14px", borderLeft: `6px solid ${l.tone}` }}>
             <div style={{ fontFamily: SERIF, fontSize: 30, lineHeight: 1.02 }}>{l.title}</div>
-            <div style={{ fontFamily: SANS, fontSize: 16, color: "#4B4438", marginTop: 3 }}>{l.sub}</div>
+            <div style={{ fontFamily: SANS, fontSize: 20, fontWeight: 500, color: "#3A342A", marginTop: 3 }}>{l.sub}</div>
           </Paper>
         </div>
       ))}
-      <div style={{ position: "absolute", left: 360, top: 944, width: 1200, opacity: on(3), transform: `translateY(${(1 - on(3)) * 12}px)` }}>
-        <Paper style={{ padding: "10px 18px", display: "flex", alignItems: "baseline", gap: 18, borderLeft: `6px solid ${C.mossHi}` }}>
-          <div style={{ fontFamily: SERIF, fontSize: 32 }}>Fee pool</div>
-          <div style={{ fontFamily: SANS, fontSize: 20, color: "#4B4438" }}>every trade pays 0.5%: half buys $WIF and burns it, half buys stock for $WIF stakers</div>
+      <div style={{ position: "absolute", left: 360, top: 250, width: 1200, opacity: on(3), transform: `translateY(${(1 - on(3)) * 12}px)` }}>
+        <Paper style={{ padding: "14px 22px", display: "flex", alignItems: "center", gap: 22, borderLeft: `8px solid ${C.mossHi}`, boxShadow: `7px 7px 0 ${C.ink}` }}>
+          <img src={staticFile("img/logo.svg")} style={{ width: 64, height: 64 }} />
+          <div>
+            <div style={{ fontFamily: SERIF, fontSize: 46, lineHeight: 1.02 }}>every trade buys <span style={{ color: C.moss }}>$WIF</span> and burns it</div>
+            <div style={{ fontFamily: SANS, fontSize: 25, fontWeight: 500, color: "#3A342A", marginTop: 4 }}>and $WIF stakers get paid in real stock, every hour</div>
+          </div>
         </Paper>
       </div>
     </AbsoluteFill>
@@ -132,7 +135,7 @@ export const Flywheel: React.FC<{ t: number }> = ({ t }) => {
           <div key={i} style={{ position: "absolute", left: x - 170, top: y - 44, width: 340, opacity: o, transform: `scale(${0.92 + 0.08 * o})`, textAlign: "center" }}>
             <Paper style={{ padding: "10px 14px", boxShadow: `5px 5px 0 ${C.ink}` }}>
               <div style={{ fontFamily: SERIF, fontSize: 31, lineHeight: 1.02 }}>{n.title}</div>
-              <div style={{ fontFamily: SANS, fontSize: 17, color: "#4B4438", marginTop: 2 }}>{n.sub}</div>
+              <div style={{ fontFamily: SANS, fontSize: 21, fontWeight: 500, color: "#3A342A", marginTop: 2 }}>{n.sub}</div>
             </Paper>
           </div>
         );
@@ -145,7 +148,7 @@ const Chip: React.FC<{ on: number; style: React.CSSProperties; title: string; su
   <div style={{ position: "absolute", opacity: on, transform: `translateY(${(1 - on) * 12}px)`, ...style }}>
     <Paper style={{ padding: "12px 18px", borderLeft: `6px solid ${tone}` }}>
       <div style={{ fontFamily: SERIF, fontSize: 40, lineHeight: 1.02 }}>{title}</div>
-      {sub ? <div style={{ fontFamily: SANS, fontSize: 19, color: "#4B4438", marginTop: 4 }}>{sub}</div> : null}
+      {sub ? <div style={{ fontFamily: SANS, fontSize: 24, fontWeight: 500, color: "#3A342A", marginTop: 4 }}>{sub}</div> : null}
     </Paper>
   </div>
 );
@@ -166,23 +169,25 @@ export const LimitsChip: React.FC<{ t: number }> = ({ t }) => {
   return <Chip on={on} style={{ left: 1060, top: 150, width: 640 }} title="what it doesn't claim" sub="prices only the memes it tracks · not profit and loss · Chainlink-priced, unaudited" tone={C.sand} />;
 };
 
-// (6) close, over the home page's own "Stand on bedrock." band
+// (6) close: a dark plate over the home page's "Stand on bedrock." band, with one clear ask
 export const ClosePlate: React.FC<{ t: number }> = ({ t }) => {
-  const c = plan.close, k = interpolate(t, [c.t + 0.1, c.t + 0.7], [0, 1], { ...clamp, easing: ease });
-  const k2 = interpolate(t, [c.t + 0.6, c.t + 1.2], [0, 1], { ...clamp, easing: ease });
-  const black = interpolate(t, [c.end - 0.55, c.end - 0.05], [0, 1], clamp);
+  const c = plan.close, k = interpolate(t, [c.t, c.t + 0.6], [0, 1], { ...clamp, easing: ease });
+  const k2 = interpolate(t, [c.t + 0.5, c.t + 1.1], [0, 1], { ...clamp, easing: ease });
+  const k3 = interpolate(t, [c.t + 1.0, c.t + 1.6], [0, 1], { ...clamp, easing: ease });
+  const black = interpolate(t, [c.end - 0.5, c.end - 0.05], [0, 1], clamp);
   return (
     <AbsoluteFill>
-      <AbsoluteFill style={{ background: `linear-gradient(180deg, rgba(17,14,10,${0.93 * k}) 0%, rgba(17,14,10,${0.9 * k}) 56%, rgba(17,14,10,0) 72%)` }} />
-      <div style={{ position: "absolute", left: 0, right: 0, top: 120, display: "flex", flexDirection: "column", alignItems: "center", opacity: k, transform: `translateY(${(1 - k) * 18}px)` }}>
-        <img src={staticFile("img/logo.svg")} style={{ width: 132, height: 132 }} />
-        <div style={{ fontFamily: SERIF, fontSize: 128, lineHeight: 1, color: C.text, marginTop: 18 }}>Terra <span style={{ fontStyle: "italic", color: C.mossHi }}>Firma</span></div>
-        <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 50, color: C.paper2, marginTop: 14, opacity: k2 }}>Stand on $WIF. Sweep the rest into stock.</div>
-        <div style={{ display: "flex", gap: 22, marginTop: 30, opacity: k2 }}>
+      <AbsoluteFill style={{ background: `rgba(17,14,10,${0.9 * k})`, backdropFilter: `blur(${8 * k}px)` }} />
+      <div style={{ position: "absolute", left: 0, right: 0, top: 150, display: "flex", flexDirection: "column", alignItems: "center", opacity: k, transform: `translateY(${(1 - k) * 18}px)` }}>
+        <img src={staticFile("img/logo.svg")} style={{ width: 128, height: 128 }} />
+        <div style={{ fontFamily: SERIF, fontSize: 132, lineHeight: 1, color: C.text, marginTop: 16 }}>Terra <span style={{ fontStyle: "italic", color: C.mossHi }}>Firma</span></div>
+        <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 62, color: C.paper, marginTop: 22, opacity: k2 }}>paste your wallet. stake $WIF. get paid in stock.</div>
+        <div style={{ display: "flex", gap: 24, marginTop: 40, opacity: k3 }}>
           {["terrafirma-wif.vercel.app", "github.com/dmustapha/terra-firma"].map((u) => (
-            <div key={u} style={{ fontFamily: MONO, fontSize: 26, color: C.ink, background: C.paper, border: `1.5px solid ${C.ink}`, boxShadow: `5px 5px 0 #000`, padding: "8px 16px", borderRadius: 3 }}>{u}</div>
+            <div key={u} style={{ fontFamily: MONO, fontSize: 32, color: C.ink, background: C.paper, border: `1.5px solid ${C.ink}`, boxShadow: `6px 6px 0 #000`, padding: "10px 20px", borderRadius: 3 }}>{u}</div>
           ))}
         </div>
+        <div style={{ fontFamily: MONO, fontSize: 19, letterSpacing: 2.4, textTransform: "uppercase", color: C.soft, marginTop: 34, opacity: k3 }}>live on Robinhood Chain mainnet</div>
       </div>
       <AbsoluteFill style={{ background: "#000", opacity: black }} />
     </AbsoluteFill>

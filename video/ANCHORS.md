@@ -1,6 +1,6 @@
-# ANCHORS: word -> screen, checked from the FINISHED file
+# ANCHORS: word -> screen, checked from the FINISHED file (v2, after REVIEW-A/B)
 
-Frame taken at word start + 0.12 s from out/terra-firma-demo.mp4 (build/verify/anchors_*.jpg).
+Frame at word start + 0.12 s from out/terra-firma-demo.mp4 (build/verify/anchors_*.jpg, edits05_*.jpg).
 
 | word | film t (s) | intended screen | result |
 |---|---|---|---|
@@ -9,9 +9,9 @@ Frame taken at word start + 0.12 s from out/terra-firma-demo.mp4 (build/verify/a
 | nvda (hook) | 11.04 | count-up IN NVDA $16,972 | PASS (count-up to $16,972, zoom on In NVDA) |
 | terra firma | 17.70 | title plate over home hero | PASS |
 | it shows you yours | 24.18 | system labels on sediment/sieve/bedrock | PASS |
-| own wallet | 30.20 | connected wallet chip 0x7204..05aa | PASS |
+| own wallet | 30.20 | connected wallet chip 0x7204..05aa | PASS (trade page, connected 0x7204..05aa chip ringed) |
 | uniswap | 33.96 | Buy WALLET clicked | PASS |
-| my card shows | 36.48 | card reveal: You turned $1 into $0.60 | PASS |
+| my card shows | 36.48 | card reveal: You turned $1 into $0.60 | PASS (card; left on the table patched to exact $0.62) |
 | nvda (card) | 40.42 | In NVDA: $1 ringed | PASS |
 | convert it | 45.56 | Fix it: convert to NVDA | PASS |
 | two signatures | 47.40 | wallet card: approve WALLET | PASS |
@@ -19,12 +19,12 @@ Frame taken at word start + 0.12 s from out/terra-firma-demo.mp4 (build/verify/a
 | jar (convert) | 50.70 | Done. You own 0.003688 NVDA | PASS |
 | admin key | 56.34 | Jar: ownerless contract | PASS |
 | take it out | 58.48 | Withdraw ringed | PASS |
-| saving streak | 62.14 | 1 day streak ringed | PASS at the word (ring on 1 day); at +0.9 s the ring trails into the 2x scroll |
+| saving streak | 62.14 | 1 day streak ringed | PASS at the word (ring on 1 day) |
 | keep a slice | 73.02 | slice slider | PASS |
 | ten percent | 74.43 | slider at 2.0% (range 0-10%) | PASS |
 | two percent | 81.38 | 2.0% + 0.00007601 NVDA to Jar | PASS |
 | sell | 82.47 | Sell tab active | PASS |
-| wif comes in | 85.57 | $WIF row, buy only | PASS ($WIF row with "buy only" visible; ring runs from "where" and ends on "wif") |
+| wif comes in | 85.57 | $WIF row, buy only | PASS ($WIF row, buy only, ring from "where") |
 | half percent fee | 88.59 | fee line 0.5% | PASS |
 | only ever buys wif | 91.05 | $WIF buy only badge | PASS |
 | stake wif | 94.37 | Stake $WIF. Earn real stock. | PASS |
@@ -37,7 +37,7 @@ Frame taken at word start + 0.12 s from out/terra-firma-demo.mp4 (build/verify/a
 | into my jar | 130.39 | Claimed. The reward stock is in your Jar. | PASS |
 | mint your card | 132.69 | Mint this card, burns 1 $WIF | PASS |
 | chainlink (mint) | 138.07 | Minted onchain. 1 $WIF burned. | PASS |
-| leaderboard | 141.05 | Who got buried. Who hit bedrock. | PASS |
+| leaderboard | 141.05 | Who got buried. Who hit bedrock. | PASS (loaded state, all three cores filled) |
 | bought on every trade | 145.01 | flywheel: trade fee -> buys $WIF | PASS |
 | proof page | 152.77 | Proof: Don't trust the core | PASS |
 | recomputed | 154.75 | Recompute a card | PASS |

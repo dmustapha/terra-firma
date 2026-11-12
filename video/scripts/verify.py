@@ -46,6 +46,8 @@ def sheets(items, name, cols, w):
             d.rectangle([x, y, x + 9 * len(lab) + 8, y + 16], fill='black'); d.text((x + 4, y + 3), lab, fill='yellow')
         sh.save(f'{B}/verify/{name}_{s // per:02d}.jpg', quality=80)
 sheets([(t + 0.5, f'{t:.0f}s') for t in range(int(rep['duration']))], 'every1s', 5, 384)
+EDITS = [(0, 2), (24, 31), (35.5, 44), (54, 57.5), (84, 86), (93, 96), (99, 102), (115, 118), (129, 133), (139, 144), (150, 153), (159, 178)]
+sheets([(t / 2, f'{t / 2:.1f}s') for a, b in EDITS for t in range(int(a * 2), int(b * 2))], 'edits05', 5, 384)
 anch = json.load(open(f'{B}/anchors.json'))
 sheets([(a['t'] + 0.12, f"{a['t']:.2f} {a['word']}") for a in anch], 'anchors', 3, 640)
 json.dump(rep, open(f'{B}/verify/report.json', 'w'), indent=1); print(json.dumps(rep, indent=1))

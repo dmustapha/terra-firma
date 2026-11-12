@@ -1,15 +1,82 @@
 {
+ "patches": [
+  {
+   "f0": 36.48,
+   "f1": 38.24,
+   "rect": [
+    884,
+    618,
+    330,
+    132
+   ],
+   "text": "$0.62"
+  },
+  {
+   "f0": 38.24,
+   "f1": 39.115,
+   "rect": [
+    884,
+    618,
+    330,
+    132
+   ],
+   "text": "$0.62"
+  },
+  {
+   "f0": 39.115,
+   "f1": 42.645,
+   "rect": [
+    884,
+    618,
+    330,
+    132
+   ],
+   "text": "$0.62"
+  },
+  {
+   "f0": 42.645,
+   "f1": 43.38,
+   "rect": [
+    884,
+    618,
+    330,
+    132
+   ],
+   "text": "$0.62"
+  }
+ ],
  "total": 177.801,
  "segs": [
   {
    "clip": "card3fdb",
    "f0": 0.0,
-   "f1": 16.75,
-   "s0": 9.0,
-   "speed": 1.0,
-   "join": "cut",
+   "f1": 12.6,
+   "s0": 11.4,
+   "speed": 0.8254,
+   "join": "cont",
    "scene": "hook",
    "tag": null
+  },
+  {
+   "clip": "card3fdb",
+   "f0": 12.6,
+   "f1": 16.6,
+   "s0": 21.8,
+   "speed": 0.8,
+   "join": "cont",
+   "scene": "hook",
+   "tag": null
+  },
+  {
+   "clip": "card3fdb",
+   "f0": 16.6,
+   "f1": 16.75,
+   "s0": 24.96,
+   "speed": 0,
+   "join": "cont",
+   "scene": "hook",
+   "tag": null,
+   "img": "freeze/card3fdb_24960.png"
   },
   {
    "clip": "home",
@@ -55,30 +122,30 @@
   {
    "clip": "v4",
    "f0": 28.766,
-   "f1": 30.016,
-   "s0": 0.0,
+   "f1": 29.266,
+   "s0": 2.9,
    "speed": 0.8,
-   "join": "cut",
+   "join": "xfade",
    "scene": "trade",
    "tag": null
   },
   {
    "clip": "v4",
-   "f0": 30.016,
-   "f1": 30.2,
-   "s0": 0.96,
+   "f0": 29.266,
+   "f1": 31.38,
+   "s0": 3.26,
    "speed": 0,
    "join": "cont",
    "scene": "trade",
    "tag": null,
-   "img": "freeze/v4_960.png"
+   "img": "freeze/v4_3260.png"
   },
   {
    "clip": "v4",
-   "f0": 30.2,
+   "f0": 31.38,
    "f1": 33.96,
-   "s0": 1.0,
-   "speed": 1.1702,
+   "s0": 3.3,
+   "speed": 0.814,
    "join": "cont",
    "scene": "trade",
    "tag": null
@@ -142,7 +209,7 @@
   {
    "clip": "v4",
    "f0": 39.115,
-   "f1": 42.62,
+   "f1": 42.645,
    "s0": 17.26,
    "speed": 0,
    "join": "cont",
@@ -152,20 +219,42 @@
   },
   {
    "clip": "v4",
-   "f0": 42.62,
-   "f1": 43.86,
-   "s0": 17.3,
-   "speed": 1.6935,
+   "f0": 42.645,
+   "f1": 43.38,
+   "s0": 17.28,
+   "speed": 0,
    "join": "cont",
    "scene": "trade",
-   "tag": "1.5x"
+   "tag": null,
+   "img": "freeze/v4_17280.png"
+  },
+  {
+   "clip": "v4",
+   "f0": 43.38,
+   "f1": 43.63,
+   "s0": 19.3,
+   "speed": 0.8,
+   "join": "cut",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 43.63,
+   "f1": 43.86,
+   "s0": 19.46,
+   "speed": 0,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null,
+   "img": "freeze/v4_19460.png"
   },
   {
    "clip": "v4",
    "f0": 43.86,
    "f1": 45.56,
-   "s0": 19.4,
-   "speed": 2.2353,
+   "s0": 19.5,
+   "speed": 2.1765,
    "join": "cont",
    "scene": "trade",
    "tag": "2x"
@@ -286,28 +375,38 @@
   {
    "clip": "v4",
    "f0": 54.1,
-   "f1": 56.34,
+   "f1": 55.954,
    "s0": 37.0,
-   "speed": 1.875,
+   "speed": 1.2946,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 55.954,
+   "f1": 56.34,
+   "s0": 40.9,
+   "speed": 1.2946,
+   "join": "cut",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 56.34,
+   "f1": 58.48,
+   "s0": 41.4,
+   "speed": 1.9159,
    "join": "cont",
    "scene": "trade",
    "tag": "2x"
   },
   {
    "clip": "v4",
-   "f0": 56.34,
-   "f1": 58.48,
-   "s0": 41.2,
-   "speed": 1.729,
-   "join": "cont",
-   "scene": "trade",
-   "tag": "1.5x"
-  },
-  {
-   "clip": "v4",
    "f0": 58.48,
-   "f1": 59.355,
-   "s0": 44.9,
+   "f1": 58.605,
+   "s0": 45.5,
    "speed": 0.8,
    "join": "cont",
    "scene": "trade",
@@ -315,7 +414,7 @@
   },
   {
    "clip": "v4",
-   "f0": 59.355,
+   "f0": 58.605,
    "f1": 62.137,
    "s0": 45.56,
    "speed": 0,
@@ -533,17 +632,17 @@
   {
    "clip": "v4",
    "f0": 92.17,
-   "f1": 92.822,
+   "f1": 93.17,
    "s0": 98.6,
-   "speed": 1.84,
+   "speed": 1.2,
    "join": "cont",
    "scene": "trade",
-   "tag": "2x"
+   "tag": null
   },
   {
    "clip": "v4",
-   "f0": 92.822,
-   "f1": 93.772,
+   "f0": 93.17,
+   "f1": 94.12,
    "s0": 99.75,
    "speed": 0,
    "join": "cont",
@@ -558,19 +657,19 @@
   },
   {
    "clip": "v4",
-   "f0": 93.772,
+   "f0": 94.12,
    "f1": 94.37,
-   "s0": 105.5,
-   "speed": 1.84,
+   "s0": 106.45,
+   "speed": 1.2,
    "join": "cut",
    "scene": "trade",
-   "tag": "2x"
+   "tag": null
   },
   {
    "clip": "v4",
    "f0": 94.37,
-   "f1": 95.12,
-   "s0": 106.6,
+   "f1": 94.933,
+   "s0": 106.75,
    "speed": 0.8,
    "join": "cont",
    "scene": "trade",
@@ -578,7 +677,7 @@
   },
   {
    "clip": "v4",
-   "f0": 95.12,
+   "f0": 94.933,
    "f1": 98.89,
    "s0": 107.16,
    "speed": 0,
@@ -658,7 +757,7 @@
    "card": {
     "action": "approve + stake 100 $WIF",
     "tx": "0x5a0f\u20266f11",
-    "step": null
+    "step": "approve 0xa63c\u20265077"
    },
    "scene": "trade",
    "tag": null,
@@ -821,22 +920,22 @@
   {
    "clip": "v4",
    "f0": 130.39,
-   "f1": 131.088,
+   "f1": 131.367,
    "s0": 138.3,
-   "speed": 2.4348,
+   "speed": 1.7391,
    "join": "cont",
    "scene": "trade",
-   "tag": "2.5x"
+   "tag": "1.5x"
   },
   {
    "clip": "v4",
-   "f0": 131.088,
+   "f0": 131.367,
    "f1": 132.69,
-   "s0": 142.0,
-   "speed": 2.4348,
+   "s0": 143.6,
+   "speed": 1.7391,
    "join": "cut",
    "scene": "trade",
-   "tag": "2.5x"
+   "tag": "1.5x"
   },
   {
    "clip": "v4",
@@ -903,8 +1002,18 @@
   {
    "clip": "v4",
    "f0": 138.261,
-   "f1": 140.886,
+   "f1": 141.05,
    "s0": 152.3,
+   "speed": 1.0757,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 141.05,
+   "f1": 142.675,
+   "s0": 155.3,
    "speed": 0.8,
    "join": "cont",
    "scene": "trade",
@@ -912,34 +1021,24 @@
   },
   {
    "clip": "v4",
-   "f0": 140.886,
-   "f1": 141.05,
-   "s0": 154.36,
+   "f0": 142.675,
+   "f1": 142.83,
+   "s0": 156.56,
    "speed": 0,
    "join": "cont",
    "scene": "trade",
    "tag": null,
-   "img": "freeze/v4_154360.png"
-  },
-  {
-   "clip": "v4",
-   "f0": 141.05,
-   "f1": 142.83,
-   "s0": 154.4,
-   "speed": 1.0674,
-   "join": "cont",
-   "scene": "trade",
-   "tag": null
+   "img": "freeze/v4_156560.png"
   },
   {
    "clip": "v4",
    "f0": 142.83,
    "f1": 143.55,
-   "s0": 156.3,
-   "speed": 1.8056,
+   "s0": 156.6,
+   "speed": 1.3889,
    "join": "cont",
    "scene": "trade",
-   "tag": "2x"
+   "tag": null
   },
   {
    "clip": "v4",
@@ -968,7 +1067,7 @@
    "f1": 152.525,
    "s0": 160.7,
    "speed": 0.8,
-   "join": "cut",
+   "join": "xfade",
    "scene": "proof",
    "tag": null
   },
@@ -1038,30 +1137,41 @@
   {
    "clip": "board",
    "f0": 160.8,
-   "f1": 168.85,
-   "s0": 0.4,
-   "speed": 1.0,
-   "join": "cut",
+   "f1": 161.487,
+   "s0": 8.3,
+   "speed": 0.8,
+   "join": "xfade",
    "scene": "who",
    "tag": null
   },
   {
+   "clip": "board",
+   "f0": 161.487,
+   "f1": 168.85,
+   "s0": 8.81,
+   "speed": 0,
+   "join": "cont",
+   "scene": "who",
+   "tag": null,
+   "img": "freeze/board_8810.png"
+  },
+  {
    "clip": "proof",
    "f0": 168.85,
-   "f1": 173.533,
+   "f1": 171.733,
    "s0": 11.6,
    "speed": 1.0,
-   "join": "cut",
+   "join": "xfade",
    "scene": "limits",
    "tag": null
   },
   {
    "clip": "home",
-   "f0": 173.533,
+   "f0": 171.733,
    "f1": 177.801,
-   "s0": 36.4,
-   "speed": 1.2184,
-   "join": "cut",
+   "s0": 35.6,
+   "speed": 0.9888,
+   "join": "xfade",
    "scene": "close",
    "tag": null
   }
@@ -1180,8 +1290,8 @@
    "zoom": null
   },
   {
-   "t": 58.18,
-   "d": 1.6,
+   "t": 58.48,
+   "d": 1.1,
    "rect": [
     1532,
     686,
@@ -1264,8 +1374,8 @@
    "zoom": null
   },
   {
-   "t": 84.97,
-   "d": 0.95,
+   "t": 85.27,
+   "d": 0.9,
    "rect": [
     236,
     744,
@@ -1321,7 +1431,7 @@
   },
   {
    "t": 99.29,
-   "d": 1.9,
+   "d": 1.2,
    "rect": [
     176,
     440,
@@ -1401,7 +1511,7 @@
    "label": "Epoch 23 paid out",
    "sub": "11.36 $WIF burned",
    "place": "above",
-   "zoom": 1.1
+   "zoom": 1.25
   },
   {
    "t": 124.37,
@@ -1520,7 +1630,7 @@
   {
    "t": 0.0,
    "e": 3.09,
-   "text": "this is a real wallet on robinhood chain."
+   "text": "this is a real wallet on Robinhood Chain."
   },
   {
    "t": 3.52,
@@ -1535,7 +1645,7 @@
   {
    "t": 9.12,
    "e": 11.62,
-   "text": "if that same money had gone into nvda"
+   "text": "if that same money had gone into NVDA"
   },
   {
    "t": 11.62,
@@ -1550,7 +1660,7 @@
   {
    "t": 17.16,
    "e": 19.36,
-   "text": "i built terra firma because most of us"
+   "text": "i built Terra Firma because most of us"
   },
   {
    "t": 19.36,
@@ -1575,7 +1685,7 @@
   {
    "t": 32.92,
    "e": 35.7,
-   "text": "i buy a meme through uniswap like i normally would"
+   "text": "i buy a meme through Uniswap like i normally would"
   },
   {
    "t": 35.7,
@@ -1590,7 +1700,7 @@
   {
    "t": 39.12,
    "e": 42.27,
-   "text": "and what it would be in nvda."
+   "text": "and what it would be in NVDA."
   },
   {
    "t": 43.6,
@@ -1610,12 +1720,12 @@
   {
    "t": 49.44,
    "e": 52.46,
-   "text": "and it lands in my jar as nvda stock tokens"
+   "text": "and it lands in my jar as NVDA Stock Tokens"
   },
   {
    "t": 52.46,
    "e": 54.25,
-   "text": "priced against chainlink."
+   "text": "priced against Chainlink."
   },
   {
    "t": 55.18,
@@ -1665,7 +1775,7 @@
   {
    "t": 79.695,
    "e": 82.05,
-   "text": "i buy pons with two percent"
+   "text": "i buy PONS with two percent"
   },
   {
    "t": 82.05,
@@ -1675,7 +1785,7 @@
   {
    "t": 84.57,
    "e": 86.9,
-   "text": "this is where wif comes in."
+   "text": "this is where $WIF comes in."
   },
   {
    "t": 87.01,
@@ -1685,7 +1795,7 @@
   {
    "t": 89.53,
    "e": 91.97,
-   "text": "and that money only ever buys wif"
+   "text": "and that money only ever buys $WIF"
   },
   {
    "t": 91.97,
@@ -1695,7 +1805,7 @@
   {
    "t": 93.85,
    "e": 95.43,
-   "text": "if you stake wif"
+   "text": "if you stake $WIF"
   },
   {
    "t": 95.43,
@@ -1715,7 +1825,7 @@
   {
    "t": 101.21,
    "e": 105.07,
-   "text": "i stake a hundred and pick nvda."
+   "text": "i stake a hundred and pick NVDA."
   },
   {
    "t": 105.07,
@@ -1745,10 +1855,10 @@
   {
    "t": 118.73,
    "e": 122.31,
-   "text": "half of what it collected buys wif and burns it"
+   "text": "half of what it collected buys $WIF and burns it"
   },
   {
-   "t": 122.31,
+   "t": 122.59,
    "e": 125.56,
    "text": "and the other half buys stock for the stakers."
   },
@@ -1765,12 +1875,12 @@
   {
    "t": 133.37,
    "e": 135.27,
-   "text": "which burns one more wif"
+   "text": "which burns one more $WIF"
   },
   {
    "t": 135.27,
    "e": 138.411,
-   "text": "after the contract checks the numbers against chainlink."
+   "text": "after the contract checks the numbers against Chainlink."
   },
   {
    "t": 139.43,
@@ -1785,7 +1895,7 @@
   {
    "t": 143.89,
    "e": 146.19,
-   "text": "so wif gets bought on every trade"
+   "text": "so $WIF gets bought on every trade"
   },
   {
    "t": 146.19,
@@ -1815,12 +1925,12 @@
   {
    "t": 161.27,
    "e": 163.81,
-   "text": "it's for anyone trading memes on robinhood chain"
+   "text": "it's for anyone trading memes on Robinhood Chain"
   },
   {
    "t": 163.81,
    "e": 167.58,
-   "text": "and for wif holders who'd rather be paid in stock."
+   "text": "and for $WIF holders who'd rather be paid in stock."
   },
   {
    "t": 169.25,
@@ -1835,7 +1945,7 @@
   {
    "t": 175.11,
    "e": 176.401,
-   "text": "that's terra firma."
+   "text": "that's Terra Firma."
   }
  ],
  "hook": {
@@ -1868,19 +1978,14 @@
  },
  "limits": {
   "t": 169.21,
-  "end": 173.533
+  "end": 171.733
  },
  "close": {
-  "t": 173.533,
+  "t": 171.733,
   "end": 177.80100000000002
  },
  "wipes": [
   16.75,
-  28.766,
-  143.55,
-  151.65,
-  160.8,
-  168.85,
-  173.533
+  143.55
  ]
 }

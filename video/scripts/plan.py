@@ -53,38 +53,38 @@ cut = lambda s0, s1: ('cut', s0, s1)
 hold = lambda s0, s1, d, c: ('hold', s0, s1, d, c)
 
 T_HOME = START(3) - 0.35; T_MINE = END(4) - 0.15; T_FLY = START(22) - 0.25; T_PROOF = START(23) - 0.35
-T_WHO = START(24) - 0.3; T_LIM = START(25) - 0.45; T_CLOSE = END(25) + 0.2; T_END = END(26) + 1.55
+T_WHO = START(24) - 0.3; T_LIM = START(25) - 0.45; T_CLOSE = END(25) - 1.6; T_END = END(26) + 1.55
 
 SCENES = [
-  dict(id='hook', clip='card3fdb', keys=[a(0.0, 9.0), a(T_HOME, 9.0 + T_HOME)]),
+  dict(id='hook', clip='card3fdb', keys=[a(0.0, 11.4), a(12.6, 21.8), a(T_HOME, 25.0)]),
   dict(id='home', clip='home', keys=[a(T_HOME, 0.6), a(W(3, 'never') - 0.2, 5.0), cut(5.0, 13.5), a(W(4, 'it') - 0.1, 19.0), a(T_MINE, 19.45)]),
   dict(id='trade', clip='v4', keys=[
-    a(T_MINE, 0.0), a(W(5, 'own'), 1.0), a(W(6, 'uniswap'), 5.4),
+    a(T_MINE, 2.9), a(W(5, 'mainnet', 1, 'e'), 3.3), a(W(6, 'uniswap'), 5.4),
     hold(8.5, 9.7, 0.95, card('buy WALLET through Uniswap', 'c1')), cut(9.8, 13.7),
-    a(W(6, 'card'), 15.0), a(W(6, 'paid', 1, 'e') + 0.6, 16.6), a(W(6, 'nvda', 1, 'e') + 0.5, 17.3), a(W(7, 'one'), 19.4), a(W(7, 'convert'), 23.2),
+    a(W(6, 'card'), 15.0), a(W(6, 'paid', 1, 'e') + 0.6, 16.6), a(W(6, 'nvda', 1, 'e') + 0.5, 17.3), a(W(7, 'that') - 0.3, 17.32), cut(17.32, 19.3), a(W(7, 'one'), 19.5), a(W(7, 'convert'), 23.2),
     a(W(8, 'two'), 25.8), hold(26.3, 27.3, 0.9, card('approve WALLET', step='signature 1 of 2')), cut(28.2, 29.7),
     a(W(8, 'sold') - 0.05, 31.1), hold(31.1, 32.1, 0.95, card('convert WALLET to NVDA', 'c3', 'signature 2 of 2')), cut(32.4, 34.7),
-    a(W(8, 'jar'), 35.0), a(W(8, 'chainlink', 1, 'e'), 37.0), a(W(9, 'admin'), 41.2), a(W(9, 'out'), 44.9), a(W(9, 'streak'), 45.6),
+    a(W(8, 'jar'), 35.0), a(W(8, 'chainlink', 1, 'e'), 37.0), cut(39.4, 40.9), a(W(9, 'admin'), 41.4), a(W(9, 'out'), 45.5), a(W(9, 'streak'), 45.6),
     a(START(10) - 0.2, 49.6), a(W(11, 'any'), 54.4), a(W(11, 'ten'), 58.0), a(W(11, 'transaction'), 60.4), hold(62.4, 63.6, 0.95, card('buy PONS, 2% to NVDA', 'c4')), cut(63.7, 66.9),
     a(W(12, 'two'), 67.3), cut(67.8, 70.3), a(W(12, 'sell'), 71.0), a(W(12, 'way', 1, 'e'), 74.6), cut(74.6, 82.25),
     hold(82.3, 83.3, 0.85, card('approve + sell PONS, 2% to NVDA', 'c6')), cut(83.3, 90.4),
     a(W(13, 'wif'), 90.8), a(W(14, 'half'), 97.5), a(W(14, 'buys'), 98.0), a(W(14, 'never'), 98.6),
-    hold(99.8, 101.0, 0.95, card('buy $WIF', 'c7')), cut(101.0, 105.5),
-    a(W(15, 'stake'), 106.6), a(W(15, 'stock', 1, 'e'), 107.2), cut(107.4, 109.3), a(W(15, 'whichever'), 109.8),
+    hold(99.8, 101.0, 0.95, card('buy $WIF', 'c7')), cut(101.0, 106.45),
+    a(W(15, 'stake'), 106.75), a(W(15, 'stock', 1, 'e'), 107.2), cut(107.4, 109.3), a(W(15, 'whichever'), 109.8),
     a(W(16, 'hundred'), 113.0), a(W(16, 'nvda'), 113.6), cut(114.0, 116.05),
-    hold(116.1, 117.5, 0.95, card('approve + stake 100 $WIF', 'c8')), a(W(16, 'epoch'), 118.6), a(W(16, 'three'), 120.0),
+    hold(116.1, 117.5, 0.95, card('approve + stake 100 $WIF', 'c8', 'approve 0xa63c…5077')), a(W(16, 'epoch'), 118.6), a(W(16, 'three'), 120.0),
     a(W(17, 'once'), 122.0), a(W(17, 'run'), 125.9), hold(126.6, 127.8, 0.95, card('run distribute', 'c9')),
     a(W(18, 'burns'), 130.8), a(W(18, 'stakers'), 132.6), a(W(19, 'mine'), 135.9),
-    hold(136.6, 137.8, 0.9, card('claim to Jar', 'c10')), a(W(19, 'jar'), 138.3), cut(140.0, 142.0),
+    hold(136.6, 137.8, 0.9, card('claim to Jar', 'c10')), a(W(19, 'jar'), 138.3), cut(140.0, 143.6),
     a(W(20, 'mint'), 145.9), hold(146.25, 147.25, 0.8, card('approve 1 $WIF', step='signature 1 of 2')),
     hold(148.65, 149.65, 0.95, card('mint card, burns 1 $WIF', 'c12', 'signature 2 of 2')),
-    a(W(20, 'chainlink', 1, 'e'), 152.3), a(W(21, 'leaderboard'), 154.4), a(W(21, 'jars'), 156.3), a(T_FLY, 157.6)]),
+    a(W(20, 'chainlink', 1, 'e'), 152.3), a(W(21, 'leaderboard'), 155.3), a(W(21, 'jars'), 156.6), a(T_FLY, 157.6)]),
   dict(id='flywheel', clip='v4', keys=[a(T_FLY, 128.2), a(T_PROOF, 133.2)]),
   dict(id='proof', clip='v4', keys=[a(T_PROOF, 160.7), a(W(23, 'proof'), 161.4), a(W(23, 'proof') + 1.0, 162.4), cut(162.4, 169.4),
                                      a(W(23, 'recomputed'), 170.0), a(T_WHO, 172.6)]),
-  dict(id='who', clip='board', keys=[a(T_WHO, 0.4), a(T_LIM, 0.4 + (T_LIM - T_WHO))]),
+  dict(id='who', clip='board', keys=[a(T_WHO, 8.3), a(T_LIM, 8.85)]),
   dict(id='limits', clip='proof', keys=[a(T_LIM, 11.6), a(T_CLOSE, 11.6 + (T_CLOSE - T_LIM) * 1.0)]),
-  dict(id='close', clip='home', keys=[a(T_CLOSE, 36.4), a(T_END, 41.6)]),
+  dict(id='close', clip='home', keys=[a(T_CLOSE, 35.6), a(T_END, 41.6)]),
 ]
 
 def solve(sc):
@@ -139,22 +139,22 @@ CALLS = [
   C(W(7, 'coming') - 0.2, 1.6, [226, 446, 1468, 54], 'down 51%, not coming back', None, 'above'),
   C(W(8, 'nvda') - 0.1, 2.6, [216, 440, 1488, 60], 'NVDA Stock Tokens, in my Jar', 'minimum set from Chainlink before I sign', 'below', 1.1),
   C(W(9, 'admin') - 0.2, 1.9, [176, 160, 580, 190], 'ownerless contract', 'no admin key', 'right'),
-  C(W(9, 'out') - 0.3, 1.6, [1532, 686, 152, 52], 'withdraw any time', None, 'above', 1.12),
+  C(W(9, 'out'), 1.1, [1532, 686, 152, 52], 'withdraw any time', None, 'above', 1.12),
   C(W(9, 'streak') - 0.3, 1.3, [1440, 150, 160, 95], 'saving streak', None, 'below', 1.12),
   C(W(11, 'slice') - 0.1, 2.2, [240, 548, 940, 46], 'keep a slice, 0 to 10%', 'chosen per trade', 'above', 1.1),
   C(W(11, 'same') - 0.2, 1.8, [216, 794, 990, 100], 'the slice buys NVDA in the same transaction', None, 'above'),
   C(W(12, 'two') - 0.15, 1.6, [990, 205, 186, 100], '2% slice', '0.00007601 NVDA went to my Jar', 'left', 1.1),
   C(W(12, 'sell') - 0.1, 1.2, [920, 330, 290, 60], 'Sell, same 2% slice', None, 'below'),
-  C(W(13, 'wif') - 0.6, 0.95, [236, 744, 700, 56], '$WIF', 'buy only: Terra Firma never sells it', 'above'),
+  C(W(13, 'wif') - 0.3, 0.9, [236, 744, 700, 56], '$WIF', 'buy only: Terra Firma never sells it', 'above'),
   C(W(14, 'half') - 0.15, 2.0, [230, 798, 600, 44], '0.5% fee, every trade', 'it builds the $WIF burn', 'above', 1.12),
   C(W(14, 'buys') - 0.25, 1.9, [934, 152, 146, 42], 'buy only', 'the router refuses any $WIF sell', 'below', 1.15),
   C(W(15, 'real'), 1.6, [515, 165, 480, 92], 'paid in real stock', None, 'below', 1.08),
-  C(W(15, 'whichever') - 0.1, 1.9, [176, 440, 140, 300], 'pick your stock', 'NVDA, TSLA, GOOGL, SNDK, SPY, QQQ', 'right'),
+  C(W(15, 'whichever') - 0.1, 1.2, [176, 440, 140, 300], 'pick your stock', 'NVDA, TSLA, GOOGL, SNDK, SPY, QQQ', 'right'),
   C(W(16, 'pick') - 0.1, 1.3, [968, 790, 84, 74], 'NVDA', None, 'above', 1.15),
   C(W(16, 'epoch') - 0.3, 2.0, [966, 376, 170, 108], 'activating 100', 'earns from epoch 25, not now', 'below', 1.12),
   C(W(16, 'ten') - 0.1, 3.3, [1290, 218, 410, 28], '10,000 staked: 0.3% fee', 'instead of 0.5%', 'below', 1.18),
   C(W(17, 'run') - 0.3, 1.1, [970, 346, 766, 60], 'anyone can run it', 'once an hour', 'below'),
-  C(W(18, 'burns') - 0.25, 1.9, [180, 914, 770, 42], 'Epoch 23 paid out', '11.36 $WIF burned', 'above', 1.1),
+  C(W(18, 'burns') - 0.25, 1.9, [180, 914, 770, 42], 'Epoch 23 paid out', '11.36 $WIF burned', 'above', 1.25),
   C(W(18, 'stakers') - 0.4, 1.8, [968, 486, 768, 42], 'other half: stock for stakers', None, 'below'),
   C(W(19, 'mine') - 0.1, 1.2, [1326, 200, 372, 72], 'my reward', None, 'below', 1.1),
   C(W(19, 'jar') - 0.1, 1.5, [216, 870, 1488, 54], 'claimed into my Jar', None, 'above'),
@@ -166,6 +166,11 @@ CALLS = [
 ]
 for c in CALLS: c['rect'] = list(c['rect'])
 
+PROPER = [('robinhood chain', 'Robinhood Chain'), ('terra firma', 'Terra Firma'), ('stock tokens', 'Stock Tokens'), ('nvda', 'NVDA'),
+          ('chainlink', 'Chainlink'), ('uniswap', 'Uniswap'), ('pons', 'PONS'), ('wif', '$WIF')]
+def proper(t):
+    for a_, b_ in PROPER: t = re.sub(r'\b' + a_ + r'\b', b_, t)
+    return t
 JOIN = {'and', 'so', 'that', 'then', 'which', 'after', 'in', 'at', 'to', 'next', 'it', 'or', 'with'}
 def split_long(g, ws):
     if len(g) <= 10: return [g]
@@ -182,11 +187,13 @@ def chunks(line):
     out = [h for g in out for h in split_long(g, ws)]
     caps = []
     for g in out:
-        text = ' '.join(ws[i]['w'] for i in g).rstrip(',')
+        text = proper(' '.join(ws[i]['w'] for i in g).rstrip(','))
         caps.append(dict(t=round(max(0.0, ws[g[0]]['s'] - 0.08), 3), e=round(ws[g[-1]]['e'] + 0.15, 3), text=text))
     for k in range(len(caps) - 1): caps[k]['e'] = min(caps[k]['e'], caps[k + 1]['t'])
     return caps
 CAPS = [c for l in range(len(WORDS)) for c in chunks(l)]
+for c in CAPS:  # whisper put this onset early (reviewed against the voice envelope)
+    if c['text'].startswith('and the other half'): c['t'] = round(c['t'] + 0.28, 3)
 
 hook = dict(paid=W(1, 'thousands'), gone=W(1, 'gone'), nvda=W(2, 'nvda'), there=W(2, 'there', 1, 'e'))
 title = dict(t=W(3, 'terra') - 0.25, d=3.0)
@@ -195,8 +202,16 @@ fly = dict(t0=T_FLY, t1=T_PROOF, bought=W(22, 'bought'), burned=W(22, 'burned'),
 who = dict(traders=W(24, 'trading') - 0.2, holders=W(24, 'wif') - 0.2, end=T_LIM)
 limits = dict(t=W(25, 'only') - 0.2, end=T_CLOSE)
 close = dict(t=T_CLOSE, end=T_END)
-WIPES = [T_HOME, T_MINE, T_FLY, T_PROOF, T_WHO, T_LIM, T_CLOSE]
-plan = dict(total=round(T_END, 3), segs=SEGS, calls=CALLS, caps=CAPS, hook=hook, title=title, labels=labels, fly=fly, who=who,
+WIPES = [T_HOME, T_FLY]  # two signature strata wipes; every other chapter change is a soft crossfade
+# 'left on the table' on the WALLET card: the app floors $0.62 to $0 (display bug, fixed in the app separately);
+# cover that one number with the exact value from the ledger on screen: In NVDA $1.22 minus today $0.60 = $0.62
+PATCHES = [dict(f0=x['f0'], f1=x['f1'], rect=[884, 618, 330, 132], text='$0.62') for x in SEGS if x['clip'] == 'v4' and 14.99 <= x['s0'] < 17.33]
+SEGS[0]['join'] = 'cont'  # frame 0 is the finished card, no fade-in (X thumbnail)
+prev = None
+for x in SEGS:  # chapter changes without a strata wipe get a soft crossfade
+    if prev and x['scene'] != prev['scene'] and not any(abs(x['f0'] - w) < 0.05 for w in WIPES): x['join'] = 'xfade'
+    prev = x
+plan = dict(patches=PATCHES, total=round(T_END, 3), segs=SEGS, calls=CALLS, caps=CAPS, hook=hook, title=title, labels=labels, fly=fly, who=who,
             limits=limits, close=close, wipes=[round(w, 3) for w in WIPES])
 json.dump(plan, open(f'{V}/remotion/src/plan.json', 'w'), indent=1)
 
