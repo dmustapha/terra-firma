@@ -24,8 +24,8 @@
   --warn: #7a5512; /* ochre ink: 5.6:1 on paper */
   --warn-soft: rgb(200 144 27 / 0.14);
   --ink-shadow: rgb(26 23 18 / 0.85);
-  --shadow-press: 2px 2px 0 var(--ink-shadow);
-  --shadow-press-up: 3px 3px 0 var(--ink-shadow);
+  --shadow-press: inset 0 1px 0 rgb(255 255 255 / 0.25), 0 10px 26px -10px rgb(47 82 57 / 0.7);
+  --shadow-press-up: inset 0 1px 0 rgb(255 255 255 / 0.3), 0 14px 34px -10px rgb(47 82 57 / 0.85);
   --shadow-plate: 4px 4px 0 rgb(26 23 18 / 0.16);
   --shadow-overlay: 6px 6px 0 rgb(26 23 18 / 0.22);
   --grain: rgb(26 23 18 / 0.05);
@@ -73,6 +73,8 @@
   --warn: #dcb062;
   --warn-soft: rgb(220 176 98 / 0.12);
   --ink-shadow: rgb(236 228 210 / 0.32);
+  --shadow-press: inset 0 1px 0 rgb(255 255 255 / 0.2), 0 10px 28px -10px rgb(134 179 145 / 0.55);
+  --shadow-press-up: inset 0 1px 0 rgb(255 255 255 / 0.25), 0 14px 36px -10px rgb(134 179 145 / 0.7);
   --shadow-plate: 4px 4px 0 rgb(0 0 0 / 0.45);
   --shadow-overlay: 6px 6px 0 rgb(0 0 0 / 0.55);
   --grain: rgb(236 228 210 / 0.035);
@@ -381,9 +383,9 @@ dialog::backdrop {
   mask-image: radial-gradient(120% 90% at 30% 20%, #000 30%, transparent 85%);
   /* tint the black strokes to the contour ink via mix-blend on a colored layer */
   mix-blend-mode: multiply;
-  opacity: 0.075;
+  opacity: 0.13;
 }
-:root[data-theme="dark"] .survey-ground::before { filter: invert(1) sepia(0.4) hue-rotate(60deg); mix-blend-mode: screen; opacity: 0.06; }
+:root[data-theme="dark"] .survey-ground::before { filter: invert(1) sepia(0.4) hue-rotate(60deg); mix-blend-mode: screen; opacity: 0.1; }
 .survey-ground::after { /* the ONE light source: breathing bloom */
   content: ""; position: absolute; width: 70vw; height: 70vw; right: -18vw; top: -26vw; border-radius: 50%;
   background: radial-gradient(closest-side, var(--glow), var(--glow-2) 55%, transparent);
@@ -398,7 +400,7 @@ dialog::backdrop {
 /* core-sample materials (light: survey paper; dark: night survey) */
 :root {
   --brick: #9b3b1f; --moss: #2f5c3e;
-  --sed-bg: #e7cdb2; --sed-dot: #9b3b1f;
+  --sed-bg: #e2bf9c; --sed-dot: #8a2f16;
   --rock-bg: #3f6b4a; --rock-line: #2a4a33; --rock-void: #d9d0bb; --rock-seam: #1f3a28;
 }
 :root[data-theme="dark"] {
@@ -416,3 +418,44 @@ dialog::backdrop {
 /* bedrock band (closer): the ground beneath everything */
 .bedrock-band { background-color: var(--rock-bg); background-image: repeating-linear-gradient(-35deg, transparent 0 14px, rgb(0 0 0 / 0.14) 14px 16px), radial-gradient(80% 120% at 80% 0%, rgb(255 255 255 / 0.12), transparent 60%); color: #f6f0e1; }
 .strata-seam { height: 10px; background: linear-gradient(var(--line-strong), var(--line-strong)) top/100% 1px no-repeat, repeating-linear-gradient(90deg, var(--line-strong) 0 2px, transparent 2px 9px) bottom/100% 4px no-repeat; opacity: 0.55; }
+
+/* ================= v3.1 DEPTH: chit's doctrine in the survey world =================
+   ground (darker) → lit PLATE (gradient + corner light + rim + hairline, colored glow behind) → recessed WELL (darker, inner shade)
+   → overlapping STRATA slabs. Zero neutral drop shadows: depth = lightness steps + light + overlap. */
+:root {
+  --ground: #e2d7bf;
+  --plate-top: #fbf7ee; --plate-bot: #f1e9d8; --corner-tint: rgb(63 107 74 / 0.12);
+  --rim: rgb(255 255 255 / 0.85); --edge: rgb(26 23 18 / 0.12);
+  --well-bg: #ddd2ba; --well-shade: rgb(60 45 20 / 0.35);
+  --sed-slab: #ead6bd; --sieve-slab: #f4eee1; --rock-slab: #2f5239;
+}
+:root[data-theme="dark"] {
+  --ground: #0c0a07;
+  --plate-top: #2a241b; --plate-bot: #1c1812; --corner-tint: rgb(134 179 145 / 0.12);
+  --rim: rgb(236 228 210 / 0.08); --edge: rgb(236 228 210 / 0.10);
+  --well-bg: #0a0805; --well-shade: rgb(0 0 0 / 0.75);
+  --sed-slab: #3a2419; --sieve-slab: #231e17; --rock-slab: #1f3a28;
+}
+body { background-color: var(--ground); }
+.plate-lit {
+  position: relative; isolation: isolate; border-radius: 28px;
+  background: radial-gradient(90% 70% at 0% 0%, var(--corner-tint), transparent 60%), linear-gradient(180deg, var(--plate-top), var(--plate-bot));
+  box-shadow: inset 0 1px 0 var(--rim), inset 0 0 0 1px var(--edge);
+}
+.plate-lit::after { /* the ONE colored light under the plate (chit: colored ambient, never black) */
+  content: ""; position: absolute; z-index: -1; inset: 18% 6% -6%; border-radius: 40px;
+  background: radial-gradient(closest-side, var(--glow), transparent); filter: blur(36px);
+}
+.well-bore {
+  position: relative; border-radius: 22px; background: var(--well-bg);
+  box-shadow: inset 0 22px 34px -20px var(--well-shade), inset 0 0 0 1px var(--edge);
+}
+.well-bore::before { /* light from the bottom of the bore, behind the core */
+  content: ""; position: absolute; inset: 30% 14% 0; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(closest-side, var(--glow), transparent); filter: blur(24px);
+}
+.slab { position: relative; border-radius: 28px 28px 0 0; box-shadow: inset 0 1px 0 var(--rim), inset 0 0 0 1px var(--edge); }
+.slab + .slab { margin-top: -28px; } /* layers overlap: real stacking */
+.slab-sed { background-color: var(--sed-slab); background-image: radial-gradient(color-mix(in oklab, var(--brick) 28%, transparent) 0.9px, transparent 1.1px); background-size: 7px 7px; }
+.slab-sieve { background-color: var(--sieve-slab); background-image: repeating-linear-gradient(90deg, color-mix(in oklab, var(--fg) 10%, transparent) 0 2px, transparent 2px 12px); }
+.slab-rock { background-color: var(--rock-slab); background-image: repeating-linear-gradient(-35deg, transparent 0 14px, rgb(0 0 0 / 0.16) 14px 16px), radial-gradient(70% 90% at 85% 0%, rgb(255 255 255 / 0.10), transparent 60%); color: #f3eddf; border-radius: 28px; }

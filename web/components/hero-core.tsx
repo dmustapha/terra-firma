@@ -1,47 +1,58 @@
 "use client";
 
-// Hero set-piece: the example wallet's core sample drilling live, with the gap as the hero numeral (counted from the same
-// progress, so the number and the erosion move together). Server-prefetched card; client keeps it fresh.
+// Hero set-piece: headline + the gap as a HERO NUMERAL (counted in lockstep with the erosion) beside the example wallet's
+// core sample drilling in a recessed, lit borehole. Server-prefetched card; client keeps it fresh.
 import Link from "next/link";
+import type { ReactNode } from "react";
 import type { Card } from "@/lib/hindsight";
-import { usdWhole8 } from "@/lib/ui-format";
-import { CoreSample, useDrill } from "./core-sample";
+import { usd8, usdWhole8 } from "@/lib/ui-format";
+import { CoreSample, quoted, useDrill } from "./core-sample";
 import { useCard } from "./hooks";
 
-export function HeroCore({ addr, initial }: { addr: string; initial: Card | null }) {
+export function HeroCore({ addr, initial, headline, action }: { addr: string; initial: Card | null; headline: ReactNode; action: ReactNode }) {
   const q = useCard(addr, "NVDA");
   const c = q.data ?? initial;
   const { ref, k, replay } = useDrill();
-  if (!c || c.memes.length === 0)
-    return (
-      <div ref={ref} role="status" className="flex min-h-[28rem] flex-col items-center justify-center gap-4 text-center">
-        <span aria-hidden className="drill-bit" />
-        <p className="eyebrow text-muted">{q.error ? "Core jammed: the chain is busy" : "Drilling: reading buys and Chainlink rounds"}</p>
-      </div>
-    );
-  const gapRaw = BigInt(c.totals.usdCounterfactual8) - BigInt(c.totals.usdToday8);
-  const gap = Number(gapRaw) / 1e8;
+  const ready = c && c.memes.length > 0;
+  const qt = ready ? quoted(c) : null;
+  const gapRaw = qt ? (qt.gap > 0n ? qt.gap : 0n) : 0n;
   return (
-    <div ref={ref} onMouseEnter={() => k === 1 && replay()}>
-      <p className="eyebrow mb-3 flex justify-between text-muted">
-        <span>Core sample · wallet {c.wallet.slice(0, 6)}…{c.wallet.slice(-4)}</span>
-        <span className="num">block {c.asOfBlock.toLocaleString("en-US")}</span>
-      </p>
-      <div className="core-glow mx-auto max-w-[27rem]">
-        <CoreSample card={c} k={k} />
+    <div ref={ref} className="grid items-center gap-x-12 gap-y-8 lg:grid-cols-[1.05fr_0.95fr]">
+      <div>
+        {headline}
+        {ready && (
+          <div className="mt-8">
+            <p className="eyebrow text-[color:var(--brick)]">Left on the table · a real wallet</p>
+            <p className="num mt-2 font-display text-[clamp(4.5rem,1.6rem+9vw,12.5rem)] leading-[0.8] tracking-[-0.045em]"><span className="sr-only">{usdWhole8(gapRaw)}</span><span aria-hidden>
+              {k >= 1 ? usdWhole8(gapRaw) : `$${Math.floor((Number(gapRaw) / 1e8) * k).toLocaleString("en-US")}`}</span>
+            </p>
+            <p className="mt-3 max-w-[46ch] text-[0.9375rem] text-muted">
+              It aped <b className="num text-fg">{usdWhole8(qt!.paid)}</b> into memes now worth <b className="num text-[color:var(--brick)]">{usd8(qt!.today)}</b>. The same dollars in {c.stock}, bought at the same moments: <b className="num text-accent">{usdWhole8(qt!.cf)}</b>.{qt!.partial && " Priced memes only."}
+            </p>
+          </div>
+        )}
+        <div className="mt-8">{action}</div>
       </div>
-      <div className="mt-4 border-t border-line-strong pt-3">
-        <p className="eyebrow mb-3 text-accent">Left on the table</p>
-        <p className="num font-display text-[clamp(4rem,2.4rem+5vw,7.5rem)] leading-[0.82] tracking-[-0.035em]" aria-label={usdWhole8(gapRaw)}>
-          {k >= 1 ? usdWhole8(gapRaw) : `$${Math.floor(gap * k).toLocaleString("en-US")}`}
-        </p>
-        <p className="mt-2 flex flex-wrap items-center justify-between gap-x-4 text-sm text-muted">
-          <span>The same dollars in {c.stock}, bought at the same moments, minus what the bag is worth now.</span>
-          <span className="flex gap-4">
-            <button type="button" onClick={replay} className="font-semibold text-fg underline underline-offset-4 hover:text-accent">Drill again</button>
-            <Link href={`/card/${c.wallet}`} className="font-semibold text-fg underline underline-offset-4 hover:text-accent">Every layer →</Link>
-          </span>
-        </p>
+
+      <div className="well-bore px-4 pt-4 pb-3">
+        {ready ? (
+          <>
+            <p className="eyebrow mb-1 flex justify-between px-2 text-muted">
+              <span>Core · {c.wallet.slice(0, 6)}…{c.wallet.slice(-4)}</span>
+              <span className="num">block {c.asOfBlock.toLocaleString("en-US")}</span>
+            </p>
+            <div onMouseEnter={() => k === 1 && replay()}><CoreSample card={c} k={k} /></div>
+            <p className="mt-1 flex justify-between px-2 text-sm">
+              <button type="button" onClick={replay} className="font-semibold underline underline-offset-4 hover:text-accent">Drill again</button>
+              <Link href={`/card/${c.wallet}`} className="font-semibold underline underline-offset-4 hover:text-accent">Every layer →</Link>
+            </p>
+          </>
+        ) : (
+          <div role="status" className="flex min-h-[30rem] flex-col items-center justify-center gap-4 text-center">
+            <span aria-hidden className="drill-bit" />
+            <p className="eyebrow text-muted">{q.error ? "Core jammed: the chain is busy" : "Drilling: reading buys and Chainlink rounds"}</p>
+          </div>
+        )}
       </div>
     </div>
   );

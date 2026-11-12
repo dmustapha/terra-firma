@@ -49,7 +49,7 @@ export function LiveProof() {
           <p className="mt-2 flex items-center gap-2 text-sm font-semibold text-accent"><span className="live-dot" aria-hidden /> Live on Robinhood Chain mainnet{ago !== null && <>, up {since(ago)}</>}</p>
         </div>
         <div className="columns-1 gap-10 text-[0.9375rem] leading-relaxed text-fg/85 sm:columns-2 [&>p]:mb-3 [&>p]:break-inside-avoid">
-          <p>Every figure on this site is read from Robinhood Chain logs and the Chainlink round in force at each buy. Nothing is estimated or typed in. <TextLink inline href="/proof">{deployments.verified.length} verified contracts, every transaction</TextLink>.</p>
+          <p>Every figure on this site is read from Robinhood Chain logs and the Chainlink round in force at each buy. Nothing is typed in; the one estimate (the sweep preview) is marked ≈. <TextLink inline href="/proof">{deployments.verified.length} verified contracts, every transaction</TextLink>.</p>
           <p>
             Since launch at block <span className="num">{Number(deployments.block).toLocaleString("en-US")}</span>: <Fig label="$WIF burned" href={addrUrl(TF.FeePool)} value={rv(burned, (v) => token(v))} />,{" "}
             <Fig label="ETH into stakers' stock" href={addrUrl(TF.FeePool)} value={rv(toStock, (v) => eth(v))} />,{" "}

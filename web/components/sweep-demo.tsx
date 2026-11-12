@@ -3,15 +3,15 @@
 // Set-piece 2: the product demonstrating itself. The example wallet's dead memes sit as sediment; "Run the sweep" drops them
 // through the sieve and they fuse into a NVDA layer. Figures: today's bag value from the card; NVDA price now = the card's
 // counterfactual / shares (its live Chainlink read). Labelled as an estimate: the real minimum is quoted from Chainlink at signing.
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { Card } from "@/lib/hindsight";
+import { FEE_BPS } from "@/lib/config";
 import { HISTORY_ADDR } from "@/lib/ui-chain";
-import { usd, usd8 } from "@/lib/ui-format";
+import { usd, usd8OrDash } from "@/lib/ui-format";
 import { useCard } from "./hooks";
 import { LinkButton, cx } from "./ui";
 
-const FEE = 0.005;
+const FEE = FEE_BPS / 10_000;
 
 export function SweepDemo({ initial }: { initial: Card | null }) {
   const q = useCard(HISTORY_ADDR, "NVDA");
@@ -23,19 +23,18 @@ export function SweepDemo({ initial }: { initial: Card | null }) {
     const el = box.current;
     if (!el || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return setPhase("done");
     let timers: number[] = [];
-    let loop = 0;
     const play = () => {
       timers.forEach(clearTimeout);
       setPhase("idle");
       timers = [window.setTimeout(() => setPhase("falling"), 400), window.setTimeout(() => setPhase("done"), 1800)];
     };
+    let played = false;
     const io = new IntersectionObserver(([e]) => {
-      window.clearInterval(loop);
-      if (e.isIntersecting) { play(); loop = window.setInterval(play, 7000); }
+      if (e.isIntersecting && !played) { played = true; play(); }
     }, { threshold: 0.4 });
     io.observe(el);
-    return () => { io.disconnect(); window.clearInterval(loop); timers.forEach(clearTimeout); };
-  }, []);
+    return () => { io.disconnect(); timers.forEach(clearTimeout); };
+  }, [!!c]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!c || c.memes.length === 0) return null;
   const bag = Number(c.totals.usdToday8) / 1e8;
   const price = Number(c.totals.usdCounterfactual8) / 1e8 / (Number(c.totals.shares18) / 1e18);
@@ -56,20 +55,20 @@ export function SweepDemo({ initial }: { initial: Card | null }) {
         </p>
         <div className="mt-7 flex flex-wrap items-center gap-4">
           <LinkButton href="/jar" className="min-h-12 px-6">Sweep my dead memes</LinkButton>
-          <button type="button" onClick={() => { setPhase("idle"); window.setTimeout(run, 60); }} disabled={phase === "falling"} className="min-h-11 font-semibold underline decoration-accent underline-offset-4 hover:text-accent disabled:opacity-50">
+          <button type="button" onClick={() => { if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return setPhase("done"); setPhase("idle"); window.setTimeout(run, 60); }} className="min-h-11 font-semibold underline decoration-accent underline-offset-4 hover:text-accent disabled:opacity-50">
             {phase === "falling" ? "Sweeping…" : "Run it again"}
           </button>
         </div>
       </div>
 
-      <div ref={box} className="relative">
+      <div ref={box} className="well-bore relative px-6 py-8">
         {/* sediment: the dead coins */}
         <div className="flex flex-wrap justify-center gap-2 pb-6">
           {c.memes.slice(0, 6).map((m, i) => (
             <span key={m.token} style={{ transitionDelay: `${i * 90}ms` }}
               className={cx("eyebrow inline-flex items-center gap-2 rounded-full bg-[color:var(--sed-bg)] px-4 py-2 text-[0.75rem] text-[color:var(--brick)] transition-[transform,opacity] duration-[1100ms] [transition-timing-function:cubic-bezier(.5,0,.75,0)]",
                 phase !== "idle" && "translate-y-[150px] scale-50 opacity-0")}>
-              ${m.symbol} <b className="num">{usd8(m.usdToday8 ?? "0")}</b>
+              ${m.symbol} <b className="num">{usd8OrDash(m.usdToday8)}</b>
             </span>
           ))}
         </div>
@@ -83,11 +82,9 @@ export function SweepDemo({ initial }: { initial: Card | null }) {
         <p className={cx("mt-4 min-h-[7.5rem] text-center transition-opacity duration-500", phase === "done" ? "opacity-100" : "opacity-30")}>
           <span className="eyebrow block text-muted">Lands in the Jar as</span>
           <span className="num font-display text-[2.75rem] leading-none">≈ {shares < 0.01 ? shares.toFixed(5) : shares.toFixed(3)} {c.stock}</span>
-          <span className="mt-1 block text-sm text-muted">{usd(bag)} of memes at {c.stock} {usd(price)} (Chainlink), less the 0.5% fee. An estimate; the real minimum is quoted when you sign.</span>
+          <span className="mt-1 block text-sm text-muted">{usd(bag)} of memes at {c.stock} {usd(price)} (Chainlink), less the {FEE_BPS / 100}% fee. An estimate; the real minimum is quoted when you sign.</span>
         </p>
         
-        {q.error && !c && <p className="text-danger">Chain busy.</p>}
-        <Link href={`/card/${c.wallet}`} className="sr-only">This wallet&apos;s full core</Link>
       </div>
     </div>
   );

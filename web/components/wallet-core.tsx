@@ -3,11 +3,12 @@
 // /card + /app: the wallet's own core sample, drilling, beside its report. Same signature as the landing, now about YOU.
 import type { Card } from "@/lib/hindsight";
 import { shares18, usd8, usdWhole8 } from "@/lib/ui-format";
-import { CoreSample, useDrill } from "./core-sample";
+import { CoreSample, quoted, useDrill } from "./core-sample";
 
 export function WalletCore({ card: c, owner }: { card: Card; owner: boolean }) {
   const { ref, k, replay } = useDrill();
-  const gapRaw = BigInt(c.totals.usdCounterfactual8) - BigInt(c.totals.usdToday8);
+  const qt = quoted(c);
+  const gapRaw = qt.gap > 0n ? qt.gap : 0n;
   if (c.memes.length === 0)
     return (
       <div className="grid items-center gap-10 py-10 lg:grid-cols-2">
@@ -18,8 +19,8 @@ export function WalletCore({ card: c, owner }: { card: Card; owner: boolean }) {
   const memes = [...c.memes].sort((a, b) => Number(BigInt(b.usdPaid8) - BigInt(a.usdPaid8)));
   return (
     <div ref={ref} className="grid items-start gap-x-16 gap-y-10 lg:grid-cols-[0.85fr_1.15fr]">
-      <div onMouseEnter={() => k === 1 && replay()} className="core-glow">
-        <p className="eyebrow mb-3 flex justify-between text-muted">
+      <div onMouseEnter={() => k === 1 && replay()} className="well-bore px-4 pt-4 pb-2">
+        <p className="eyebrow mb-3 flex justify-between px-2 text-muted">
           <span>Core sample</span>
           <span className="num">block {c.asOfBlock.toLocaleString("en-US")}</span>
         </p>
@@ -28,10 +29,10 @@ export function WalletCore({ card: c, owner }: { card: Card; owner: boolean }) {
       <div>
         <p className="eyebrow text-muted">{owner ? "Your field report" : "Field report"} · {c.wallet.slice(0, 6)}…{c.wallet.slice(-4)}</p>
         <h2 className="mt-4 font-display text-[clamp(2.4rem,1.5rem+3vw,4.25rem)] leading-[0.92] tracking-[-0.025em]">
-          {owner ? "You turned" : "This wallet turned"} <span className="num">{usdWhole8(c.totals.usdPaid8)}</span> into{" "}
-          <span className="num text-[color:var(--brick)]">{usd8(c.totals.usdToday8)}</span>.
+          {owner ? "You turned" : "This wallet turned"} <span className="num">{usdWhole8(qt.paid)}</span> into{" "}
+          <span className="num text-[color:var(--brick)]">{usd8(qt.today)}</span>.
           <br />
-          <em className="text-accent">In {c.stock}: <span className="num">{usdWhole8(c.totals.usdCounterfactual8)}</span>.</em>
+          <em className="text-accent">In {c.stock}: <span className="num">{usdWhole8(qt.cf)}</span>.</em>
         </h2>
         <div className="mt-8 border-t border-line-strong pt-3">
           <p className="eyebrow mb-3 text-accent">Left on the table</p>
@@ -47,7 +48,7 @@ export function WalletCore({ card: c, owner }: { card: Card; owner: boolean }) {
           {memes.slice(0, 4).map((m) => {
             const left = m.usdToday8 === null ? null : Number(m.usdToday8) / Math.max(Number(m.usdPaid8), 1);
             return (
-              <li key={m.token} className="grid grid-cols-[6rem_1fr_auto] items-center gap-4 border-t border-line-strong/30 py-3">
+              <li key={m.token} className="grid grid-cols-[minmax(4rem,auto)_1fr_auto] items-center gap-4 border-t border-line-strong/30 py-3">
                 <b className="font-display text-[1.5rem] leading-none">${m.symbol}</b>
                 <span className="relative h-3 rounded-[2px] bg-[color:var(--sed-bg)]">
                   <span className="absolute inset-y-0 left-0 rounded-[2px] bg-[color:var(--brick)]" style={{ width: left === null ? "100%" : `${Math.max(left * 100, 0.6)}%` }} />

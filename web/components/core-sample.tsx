@@ -8,8 +8,16 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Card } from "@/lib/hindsight";
 import { usd8, usdWhole8 } from "@/lib/ui-format";
 
-const W = 420, CX = 210, R = 96, CAP = 16; // core radius and top-cap ellipse ry
-const TOP = 30, SED_MAX = 150, ROCK_MAX = 150, SEAM = 14;
+/** Like-for-like totals over memes that HAVE a live price (unquoted memes are left out, never counted as $0). */
+export function quoted(c: Card) {
+  const q = c.memes.filter((m) => m.usdToday8 !== null);
+  const sum = (f: (m: Card["memes"][number]) => string) => q.reduce((a, m) => a + BigInt(f(m)), 0n);
+  const paid = sum((m) => m.usdPaid8), today = sum((m) => m.usdToday8 as string), cf = sum((m) => m.usdCounterfactual8);
+  return { paid, today, cf, gap: cf - today, lost: paid > today ? paid - today : 0n, partial: q.length < c.memes.length };
+}
+
+const W = 480, CX = 196, R = 96, CAP = 16; // core radius and top-cap ellipse ry
+const TOP = 30, SED_MAX = 200, ROCK_MAX = 200, SEAM = 14;
 
 /** One eased 0→1 drill progress; replays on re-entry / hover / button. Reduced motion: 1. */
 export function useDrill() {
@@ -19,7 +27,7 @@ export function useDrill() {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    let seen = true;
+    let seen = true; // first sighting is the mount run
     const io = new IntersectionObserver(([e]) => {
       if (e.isIntersecting && !seen) setRun((r) => r + 1);
       seen = e.isIntersecting;
@@ -52,7 +60,8 @@ const rnd = (i: number) => {
 export function CoreSample({ card: c, k, label = true }: { card: Card; k: number; label?: boolean }) {
   const paid = Number(c.totals.usdPaid8);
   const stock = Number(c.totals.usdCounterfactual8);
-  const max = Math.max(paid, stock, 1);
+  const todayAll = c.memes.reduce((a, m) => a + Number(m.usdToday8 ?? 0), 0);
+  const max = Math.max(paid, stock, todayAll, 1);
   const sedFull = (paid / max) * SED_MAX;
   const rockH = Math.max((stock / max) * ROCK_MAX, 4);
 
@@ -60,7 +69,7 @@ export function CoreSample({ card: c, k, label = true }: { card: Card; k: number
   const memes = useMemo(() => [...c.memes].sort((a, b) => Number(BigInt(b.usdPaid8) - BigInt(a.usdPaid8))), [c.memes]);
   const bands = memes.map((m) => {
     const full = (Number(m.usdPaid8) / max) * SED_MAX;
-    const left = m.usdToday8 === null ? full : Math.max((Number(m.usdToday8) / max) * SED_MAX, 2);
+    const left = m.usdToday8 === null ? full : Math.min(full, Math.max((Number(m.usdToday8) / max) * SED_MAX, 2));
     return { m, full, now: full - (full - left) * k };
   });
   const sedNow = bands.reduce((s, b) => s + b.now, 0);
@@ -97,7 +106,7 @@ export function CoreSample({ card: c, k, label = true }: { card: Card; k: number
       <defs>
         <pattern id="sed" width="6" height="6" patternUnits="userSpaceOnUse">
           <rect width="6" height="6" fill="var(--sed-bg)" />
-          <circle cx="1.5" cy="1.5" r="0.9" fill="var(--sed-dot)" />
+          <circle cx="1.5" cy="1.5" r="1.1" fill="var(--sed-dot)" />
           <circle cx="4.5" cy="4.2" r="0.6" fill="var(--sed-dot)" />
         </pattern>
         <pattern id="rock" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(-35)">
@@ -106,7 +115,7 @@ export function CoreSample({ card: c, k, label = true }: { card: Card; k: number
         </pattern>
         <linearGradient id="cyl" x1="0" x2="1">
           <stop offset="0" stopColor="#000" stopOpacity="0.32" />
-          <stop offset="0.28" stopColor="#fff" stopOpacity="0.16" />
+          <stop offset="0.28" stopColor="#fff" stopOpacity="0.08" />
           <stop offset="0.55" stopColor="#fff" stopOpacity="0" />
           <stop offset="1" stopColor="#000" stopOpacity="0.38" />
         </linearGradient>
@@ -118,7 +127,7 @@ export function CoreSample({ card: c, k, label = true }: { card: Card; k: number
       {sedTop - TOP - CAP > 44 && (
         <g fontFamily="var(--font-mono)" textAnchor="middle" fill="var(--brick)" style={{ opacity: Math.min(1, k * 1.4) }}>
           <text x={CX} y={(TOP + CAP + sedTop) / 2 - 4} fontSize="10" letterSpacing="0.2em">ERODED</text>
-          <text x={CX} y={(TOP + CAP + sedTop) / 2 + 14} fontSize="15" fontFamily="var(--font-display)" letterSpacing="0">{usdWhole8(BigInt(Math.round((paid - (Number(c.totals.usdToday8))) * Math.min(1, k))))} gone</text>
+          <text x={CX} y={(TOP + CAP + sedTop) / 2 + 14} fontSize="15" fontFamily="var(--font-display)" letterSpacing="0">{usdWhole8(BigInt(Math.round(Number(quoted(c).lost) * Math.min(1, k))))} gone</text>
         </g>
       )}
 

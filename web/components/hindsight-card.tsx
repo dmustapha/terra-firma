@@ -190,7 +190,7 @@ export function CardSkeleton() {
       <div>
         <p className="eyebrow text-muted">Drilling</p>
         <h2 id="press-title" className="mt-4 font-display text-[clamp(2.4rem,1.5rem+3vw,4.25rem)] leading-[0.92]">Reading {memes} for this wallet.</h2>
-        <p role="status" className="num mt-3 text-muted">{t}s · usually 5–15{t > 20 ? ". Taking longer than usual; still reading." : "."}</p>
+        <p className="num mt-3 text-muted"><span aria-hidden>{t}s</span><span role="status" className="sr-only">Reading this wallet from Robinhood Chain.</span><span aria-hidden> · usually 5–15{t > 20 ? ". Taking longer than usual; still reading." : "."}</span></p>
         <ol className="mt-6">
           {steps.map((s) => (
             <li key={s.what} className="flex items-baseline justify-between gap-4 border-t border-line-strong/30 py-3">
