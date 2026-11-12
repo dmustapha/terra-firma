@@ -1,0 +1,231 @@
+{
+  "version": 3,
+  "mode": "hybrid",
+  "autonomous_mode": true,
+  "status": "complete",
+  "overall": "PASS",
+  "summary": "One pass V1+V2+V3: 116 PASS / 0 FAIL / 1 SKIP / 1 WARN; cold-stranger PASS 13.2s; 1 P1 fixed (a51eeaf, needs deploy)",
+  "testedAt": "2026-11-12T07:41:03Z",
+  "testedUrl": "https://terra-firma-henna.vercel.app",
+  "regressionBaseline": {
+    "v1": null,
+    "v2": null
+  },
+  "interfaceInventory": [
+    {
+      "channel": "browser",
+      "endpoint": "16 routes",
+      "priority": "high",
+      "tested": true
+    },
+    {
+      "channel": "rest",
+      "endpoint": "/api/hindsight,/api/quote,/api/card-check,/api/geo,/api/health,/api/qn-jar",
+      "priority": "high",
+      "tested": true
+    },
+    {
+      "channel": "json-rpc",
+      "endpoint": "/api/rpc",
+      "priority": "high",
+      "tested": true
+    },
+    {
+      "channel": "sse",
+      "endpoint": "/api/stream",
+      "priority": "medium",
+      "tested": true
+    },
+    {
+      "channel": "og",
+      "endpoint": "opengraph images",
+      "priority": "medium",
+      "tested": true
+    },
+    {
+      "channel": "contracts",
+      "endpoint": "7 contracts on 4663",
+      "priority": "high",
+      "tested": true
+    }
+  ],
+  "domains": {
+    "core_flows": {
+      "status": "PASS",
+      "flowsTested": 8,
+      "flowsFailed": 0,
+      "notes": "cold card+recompute; fork UI buy+sweep, WIF buy, stake, claim, withdraw"
+    },
+    "api_connectivity": {
+      "status": "PASS",
+      "apisChecked": 13,
+      "apisFailed": 0,
+      "notes": ""
+    },
+    "visual": {
+      "status": "PASS",
+      "notes": "42 loads clean"
+    },
+    "forms": {
+      "status": "PASS",
+      "notes": ""
+    },
+    "console_errors": {
+      "status": "PASS",
+      "errorCount": 0,
+      "errors": []
+    },
+    "auth": {
+      "status": "PASS",
+      "notes": "injected wallet on fork"
+    },
+    "mobile": {
+      "status": "PASS",
+      "notes": "0 overflow at 375"
+    },
+    "post_prd": {
+      "status": "PASS",
+      "notes": "convert tab, rpc proxy"
+    },
+    "integration_proof": {
+      "status": "PASS",
+      "proofs": 6
+    },
+    "budget": {
+      "status": "PASS",
+      "spent": 0,
+      "budget": 0
+    }
+  },
+  "multiChannelMatrix": {
+    "hindsight_card": "PASS (UI, API, lens eth_call, OG)",
+    "burn": "PASS (UI, FeePool, Transfer, totalSupply)"
+  },
+  "adversarialResults": {
+    "adv01_boundary": "PASS",
+    "adv02_empty": "PASS",
+    "adv03_overlong": "PASS",
+    "adv04_timestamps": "PASS",
+    "adv05_encoding": "PASS"
+  },
+  "patchRuns": [
+    {
+      "testId": "TC-PROOF-contracts",
+      "original": "FAIL (P1: 6 of 7 contracts on /proof)",
+      "fix": "a51eeaf show all 7 + test",
+      "reVerify": "PASS (local; needs deploy)"
+    }
+  ],
+  "crossIntegrationProofs": [
+    {
+      "integration": "FeePool.distribute -> WIF burn",
+      "hash": "0xbd23368477c98de488447b1c20895b8d438bdba9977d63b8f01835899d0287c0"
+    },
+    {
+      "integration": "TerraRouter.convert -> Jar",
+      "hash": "0xc5500b3cdd258f293c22f126f614af07c8ae541b159d27bd7ca84a85872131b5"
+    },
+    {
+      "integration": "TerraRouter.buy+sweep -> Jar",
+      "hash": "0x7f5b2f1fb864bce8ac6f2fb0fdfebfbf5758997ad1a3bf7ea3cd5cff89551b53"
+    },
+    {
+      "integration": "WifStaking.stake",
+      "hash": "0x15551573a7f3ff7cfbb2ab11ce3e2b8141c64701a5ea014984b9fcd7374bcd8f"
+    }
+  ],
+  "testPlan": {
+    "present": true,
+    "sourceHash": "7b2eec5de6b8bd1105f1cc3e5ba7f314bb8e437421eb1920a3f6d7b719c5d34b",
+    "sourceMappingComplete": true,
+    "planConstructionComplete": true,
+    "criticalReviewComplete": true,
+    "sourceFilesRead": 22,
+    "testCounts": {
+      "v1": 56,
+      "v2": 23,
+      "v3": 30
+    },
+    "codeReviewOnlyCount": 0,
+    "designConstraintCount": 2
+  },
+  "coldStranger": {
+    "status": "PASS",
+    "heroAction": "A stranger with no wallet pastes any wallet on the landing page, gets a receipt-backed Hindsight card and recomputes it onchain",
+    "durationSeconds": 13.2,
+    "budgetSeconds": 60,
+    "designedAroundPath": null,
+    "isolation": "env -i PATH HOME URL; fresh Chromium context, no storageState"
+  },
+  "freePreview": {
+    "applicable": true,
+    "notApplicableReason": "",
+    "present": true,
+    "endpoint": "/card/[addr] + /api/hindsight?addr=",
+    "runsRealMechanism": true,
+    "setupRequired": "none"
+  },
+  "p0Blockers": [],
+  "p1Warnings": [
+    "demo wallet card empty (memes converted/sold) - use 0x3fDB\u2026b09E or hold one meme before recording",
+    "Claim + Mint pending Dami; demo wallet has 0 WIF for mint",
+    "a51eeaf needs deploy"
+  ],
+  "p2Cosmetic": [
+    "inline hash links < 44px (WCAG inline exemption)",
+    "/card/0xnotanaddress soft 404 (200)",
+    "mobile compact nav hides Leaderboard until scrolled"
+  ],
+  "criticalIssues": [],
+  "warnings": [
+    "F-018 Quicknode badge off (no token)",
+    "HyperSync off (no Envio token)"
+  ],
+  "screenshots": [
+    "screenshots/livetest/"
+  ],
+  "reportPath": "LIVETEST-V3-REPORT.md",
+  "blockerReason": null,
+  "phase_ledger": [
+    {
+      "phase": "entry",
+      "completed_at": "2026-11-12T07:41:03Z",
+      "evidence": "PULSE DH-1/3/4/6 + stress hand-offs read"
+    },
+    {
+      "phase": "interface_inventory",
+      "completed_at": "2026-11-12T07:41:03Z",
+      "evidence": "LIVETEST-V3-REPORT.md Interface Inventory"
+    },
+    {
+      "phase": "source_mapping",
+      "completed_at": "2026-11-12T07:41:03Z",
+      "evidence": "22 files, sourceHash 7b2eec5de6b8"
+    },
+    {
+      "phase": "test_plan",
+      "completed_at": "2026-11-12T07:41:03Z",
+      "evidence": "TESTING-PLAN.md"
+    },
+    {
+      "phase": "critical_review",
+      "completed_at": "2026-11-12T07:41:03Z",
+      "evidence": "TESTING-PLAN.md Critical Review Findings (5)"
+    },
+    {
+      "phase": "test_execution",
+      "completed_at": "2026-11-12T07:41:03Z",
+      "evidence": "scripts/livetest/*, screenshots/livetest/v1-sweep.json"
+    },
+    {
+      "phase": "cold_stranger",
+      "completed_at": "2026-11-12T07:41:03Z",
+      "evidence": "env -i isolated, PASS 13.2s"
+    },
+    {
+      "phase": "report",
+      "completed_at": "2026-11-12T07:41:03Z",
+      "evidence": "LIVETEST-V3-REPORT.md"
+    }
+  ]
+}

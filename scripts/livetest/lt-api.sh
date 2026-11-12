@@ -1,0 +1,4 @@
+B=https://terra-firma-henna.vercel.app; D=0x7204f8fec453efe771e69559b597a1229dca05aa; L=0x3fDBeB0FC14cca8fDd238Dd21725F0b8585Ab09E; P=0x39dBED3a2bd333467115dE45665cC57F813C4571
+chk(){ printf "%-70s " "$1"; curl -s -m 70 -o /tmp/lt.out -w "%{http_code} %{time_total}s %{content_type} " "$B$1"; head -c 200 /tmp/lt.out | tr '\n' ' ' | LC_ALL=C tr -cd '[:print:]'; echo; }
+for u in /api/health /api/geo /api/qn-jar "/api/hindsight?addr=$D" "/api/hindsight?addr=$L" "/api/quote?token=$P&side=buy&amount=1000000000000000&sweepBps=200&feeBps=50&stock=NVDA" "/api/quote?token=$P&side=sell&amount=1000000000000000000&sweepBps=0&feeBps=50&stock=NVDA" "/card/$L/opengraph-image" "/jar/report/$D/opengraph-image" /opengraph-image.png /favicon.ico /icon.png /apple-icon.png; do chk "$u"; done
+printf "%-70s " stream; curl -s -m 4 -N $B/api/stream | head -c 120; echo

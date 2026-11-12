@@ -1,0 +1,847 @@
+[
+  {
+    "variant": "d1440",
+    "route": "/",
+    "status": 200,
+    "ms": 24191,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 8,
+    "smallSample": [
+      "Skip to content",
+      "Drill again",
+      "Every layer →",
+      "11.07",
+      "0.000007",
+      "5",
+      "1",
+      "read the example core in full"
+    ],
+    "h1": "Your memes died. NVDA didn't.",
+    "theme": "light",
+    "errors": []
+  },
+  {
+    "variant": "d1440",
+    "route": "/app",
+    "status": 200,
+    "ms": 12633,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 149,
+    "smallSample": [
+      "Skip to content",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "0xc213…333b"
+    ],
+    "h1": "A core sample",
+    "theme": "light",
+    "errors": []
+  },
+  {
+    "variant": "d1440",
+    "route": "/app/convert",
+    "status": 200,
+    "ms": 6763,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 1,
+    "smallSample": [
+      "Skip to content"
+    ],
+    "h1": "Sieve the sediment. Keep the stock.",
+    "theme": "light",
+    "errors": []
+  },
+  {
+    "variant": "d1440",
+    "route": "/trade",
+    "status": 200,
+    "ms": 7375,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 1,
+    "smallSample": [
+      "Skip to content"
+    ],
+    "h1": "The casino floor. Keep a slice.",
+    "theme": "light",
+    "errors": []
+  },
+  {
+    "variant": "d1440",
+    "route": "/trade/0x5173b8eA6923c2d40267890D45C46a3480954773",
+    "status": 200,
+    "ms": 6927,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 8,
+    "smallSample": [
+      "Skip to content",
+      "0x5173…4773",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT"
+    ],
+    "h1": "The casino floor. Keep a slice.",
+    "theme": "light",
+    "errors": []
+  },
+  {
+    "variant": "d1440",
+    "route": "/trade/0x39dBED3a2bd333467115dE45665cC57F813C4571",
+    "status": 200,
+    "ms": 6580,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 8,
+    "smallSample": [
+      "Skip to content",
+      "0x39dB…4571",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT"
+    ],
+    "h1": "The casino floor. Keep a slice.",
+    "theme": "light",
+    "errors": []
+  },
+  {
+    "variant": "d1440",
+    "route": "/jar",
+    "status": 200,
+    "ms": 6836,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 1,
+    "smallSample": [
+      "Skip to content"
+    ],
+    "h1": "Your bedrock. Only you can dig it out.",
+    "theme": "light",
+    "errors": []
+  },
+  {
+    "variant": "d1440",
+    "route": "/stake",
+    "status": 200,
+    "ms": 6645,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 2,
+    "smallSample": [
+      "Skip to content",
+      "0.00008786 NVDA"
+    ],
+    "h1": "Stake $WIF. Earn real stock.",
+    "theme": "light",
+    "errors": []
+  },
+  {
+    "variant": "d1440",
+    "route": "/board",
+    "status": 200,
+    "ms": 6739,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 3,
+    "smallSample": [
+      "Skip to content",
+      "0x7204…05aa",
+      "0x7204…05aa"
+    ],
+    "h1": "Who got buried. Who hit bedrock.",
+    "theme": "light",
+    "errors": []
+  },
+  {
+    "variant": "d1440",
+    "route": "/proof",
+    "status": 200,
+    "ms": 6804,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 22,
+    "smallSample": [
+      "Skip to content",
+      "0xbd23…87c0",
+      "Fee setting on the router",
+      "0x5173…4773",
+      "0.002473 ETH",
+      "11.07",
+      "0.000007 ETH",
+      "0xbd23…87c0"
+    ],
+    "h1": "Don't trust the core. Drill it yourself.",
+    "theme": "light",
+    "errors": []
+  },
+  {
+    "variant": "d1440",
+    "route": "/card/0x3fDBeB0FC14cca8fDd238Dd21725F0b8585Ab09E",
+    "status": 200,
+    "ms": 23228,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 149,
+    "smallSample": [
+      "Skip to content",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "0xc213…333b"
+    ],
+    "h1": "The Hindsight Edition for wallet 0x3fDB…b09E",
+    "theme": "light",
+    "errors": []
+  },
+  {
+    "variant": "d1440",
+    "route": "/card/0x7204f8fec453efe771e69559b597a1229dca05aa",
+    "status": 200,
+    "ms": 13044,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 7,
+    "smallSample": [
+      "Skip to content",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT"
+    ],
+    "h1": "The Hindsight Edition for wallet 0x7204…05aa",
+    "theme": "light",
+    "errors": []
+  },
+  {
+    "variant": "d1440",
+    "route": "/jar/0x7204f8fec453efe771e69559b597a1229dca05aa",
+    "status": 404,
+    "ms": 6567,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 1,
+    "smallSample": [
+      "Skip to content"
+    ],
+    "h1": "Nothing here.",
+    "theme": "light",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 ()",
+      "Failed to load resource: the server responded with a status of 404 ()",
+      "Error checking Cross-Origin-Opener-Policy: HTTP error! status: 404"
+    ]
+  },
+  {
+    "variant": "d1440",
+    "route": "/friends",
+    "status": 404,
+    "ms": 6704,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 1,
+    "smallSample": [
+      "Skip to content"
+    ],
+    "h1": "Nothing here.",
+    "theme": "light",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 ()",
+      "Failed to load resource: the server responded with a status of 404 ()",
+      "Error checking Cross-Origin-Opener-Policy: HTTP error! status: 404"
+    ]
+  },
+  {
+    "variant": "d1440",
+    "route": "/no-such-page",
+    "status": 404,
+    "ms": 6510,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 1,
+    "smallSample": [
+      "Skip to content"
+    ],
+    "h1": "Nothing here.",
+    "theme": "light",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 ()",
+      "Failed to load resource: the server responded with a status of 404 ()",
+      "Error checking Cross-Origin-Opener-Policy: HTTP error! status: 404"
+    ]
+  },
+  {
+    "variant": "d1440",
+    "route": "/card/0xnotanaddress",
+    "status": 200,
+    "ms": 12696,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 1,
+    "smallSample": [
+      "Skip to content"
+    ],
+    "h1": "Nothing here.",
+    "theme": "light",
+    "errors": []
+  },
+  {
+    "variant": "m375",
+    "route": "/",
+    "status": 200,
+    "ms": 22820,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 8,
+    "smallSample": [
+      "Skip to content",
+      "Drill again",
+      "Every layer →",
+      "11.07",
+      "0.000007",
+      "5",
+      "1",
+      "read the example core in full"
+    ],
+    "h1": "Your memes died. NVDA didn't.",
+    "theme": "light",
+    "errors": []
+  },
+  {
+    "variant": "m375",
+    "route": "/app",
+    "status": 200,
+    "ms": 12661,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 149,
+    "smallSample": [
+      "Skip to content",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "0xc213…333b"
+    ],
+    "h1": "A core sample",
+    "theme": "light",
+    "errors": []
+  },
+  {
+    "variant": "m375",
+    "route": "/app/convert",
+    "status": 200,
+    "ms": 6512,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 1,
+    "smallSample": [
+      "Skip to content"
+    ],
+    "h1": "Sieve the sediment. Keep the stock.",
+    "theme": "light",
+    "errors": []
+  },
+  {
+    "variant": "m375",
+    "route": "/trade",
+    "status": 200,
+    "ms": 6521,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 1,
+    "smallSample": [
+      "Skip to content"
+    ],
+    "h1": "The casino floor. Keep a slice.",
+    "theme": "light",
+    "errors": []
+  },
+  {
+    "variant": "m375",
+    "route": "/trade/0x5173b8eA6923c2d40267890D45C46a3480954773",
+    "status": 200,
+    "ms": 6673,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 8,
+    "smallSample": [
+      "Skip to content",
+      "0x5173…4773",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT"
+    ],
+    "h1": "The casino floor. Keep a slice.",
+    "theme": "light",
+    "errors": []
+  },
+  {
+    "variant": "m375",
+    "route": "/trade/0x39dBED3a2bd333467115dE45665cC57F813C4571",
+    "status": 200,
+    "ms": 7365,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 8,
+    "smallSample": [
+      "Skip to content",
+      "0x39dB…4571",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT"
+    ],
+    "h1": "The casino floor. Keep a slice.",
+    "theme": "light",
+    "errors": []
+  },
+  {
+    "variant": "m375",
+    "route": "/jar",
+    "status": 200,
+    "ms": 6647,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 1,
+    "smallSample": [
+      "Skip to content"
+    ],
+    "h1": "Your bedrock. Only you can dig it out.",
+    "theme": "light",
+    "errors": []
+  },
+  {
+    "variant": "m375",
+    "route": "/stake",
+    "status": 200,
+    "ms": 6634,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 2,
+    "smallSample": [
+      "Skip to content",
+      "0.00008786 NVDA"
+    ],
+    "h1": "Stake $WIF. Earn real stock.",
+    "theme": "light",
+    "errors": []
+  },
+  {
+    "variant": "m375",
+    "route": "/board",
+    "status": 200,
+    "ms": 6596,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 3,
+    "smallSample": [
+      "Skip to content",
+      "0x7204…05aa",
+      "0x7204…05aa"
+    ],
+    "h1": "Who got buried. Who hit bedrock.",
+    "theme": "light",
+    "errors": []
+  },
+  {
+    "variant": "m375",
+    "route": "/proof",
+    "status": 200,
+    "ms": 6809,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 22,
+    "smallSample": [
+      "Skip to content",
+      "0xbd23…87c0",
+      "Fee setting on the router",
+      "0x5173…4773",
+      "0.002473 ETH",
+      "11.07",
+      "0.000007 ETH",
+      "0xbd23…87c0"
+    ],
+    "h1": "Don't trust the core. Drill it yourself.",
+    "theme": "light",
+    "errors": []
+  },
+  {
+    "variant": "m375",
+    "route": "/card/0x3fDBeB0FC14cca8fDd238Dd21725F0b8585Ab09E",
+    "status": 200,
+    "ms": 13765,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 149,
+    "smallSample": [
+      "Skip to content",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "0xc213…333b"
+    ],
+    "h1": "The Hindsight Edition for wallet 0x3fDB…b09E",
+    "theme": "light",
+    "errors": []
+  },
+  {
+    "variant": "m375",
+    "route": "/card/0x7204f8fec453efe771e69559b597a1229dca05aa",
+    "status": 200,
+    "ms": 12667,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 7,
+    "smallSample": [
+      "Skip to content",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT"
+    ],
+    "h1": "The Hindsight Edition for wallet 0x7204…05aa",
+    "theme": "light",
+    "errors": []
+  },
+  {
+    "variant": "m375",
+    "route": "/jar/0x7204f8fec453efe771e69559b597a1229dca05aa",
+    "status": 404,
+    "ms": 6612,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 1,
+    "smallSample": [
+      "Skip to content"
+    ],
+    "h1": "Nothing here.",
+    "theme": "light",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 ()",
+      "Failed to load resource: the server responded with a status of 404 ()",
+      "Error checking Cross-Origin-Opener-Policy: HTTP error! status: 404"
+    ]
+  },
+  {
+    "variant": "dark1440",
+    "route": "/",
+    "status": 200,
+    "ms": 24172,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 8,
+    "smallSample": [
+      "Skip to content",
+      "Drill again",
+      "Every layer →",
+      "11.07",
+      "0.000007",
+      "5",
+      "1",
+      "read the example core in full"
+    ],
+    "h1": "Your memes died. NVDA didn't.",
+    "theme": "dark",
+    "errors": []
+  },
+  {
+    "variant": "dark1440",
+    "route": "/app",
+    "status": 200,
+    "ms": 12640,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 149,
+    "smallSample": [
+      "Skip to content",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "0xc213…333b"
+    ],
+    "h1": "A core sample",
+    "theme": "dark",
+    "errors": []
+  },
+  {
+    "variant": "dark1440",
+    "route": "/app/convert",
+    "status": 200,
+    "ms": 6585,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 1,
+    "smallSample": [
+      "Skip to content"
+    ],
+    "h1": "Sieve the sediment. Keep the stock.",
+    "theme": "dark",
+    "errors": []
+  },
+  {
+    "variant": "dark1440",
+    "route": "/trade",
+    "status": 200,
+    "ms": 6541,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 1,
+    "smallSample": [
+      "Skip to content"
+    ],
+    "h1": "The casino floor. Keep a slice.",
+    "theme": "dark",
+    "errors": []
+  },
+  {
+    "variant": "dark1440",
+    "route": "/trade/0x5173b8eA6923c2d40267890D45C46a3480954773",
+    "status": 200,
+    "ms": 6685,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 8,
+    "smallSample": [
+      "Skip to content",
+      "0x5173…4773",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT"
+    ],
+    "h1": "The casino floor. Keep a slice.",
+    "theme": "dark",
+    "errors": []
+  },
+  {
+    "variant": "dark1440",
+    "route": "/trade/0x39dBED3a2bd333467115dE45665cC57F813C4571",
+    "status": 200,
+    "ms": 6563,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 8,
+    "smallSample": [
+      "Skip to content",
+      "0x39dB…4571",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT"
+    ],
+    "h1": "The casino floor. Keep a slice.",
+    "theme": "dark",
+    "errors": []
+  },
+  {
+    "variant": "dark1440",
+    "route": "/jar",
+    "status": 200,
+    "ms": 6843,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 1,
+    "smallSample": [
+      "Skip to content"
+    ],
+    "h1": "Your bedrock. Only you can dig it out.",
+    "theme": "dark",
+    "errors": []
+  },
+  {
+    "variant": "dark1440",
+    "route": "/stake",
+    "status": 200,
+    "ms": 6833,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 2,
+    "smallSample": [
+      "Skip to content",
+      "0.00008786 NVDA"
+    ],
+    "h1": "Stake $WIF. Earn real stock.",
+    "theme": "dark",
+    "errors": []
+  },
+  {
+    "variant": "dark1440",
+    "route": "/board",
+    "status": 200,
+    "ms": 6653,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 3,
+    "smallSample": [
+      "Skip to content",
+      "0x7204…05aa",
+      "0x7204…05aa"
+    ],
+    "h1": "Who got buried. Who hit bedrock.",
+    "theme": "dark",
+    "errors": []
+  },
+  {
+    "variant": "dark1440",
+    "route": "/proof",
+    "status": 200,
+    "ms": 6518,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 24,
+    "smallSample": [
+      "Skip to content",
+      "0xbd23…87c0",
+      "0x3744…3834",
+      "Fee setting on the router",
+      "0x5173…4773",
+      "0.002473 ETH",
+      "11.07",
+      "0.000007 ETH"
+    ],
+    "h1": "Don't trust the core. Drill it yourself.",
+    "theme": "dark",
+    "errors": []
+  },
+  {
+    "variant": "dark1440",
+    "route": "/card/0x3fDBeB0FC14cca8fDd238Dd21725F0b8585Ab09E",
+    "status": 200,
+    "ms": 13415,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 149,
+    "smallSample": [
+      "Skip to content",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "0xc213…333b"
+    ],
+    "h1": "The Hindsight Edition for wallet 0x3fDB…b09E",
+    "theme": "dark",
+    "errors": []
+  },
+  {
+    "variant": "dark1440",
+    "route": "/card/0x7204f8fec453efe771e69559b597a1229dca05aa",
+    "status": 200,
+    "ms": 12764,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 7,
+    "smallSample": [
+      "Skip to content",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT",
+      "INPUT"
+    ],
+    "h1": "The Hindsight Edition for wallet 0x7204…05aa",
+    "theme": "dark",
+    "errors": []
+  },
+  {
+    "variant": "dark1440",
+    "route": "/jar/0x7204f8fec453efe771e69559b597a1229dca05aa",
+    "status": 404,
+    "ms": 6692,
+    "overflow": 0,
+    "dupIds": [],
+    "brokenImgs": [],
+    "smallTargets": 1,
+    "smallSample": [
+      "Skip to content"
+    ],
+    "h1": "Nothing here.",
+    "theme": "dark",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 ()",
+      "Failed to load resource: the server responded with a status of 404 ()",
+      "Error checking Cross-Origin-Opener-Policy: HTTP error! status: 404"
+    ]
+  }
+]

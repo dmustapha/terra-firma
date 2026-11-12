@@ -1,0 +1,15 @@
+import { open, BASE } from "./fork-lib.mjs";
+const { browser, ctx, page } = await open();
+await ctx.addInitScript(() => { try { localStorage.removeItem("tf.attest.v1"); } catch {} });
+await page.goto(BASE + "/trade/0x39dBED3a2bd333467115dE45665cC57F813C4571", { waitUntil: "load" });
+await page.waitForTimeout(4000);
+await page.fill("#buy-amt", "0.001"); await page.waitForTimeout(2500);
+const trig = page.getByRole("button", { name: /^Buy PONS/ }).first();
+await trig.click(); await page.waitForTimeout(800);
+const s1 = await page.evaluate(() => { const d = document.querySelector("dialog[open],[role=dialog][open]"); const a = document.activeElement; return { open: !!d, focusInside: !!(d && d.contains(a)), active: a?.innerText?.slice(0, 30) || a?.tagName, modal: d?.matches(":modal") }; });
+await page.keyboard.press("Tab"); await page.keyboard.press("Tab"); await page.keyboard.press("Tab");
+const s2 = await page.evaluate(() => { const d = document.querySelector("dialog[open]"); return { focusStillInside: !!(d && d.contains(document.activeElement)) }; });
+await page.keyboard.press("Escape"); await page.waitForTimeout(500);
+const s3 = await page.evaluate(() => ({ closed: !document.querySelector("dialog[open]"), active: document.activeElement?.innerText?.slice(0, 30) }));
+console.log(JSON.stringify({ s1, s2, s3 }));
+await browser.close();
