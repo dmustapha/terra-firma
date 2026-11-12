@@ -71,11 +71,21 @@
     "rule",
     "ink"
   ],
-  "logoPath": "public/logo.svg",
+  "logoPath": "web/public/logo.svg",
   "logoFiles": {
     "svg": "web/public/logo.svg",
     "png512": "web/public/logo.png",
     "favicon": "web/app/favicon.ico",
     "appIcon": "web/app/icon.svg"
+  },
+  "logo": {
+    "mark": "web/public/logo.svg",
+    "png512": "web/public/logo.png",
+    "favicon": "web/app/favicon.ico",
+    "appleIcon": "web/app/apple-icon.png",
+    "ogImage": "web/app/opengraph-image.png",
+    "concept": "Strata square: two shifting ink meme layers over a flat moss bedrock (Stock Tokens) - solid ground under volatile layers",
+    "provider": "stablestudio (nano-banana-pro concepts c1-c4 + 1 edit) -> hand-built vector of concept c1",
+    "conceptsDir": "design-assets/logo-gen"
   }
 }

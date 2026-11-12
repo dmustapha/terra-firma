@@ -62,6 +62,8 @@ export function SiteHeader() {
             home ? "text-nameplate lg:text-center" : "text-deck",
           )}
         >
+          {/* eslint-disable-next-line @next/next/no-img-element -- static brand mark, decorative next to the wordmark */}
+          <img src="/logo.svg" alt="" width={64} height={64} className="mr-[0.22em] inline-block size-[0.82em] align-[-0.06em]" />
           Terra <i className="text-accent">Firma</i>
         </Link>
         {home ? (
