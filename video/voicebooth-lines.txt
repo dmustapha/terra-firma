@@ -1,34 +1,40 @@
-1. this wallet put eighteen thousand two hundred dollars into memes on robinhood chain.
-2. today those memes are worth five cents.
-3. the same dollars in nvda, bought at the same moments, would be worth sixteen thousand seven hundred.
-4. every buy priced with the chainlink round of that moment. measured, not estimated.
-5. this is terra firma. your hindsight, then solid ground: real stock tokens you own.
-6. three ownerless contracts.
-7. a router that trades memes and keeps a slice as stock. a jar that holds it. a fee pool that turns fees into burned wif and stock for stakers.
-8. everything next is real, on robinhood chain mainnet, from my own wallet.
-9. i connect.
-10. first, i buy a meme like anyone would. a few cents of eth, through uniswap.
-11. my card shows what i paid, what it's worth, and what it would be in nvda.
-12. this meme is going nowhere. so i convert it.
-13. one confirmation. the meme is sold, and real nvda lands in my jar.
-14. no admin key. i can take my stock out any time.
-15. but you don't have to stop trading memes. you just keep a slice.
-16. i buy pons with two percent to my jar. one transaction: the meme, plus a slice of nvda.
-17. and sell it back. buys and sells, on every kind of uniswap pool here.
-18. every trade pays a half percent fee. that's where wif comes in.
-19. i buy wif and stake it. stakers pick a stock. mine is nvda.
-20. stake ten thousand and your fee drops to point three percent.
-21. every epoch the fee pool splits. half buys wif and burns it. half buys stock for stakers.
-22. anyone can run it. i press run distribute.
-23. wif bought and burned, and the burn checks out three separate ways.
-24. the other half is waiting for me. i claim it, into my jar as nvda.
-25. last, i mint my card. it burns one wif, after the contract recomputes it from chainlink.
-26. it's on the leaderboard now. biggest regrets, biggest jars.
-27. don't trust me. every transaction you just watched is on the proof page.
-28. and the contract itself can price any card, so you can check my numbers.
-29. who is it for? anyone on robinhood chain holding memes they know the ending of.
-30. wif holders. every trade buys wif, burns wif, and pays stakers in stock.
-31. and traders who won't stop. let every trade leave a little stock behind.
-32. what it doesn't promise: it covers tracked memes and eth, usdg or stock buys. the rest shows as unpriced.
-33. it's not profit and loss. and it's unaudited, so keep it small.
-34. that's terra firma. stand on wif. sweep the rest into stock.
+Terra Firma voicebooth lines (read in order; [Ns] = the window the line must fit; lowercase, relaxed, one breath per line)
+
+01. [4.0s] this wallet put eighteen thousand four hundred dollars into memes.
+02. [3.1s] today those memes are worth thirty five cents.
+03. [4.3s] the same dollars in nvda would be worth almost seventeen thousand.
+04. [4.4s] each buy priced at its own chainlink round. measured, not estimated.
+05. [3.8s] this is terra firma. hindsight first, then solid ground.
+06. [2.8s] three ownerless contracts on robinhood chain.
+07. [4.1s] a router trades memes and keeps a slice as stock.
+08. [5.2s] a jar holds it. a fee pool burns wif and pays stakers.
+09. [3.5s] everything next is real, on mainnet, from my wallet.
+10. [3.8s] first i buy a meme. no slice.
+11. [4.8s] one confirmation, through uniswap. forty one wallet in.
+12. [5.7s] my card: one dollar in, sixty cents now. in nvda, still a dollar.
+13. [3.7s] this meme is going nowhere. so i convert it.
+14. [7.2s] two signatures. the meme is sold, and real nvda lands in my jar.
+15. [7.4s] my jar. a dollar twenty five of real stock tokens. no admin key, i withdraw any time.
+16. [5.2s] but you don't have to stop trading memes. you just keep a slice.
+17. [9.1s] two percent of this buy lands in my jar as nvda. same transaction.
+18. [5.9s] selling works the same way. two pons out, with a slice to the jar.
+19. [5.6s] every trade pays a half percent fee. that fee is where wif comes in.
+20. [9.6s] i buy wif. terra firma only ever buys wif. it never sells it.
+21. [3.1s] then i stake it.
+22. [5.3s] stake ten thousand and your trading fee drops to point three percent.
+23. [4.1s] stakers pick their stock. a hundred wif, activating next epoch.
+24. [2.7s] each epoch, the fee pool splits.
+25. [1.8s] anyone can run it.
+26. [5.2s] half buys wif and burns it. eleven point three six burned this epoch.
+27. [3.1s] the other half buys stock for stakers.
+28. [4.0s] claimed, straight into my jar as nvda.
+29. [4.8s] last, i mint my card. the contract recomputes it from chainlink,
+30. [6.6s] then burns one wif. minted onchain.
+31. [3.5s] it hits the leaderboard. biggest regrets, biggest jars.
+32. [4.1s] don't trust me. every number is read from the chain.
+33. [4.5s] and the contract itself can recompute any card.
+34. [4.9s] who's it for? meme traders on robinhood chain who know the ending.
+35. [5.1s] wif holders. every trade buys wif, burns wif, and pays stakers in stock.
+36. [5.4s] what it doesn't promise: it prices tracked memes paid in eth, usdg or stock.
+37. [4.0s] not profit and loss. unaudited. keep it small.
+38. [4.3s] that's terra firma. stand on wif. sweep the rest into stock.

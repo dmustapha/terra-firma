@@ -1,0 +1,4 @@
+{"take":"/Users/MAC/wif-hack/recordings/rough/rough_cut_v3.mp4","duration_s":174.7,"film_total_s":189.66,
+ "qc_sheets":"/Users/MAC/wif-hack/recordings/rough/qc3/s_*.jpg (1 fps, labeled)",
+ "measured":{"buy_receipt_s":13.0,"card_reveal_s":16.0,"convert_done_s":36.0,"jar_value_s":42.0,"pons_receipt_s":68.0,"sell_receipt_s":88.0,"wif_receipt_s":104.0,"stake_activating_s":119.5,"distributed_s":132.0,"claimed_s":139.5,"minted_s":153.5,"proof_22_43_s":162.5},
+ "known_leak":"~9.0 s grey MetaMask window (excluded by TIMING-PLAN cut at 8.6 s)"}
