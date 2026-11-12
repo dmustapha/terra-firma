@@ -9,6 +9,7 @@ import { cx } from "./ui";
 
 const NAV = [
   { href: "/app", label: "My card" },
+  { href: "/app/convert", label: "Convert" },
   { href: "/trade", label: "Trade" },
   { href: "/jar", label: "My Jar" },
   { href: "/stake", label: "Stake $WIF" },
@@ -20,7 +21,9 @@ const NAV = [
 export function SiteHeader() {
   const path = usePathname();
   const home = path === "/";
-  const active = (href: string) => path === href || path.startsWith(`${href}/`);
+  // "/app" is a prefix of "/app/convert": the longest matching nav href wins, so only one tab is ever active.
+  const match = NAV.map((n) => n.href).filter((h) => path === h || path.startsWith(`${h}/`)).sort((a, b) => b.length - a.length)[0];
+  const active = (href: string) => href === match;
   const linkCls = (href: string) =>
     cx(
       "inline-flex min-h-11 items-center border-b-2 px-1 text-[0.9375rem] font-medium transition-[color,border-color] duration-150",
