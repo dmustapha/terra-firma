@@ -170,7 +170,7 @@ Each one is a law in `INVARIANTS.md`, enforced in code and covered by a named fo
                       |                    |
           signed txs  |                    | read-only API (web/app/api)
                       v                    v
- +-------------- Robinhood Chain mainnet 4663 ----------------+      hindsight  - log scan + Chainlink rounds
+ +-------------- Robinhood Chain mainnet 4663 ----------------+      hindsight  - HyperSync / log scan + Chainlink rounds
  |                                                            |      quote      - route + oracle-bounded quotes
  |  TerraRouter --fee--> FeePool --50%--> buy $WIF --> burn   |      card-check - re-derives a minted card
  |      |  \                   \--50%--> buy stock --> WifStaking --claim--> Jar
@@ -234,6 +234,9 @@ cd web && pnpm dev                # http://localhost:3000, reads Robinhood Chain
 
 The app reads the public Robinhood Chain RPC by default. Optional server-side variables (a private RPC for faster log
 scans, an Envio HyperSync token, a Quicknode endpoint) are listed with comments in `.env.example`.
+
+The live site runs with Envio HyperSync on: card builds pull a wallet's meme transfers from Robinhood Chain HyperSync
+(`web/lib/hypersync.ts`) and fall back to the plain RPC log scan on any error, so a card never depends on one indexer.
 
 ## Tests
 

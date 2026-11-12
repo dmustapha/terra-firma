@@ -31,7 +31,7 @@ Winner-readiness: **88 / 100**
 35 unique URLs in README.md, submission/FORM-ANSWERS.md, submission/HACKATHON-README.md: all 200 except `http://localhost:3000` (local run instruction) and the public RPC root (POST-only, 400 on GET) - both expected. 13/13 cited tx hashes: receipt status 1.
 
 ## Intentional cuts
-Recorded with reasons in SUBMISSION_STATUS.md (HyperSync, Quicknode badge, Friend Jars UI, report card/ticker not featured).
+Recorded with reasons in SUBMISSION_STATUS.md (Quicknode badge, Friend Jars UI, report card/ticker not featured). HyperSync was enabled after this run (token set in Vercel production, live endpoint answers) and is now listed under live integrations.
 
 ## Remaining items (Dami)
 1. Upload ~/Desktop/terra-firma-demo.mp4 to YouTube (unlisted ok); paste link into the form "demo video" field and send it to Claude for the README line.

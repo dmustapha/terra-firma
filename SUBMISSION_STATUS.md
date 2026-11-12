@@ -13,8 +13,10 @@ _Last updated: verify_preflight, 2026-11-12 ~15:20 UTC (submissions close 17:29 
 - [ ] Form submitted on worldisflat.fun/build with payout wallet and email (Dami)
 - [ ] Repo pinned on github.com/dmustapha (Dami, GitHub has no API for pins)
 
+## Live integrations
+- **Envio HyperSync for card loads:** enabled in production. The card route pulls a wallet's meme transfers from Robinhood Chain HyperSync, and falls back to the RPC log scan on any error, so a HyperSync outage never breaks a card.
+
 ## Intentional cuts (with reasons)
-- **Envio HyperSync for card loads:** not enabled. Reason: no Envio API token available before the deadline. Cards are built from the public RPC log scan instead; a cold wallet card takes about 7 to 17 s and is cached after.
 - **Quicknode "verified Jar" badge (F-018):** built but not shown. Reason: the Quicknode endpoint token was never available (QUICKNODE_TOKEN empty). The Jar reads directly from the contract instead.
 - **Friend Jars (F-020):** contract deployed and tested, UI switched off. Reason: scope gate OD7; it needs more mainnet testing before people pool money in it.
 - **Weekly Jar report card and live ticker:** built, not featured in the demo film. Reason: 3-minute limit.
