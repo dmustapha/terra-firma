@@ -108,8 +108,15 @@ import { usdWhole8 as _usdWhole8 } from "./ui-format";
 describe("usdWhole8", () => {
   it("floors in integer math and never rounds up at the cents edge", () => {
     expect(_usdWhole8("1719499500000")).toBe("$17,194"); // 17,194.995 would round to 17,195 via cents
-    expect(_usdWhole8("0")).toBe("$0");
-    expect(_usdWhole8(2n)).toBe("$0");
+    expect(_usdWhole8("0")).toBe("$0.00");
+    expect(_usdWhole8(2n)).toBe("$0.00");
+  });
+  it("keeps floored cents under $100 so small cards are not '$1 into $0.60, left $0'", () => {
+    expect(_usdWhole8(122_990_000n)).toBe("$1.22");
+    expect(_usdWhole8(62_000_000n)).toBe("$0.62");
+    expect(_usdWhole8(9_999_999_999n)).toBe("$99.99");
+    expect(_usdWhole8(10_000_000_000n)).toBe("$100");
+    expect(_usdWhole8(-62_000_000n)).toBe("-$0.62");
   });
   it("a gap never prints larger than the figure it was taken from", () => {
     const cf = 1719499500000n, today = 1000000n;

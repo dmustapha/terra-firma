@@ -2,7 +2,7 @@
 
 // /card + /app: the wallet's own core sample, drilling, beside its report. Same signature as the landing, now about YOU.
 import type { Card } from "@/lib/hindsight";
-import { shares18, usd8, usdWhole8 } from "@/lib/ui-format";
+import { countUp, shares18, usd8, usdWhole8 } from "@/lib/ui-format";
 import { CoreSample, quoted, useDrill } from "./core-sample";
 
 export function WalletCore({ card: c, owner }: { card: Card; owner: boolean }) {
@@ -37,7 +37,7 @@ export function WalletCore({ card: c, owner }: { card: Card; owner: boolean }) {
         <div className="mt-8 border-t border-line-strong pt-3">
           <p className="eyebrow mb-3 text-accent">Left on the table</p>
           <p className="num font-display text-[clamp(4rem,2.4rem+5vw,7.5rem)] leading-[0.82] tracking-[-0.035em]">
-            {k >= 1 ? usdWhole8(gapRaw) : `$${Math.floor((Number(gapRaw) / 1e8) * k).toLocaleString("en-US")}`}
+            {k >= 1 ? usdWhole8(gapRaw) : countUp((Number(gapRaw) / 1e8) * k)}
           </p>
           <p className="mt-2 text-sm text-muted">
             <span className="num">{shares18(c.totals.shares18)}</span> {c.stock} you never bought, each buy priced at the Chainlink round in force when it landed.

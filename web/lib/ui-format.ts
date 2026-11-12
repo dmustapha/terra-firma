@@ -12,9 +12,16 @@ export const usd8 = (v: string | bigint) => usdFmt.format(Number(formatUnits(toB
  *  so a difference can never print larger than the figure it was taken from. */
 export const usdWhole8 = (v: string | bigint) => {
   const n = toBig(v);
-  const whole = (n < 0n ? -n : n) / 100_000_000n;
-  return `${n < 0n ? "-" : ""}$${whole.toLocaleString("en-US")}`;
+  const abs = n < 0n ? -n : n;
+  const whole = abs / 100_000_000n;
+  // Under $100, whole dollars hide the story ("$1 into $0.60, in NVDA $1, left $0"), so small figures keep floored cents.
+  const cents = whole < 100n ? `.${((abs / 1_000_000n) % 100n).toString().padStart(2, "0")}` : "";
+  return `${n < 0n ? "-" : ""}$${whole.toLocaleString("en-US")}${cents}`;
 };
+
+/** Mid-animation count-up value, same rounding as usdWhole8: floored cents under $100, floored dollars above. */
+export const countUp = (dollars: number) =>
+  dollars < 100 ? `$${(Math.floor(dollars * 100) / 100).toFixed(2)}` : `$${Math.floor(dollars).toLocaleString("en-US")}`;
 
 /** Accessible label: "41.07 dollars". */
 export const usd8Label = (v: string | bigint) => `${Number(formatUnits(toBig(v), 8)).toFixed(2)} dollars`;

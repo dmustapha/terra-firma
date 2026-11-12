@@ -5,7 +5,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { Card } from "@/lib/hindsight";
-import { usd8, usdWhole8 } from "@/lib/ui-format";
+import { countUp, usd8, usdWhole8 } from "@/lib/ui-format";
 import { CoreSample, quoted, useDrill } from "./core-sample";
 import { useCard } from "./hooks";
 
@@ -25,7 +25,7 @@ export function HeroCore({ addr, initial, recorded = false, headline, action }: 
           <div className="mt-8">
             <p className="eyebrow text-[color:var(--brick)]">Left on the table · a real wallet</p>
             <p className="num mt-2 font-display text-[clamp(4.5rem,1.6rem+9vw,12.5rem)] leading-[0.8] tracking-[-0.045em]"><span className="sr-only">{usdWhole8(gapRaw)}</span><span aria-hidden>
-              {k >= 1 ? usdWhole8(gapRaw) : `$${Math.floor((Number(gapRaw) / 1e8) * k).toLocaleString("en-US")}`}</span>
+              {k >= 1 ? usdWhole8(gapRaw) : countUp((Number(gapRaw) / 1e8) * k)}</span>
             </p>
             <p className="mt-3 max-w-[46ch] text-[0.9375rem] text-muted">
               It aped <b className="num text-fg">{usdWhole8(qt!.paid)}</b> into memes now worth <b className="num text-[color:var(--brick)]">{usd8(qt!.today)}</b>. The same dollars in {c.stock}, bought at the same moments: <b className="num text-accent">{usdWhole8(qt!.cf)}</b>.{qt!.partial && " Priced memes only."}
