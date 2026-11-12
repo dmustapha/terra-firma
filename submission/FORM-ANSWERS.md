@@ -38,16 +38,16 @@ Terra Firma
 See what your memes would be in stock, then keep a slice of every trade as stock
 ```
 
-## what it does  (1483/1500)
+## what it does  (1496/1500)
 
 ```
-Terra Firma starts with a question most meme traders on Robinhood Chain never ask: what would all that money be worth if it had gone into a real stock instead? You paste any wallet, or connect your own, and it builds a Hindsight card from that wallet's actual onchain buys. Every buy is priced with the Chainlink round that was live at that exact moment, and the same dollars are walked into NVDA (or TSLA, GOOGL, SNDK, SPY, QQQ) at the same moments, so the gap between what you paid, what it is worth now and what it would have been is measured, not estimated. Stock actions are off in restricted countries.
+Terra Firma starts with a question most meme traders on Robinhood Chain never ask: what would all that money be worth if it had gone into a real stock instead? You paste any wallet, or connect your own, and it builds a Hindsight card from that wallet's actual onchain buys. Every buy is priced with the Chainlink round that was live at that exact moment, and the same dollars are walked into NVDA at the same moments, so the gap between what you paid, what it is worth now and what it would have been is measured, not estimated.
 
 Then it lets you do something about it. With one convert, dead memes are sold through Uniswap and the proceeds land in your Jar as real Stock Tokens. The Jar is an ownerless contract with no admin key, and you can withdraw whenever you want. Because people are going to keep trading memes anyway, every buy or sell through the meme terminal can keep a slice of up to ten percent, which lands in your Jar as stock in the same transaction.
 
 Every trade pays a half percent fee. That fee only ever buys $WIF. Once an hour the fee pool splits it: half buys $WIF and burns it, the other half buys Stock Tokens for $WIF stakers. You can also mint your card onchain, which burns one $WIF after the contract recomputes it from Chainlink.
 
-It is all live on Robinhood Chain mainnet with seven source-verified contracts, and every number on the site can be checked on the proof page.
+It is all live on Robinhood Chain mainnet with seven source-verified contracts, and every number on the site can be checked on the proof page. It is a new domain, so some wallets warn on connect; MetaMask works once you acknowledge it.
 ```
 
 ## who it's for  (427/500)

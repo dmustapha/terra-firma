@@ -1,0 +1,166 @@
+{
+ "version": 1,
+ "status": "complete",
+ "autonomous_mode": true,
+ "pipeline_run": false,
+ "currentPhase": "complete",
+ "timestamp": "2026-11-12T13:03:11Z",
+ "expected_phases": [
+  "discovery",
+  "aggregation",
+  "report"
+ ],
+ "phase_ledger": [
+  {
+   "phase": "discovery",
+   "started_at": "2026-11-12T13:03:11Z",
+   "completed_at": "2026-11-12T13:03:11Z",
+   "evidence": "sources read: BUILD-REPORT.md, WIRE-REPORT.md, STRESS-TEST-REPORT.md, VERIFY-REPORT.md, CRITIQUE-REPORT.md, INTERROGATE-REPORT.md, LIVETEST-V3-REPORT.md, web/lib/rpc.ts, research-brief.md, social-intel.md"
+  },
+  {
+   "phase": "aggregation",
+   "started_at": "2026-11-12T13:03:11Z",
+   "completed_at": "2026-11-12T13:03:11Z",
+   "evidence": "6 organizer-actionable items, 5 categories; self-inflicted items dropped"
+  },
+  {
+   "phase": "report",
+   "started_at": "2026-11-12T13:03:11Z",
+   "completed_at": "2026-11-12T13:03:11Z",
+   "evidence": "ORGANIZER-FEEDBACK.md written + surfaced in submission/"
+  }
+ ],
+ "sourcesRead": [
+  "BUILD-REPORT.md",
+  "DEBUG-REPORT.md",
+  "WIRE-REPORT.md",
+  "STRESS-TEST-REPORT.md",
+  "VERIFY-REPORT.md",
+  "CRITIQUE-REPORT.md",
+  "LIVETEST-V3-REPORT.md",
+  "INTERROGATE-REPORT.md",
+  "PULSE.md"
+ ],
+ "requiredSources": [
+  "stress",
+  "verify",
+  "critique"
+ ],
+ "miningSources": [
+  "stress",
+  "verify",
+  "critique",
+  "wire",
+  "build",
+  "interrogate",
+  "livetest"
+ ],
+ "sections": {
+  "feedback": true,
+  "contribution": true
+ },
+ "sponsorFriction": [
+  {
+   "file": "web/lib/rpc.ts",
+   "line": 2,
+   "note": "public RPC 429 at ~4-5 req/s"
+  },
+  {
+   "file": "web/lib/rpc.ts",
+   "line": 21,
+   "note": "GetBlock getLogs ~1,000 block cap"
+  }
+ ],
+ "run_profile": "CAMPAIGN",
+ "feedbackItems": [
+  {
+   "area": "Robinhood Chain public RPC",
+   "friction": "429 at ~4-5 req/s per IP, undocumented",
+   "evidence": "web/lib/rpc.ts",
+   "suggestion": "publish rate limits in builder docs and recommend a higher-limit or archive endpoint for log-heavy apps"
+  },
+  {
+   "area": "GetBlock Robinhood Chain RPC",
+   "friction": "eth_getLogs capped at ~1,000 blocks vs 10M on public RPC",
+   "evidence": "web/lib/rpc.ts",
+   "suggestion": "document per-provider log-range and rate limits in one table in the chain docs"
+  },
+  {
+   "area": "Wallet security scanning (Blockaid)",
+   "friction": "new Robinhood Chain dApp domains flagged malicious; Zerion blocks",
+   "evidence": "INTERROGATE-REPORT.md",
+   "suggestion": "offer a verification path for hackathon dApps or tell teams to file a Blockaid developer verification early"
+  },
+  {
+   "area": "$WIF token",
+   "friction": "no EIP-2612 permit, extra approve per flow",
+   "evidence": "/Users/MAC/wif-hack/research/research-brief.md",
+   "suggestion": "publish a guide for using the deployed Permit2 with $WIF"
+  },
+  {
+   "area": "Chainlink stock feeds on Robinhood Chain",
+   "friction": "phase changes and early-round scale differences undocumented",
+   "evidence": "contracts/src/HindsightLens.sol",
+   "suggestion": "document feed phase changes and per-feed scale/decimal changes"
+  },
+  {
+   "area": "Submission review",
+   "friction": "batch approval with >=24h lag, no visible status",
+   "evidence": "/Users/MAC/wif-hack/research/social-intel.md",
+   "suggestion": "show in review / approved status on the builder dashboard"
+  }
+ ],
+ "organizer_feedback": [
+  {
+   "area": "Robinhood Chain public RPC",
+   "friction": "429 at ~4-5 req/s per IP, undocumented",
+   "evidence": "web/lib/rpc.ts",
+   "suggestion": "publish rate limits in builder docs and recommend a higher-limit or archive endpoint for log-heavy apps"
+  },
+  {
+   "area": "GetBlock Robinhood Chain RPC",
+   "friction": "eth_getLogs capped at ~1,000 blocks vs 10M on public RPC",
+   "evidence": "web/lib/rpc.ts",
+   "suggestion": "document per-provider log-range and rate limits in one table in the chain docs"
+  },
+  {
+   "area": "Wallet security scanning (Blockaid)",
+   "friction": "new Robinhood Chain dApp domains flagged malicious; Zerion blocks",
+   "evidence": "INTERROGATE-REPORT.md",
+   "suggestion": "offer a verification path for hackathon dApps or tell teams to file a Blockaid developer verification early"
+  },
+  {
+   "area": "$WIF token",
+   "friction": "no EIP-2612 permit, extra approve per flow",
+   "evidence": "/Users/MAC/wif-hack/research/research-brief.md",
+   "suggestion": "publish a guide for using the deployed Permit2 with $WIF"
+  },
+  {
+   "area": "Chainlink stock feeds on Robinhood Chain",
+   "friction": "phase changes and early-round scale differences undocumented",
+   "evidence": "contracts/src/HindsightLens.sol",
+   "suggestion": "document feed phase changes and per-feed scale/decimal changes"
+  },
+  {
+   "area": "Submission review",
+   "friction": "batch approval with >=24h lag, no visible status",
+   "evidence": "/Users/MAC/wif-hack/research/social-intel.md",
+   "suggestion": "show in review / approved status on the builder dashboard"
+  }
+ ],
+ "positives": [
+  "Sourcify verification on 4663",
+  "Chainlink stock feeds with history",
+  "Uniswap v2/v3/v4 incl hooked WIF pool",
+  "public project/vote APIs"
+ ],
+ "delivery": {
+  "requested": true,
+  "channel": "Discord DM / feedback form",
+  "draft": "ORGANIZER-OUTREACH.draft.md",
+  "autoSent": false
+ },
+ "artifacts": {
+  "organizer_feedback": "/Users/MAC/wif-hack/tf-v2/ORGANIZER-FEEDBACK.md"
+ }
+}

@@ -1,0 +1,5 @@
+# Draft: organizer feedback note (Dami reviews and sends; nothing was sent)
+
+Channel: worldisflat Discord (DM to the organizer, Wifer) or the builder feedback form if there is one.
+
+hey, now that terra firma is in i wanted to pass on a few notes from building on robinhood chain, in case they're useful for the next round of builders. the big ones were the public rpc rate limit (we measured about 4 to 5 requests a second per ip and couldn't find it documented) and getblock capping getLogs at around 1,000 blocks while the public rpc takes 10M, so a small table of provider limits in the docs would save people a lot of time. new dapp domains also get flagged by blockaid in zerion and metamask, so if there's any way to get hackathon projects verified, or even a note telling teams to file early, that would help. full write-up with file references is here: https://github.com/dmustapha/terra-firma/blob/main/ORGANIZER-FEEDBACK.md. thanks for running this, the chainlink stock feeds were the thing that made our idea possible.

@@ -1,4 +1,4 @@
-# Terra Firma — onchain proof (Robinhood Chain mainnet 4663)
+# Terra Firma: onchain proof (Robinhood Chain mainnet 4663)
 
 Generated 2026-11-12T09:01:45.278Z by `pnpm tsx scripts/proof.ts` from RPC logs, deployment block 111602102 to head 112406935. Every number below is a sum of onchain events; rerun the script to recompute.
 

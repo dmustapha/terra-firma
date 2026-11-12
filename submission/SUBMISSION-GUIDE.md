@@ -32,3 +32,10 @@ All answers are in submission/FORM-ANSWERS.md with character counts. Paste each 
 Some wallets (Zerion and others using Blockaid) flag the new domain as a malicious dApp. A developer verification was filed with Blockaid on 2026-11-12. The app never asks for a seed phrase or permit signature.
 
 Generated 2026-11-12T12:09Z.
+
+## Final checklist (do these last, in order)
+- [ ] Submit the form now with the video field empty or holding the live link, so it joins the earliest approval batch (edits stay open until 17:29 UTC).
+- [ ] Upload `video/out/terra-firma-demo.mp4` to YouTube (unlisted is fine), then paste the link into the form's demo video field AND replace the "Demo video" placeholder lines in `README.md` and `submission/HACKATHON-README.md`.
+- [ ] Re-open the submitted entry and check every field saved (edits persisted), then screenshot the confirmation.
+- [ ] Pin `terra-firma` on github.com/dmustapha (profile, Customize your pins).
+- [ ] Optional: post the launch tweet and thread from `submission/launch-tweet.draft.md` and `submission/THREAD.md` once the video link is in; send the organizer note in `ORGANIZER-OUTREACH.draft.md` after submission.

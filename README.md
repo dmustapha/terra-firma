@@ -7,11 +7,14 @@
 <p align="center"><b>Your memes, in real stock. Stand on $WIF, sweep the rest into Stock Tokens.</b></p>
 
 <p align="center">
-  <a href="https://terra-firma-henna.vercel.app">Live app</a> ·
-  <a href="https://terra-firma-henna.vercel.app/card/0x3fDBeB0FC14cca8fDd238Dd21725F0b8585Ab09E">A real Hindsight card</a> ·
-  <a href="https://terra-firma-henna.vercel.app/proof">Proof page</a> ·
-  <a href="#proof-robinhood-chain-mainnet-4663">Contracts</a>
+  <a href="https://terrafirma-wif.vercel.app">Live app</a> ·
+  <a href="https://terrafirma-wif.vercel.app/card/0x3fDBeB0FC14cca8fDd238Dd21725F0b8585Ab09E">A real Hindsight card</a> ·
+  <a href="https://terrafirma-wif.vercel.app/proof">Proof page</a> ·
+  <a href="#proof-robinhood-chain-mainnet-4663">Contracts</a> ·
+  <a href="https://github.com/dmustapha/terra-firma">Repo</a>
 </p>
+
+<p align="center"><b>Demo video:</b> link coming with the submission (under 3 minutes, recorded on mainnet)</p>
 
 <p align="center">
   <img alt="network" src="https://img.shields.io/badge/Robinhood%20Chain-mainnet%204663-1A1712" />
@@ -33,7 +36,7 @@ Robinhood Chain carries more than 200 real Stock Tokens with Chainlink feeds and
 activity still goes into memecoins, and most memecoins go to zero.
 
 Here is one real wallet, priced by Terra Firma straight from chain logs and Chainlink rounds
-([open the live card](https://terra-firma-henna.vercel.app/card/0x3fDBeB0FC14cca8fDd238Dd21725F0b8585Ab09E)):
+([open the live card](https://terrafirma-wif.vercel.app/card/0x3fDBeB0FC14cca8fDd238Dd21725F0b8585Ab09E)):
 
 | Wallet `0x3fDB...b09E` (113 buys of AI, as of block 112,315,187) | USD |
 |---|---|
@@ -118,7 +121,7 @@ own demo wallet and are disclosed as team transactions, not organic volume.
 | First staker claim into a Jar (`Claimed`) | [`0x37441924...223834`](https://robinhoodchain.blockscout.com/tx/0x37441924dfa9af929f8c4e13dd584801658e802689f81bd2ff26839aad223834) |
 | First card mint, 1 $WIF burned (`CardMinted`) | [`0x81bfa5ff...2b9d11`](https://robinhoodchain.blockscout.com/tx/0x81bfa5ff6814b1325be443cdd62ec2008e7dbdf3280a20c5e857818f9c2b9d11) |
 
-Totals at the time of writing (live numbers on [/proof](https://terra-firma-henna.vercel.app/proof)): 11 routed trades, 2 hourly distributes, **22.43 $WIF burned** (three independent sources agree: the `Distributed` events, $WIF transfers to the burn address and `FeePool.totalWifBurned`), 2 staker claims, 1 card minted.
+Totals at the time of writing (live numbers on [/proof](https://terrafirma-wif.vercel.app/proof)): 11 routed trades, 2 hourly distributes, **22.43 $WIF burned** (three independent sources agree: the `Distributed` events, $WIF transfers to the burn address and `FeePool.totalWifBurned`), 2 staker claims, 1 card minted.
 
 ### Robinhood Chain Regret Index (block 112,356,207)
 
@@ -134,7 +137,7 @@ RPC_URL=https://rpc.mainnet.chain.robinhood.com pnpm verify-claims  # re-derives
 ```
 
 No API keys are needed: both scripts read the public Robinhood Chain RPC. On the site, the **Recompute box** on
-[/proof](https://terra-firma-henna.vercel.app/proof) calls `HindsightLens.recompute` on a card's own inputs and shows
+[/proof](https://terrafirma-wif.vercel.app/proof) calls `HindsightLens.recompute` on a card's own inputs and shows
 the result next to the card.
 
 ## Core Invariants
@@ -205,7 +208,7 @@ and in `SECURITY.md`. Stock Token issuer and transfer restrictions apply indepen
 
 - Unaudited hackathon software. Use small amounts.
 - New domain, new contracts: some wallets (Zerion and others using Blockaid) currently show a generic "malicious dApp"
-  warning for `terra-firma-henna.vercel.app`. A developer verification was filed with Blockaid on 2026-11-12. The site
+  warning for `terrafirma-wif.vercel.app` and the older `terra-firma-henna.vercel.app`. MetaMask works after you acknowledge the warning. A developer verification was filed with Blockaid on 2026-11-12. The site
   never asks for a seed phrase, password or permit signature; it only requests exact-amount approvals to the 7
   source-verified contracts listed above.
 - The WIF/ETH pool used for the burn has a third-party hook that Terra Firma does not own or control (disclosed in

@@ -1,0 +1,26 @@
+{
+ "blueprintCanonical": "~/.claude/DORAHACKS-DETAIL-BLUEPRINT.md",
+ "blueprintEncodings": [
+  "~/.claude/DORAHACKS-DETAIL-BLUEPRINT.md"
+ ],
+ "formFields": {
+  "writers": [
+   "package"
+  ],
+  "consumers": [
+   "deploy"
+  ]
+ },
+ "release": {
+  "tagged": false,
+  "ci": {
+   "releaseOnTag": true,
+   "freshCloneGreen": true
+  }
+ },
+ "skeletonLint": {
+  "present": true,
+  "plantedRed": true
+ },
+ "linkHelper": "trusts-deploy"
+}

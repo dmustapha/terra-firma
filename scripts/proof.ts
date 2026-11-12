@@ -81,7 +81,7 @@ function markdown(d: Deployments, head: number, t: ReturnType<typeof totals>, f:
   const tx = (h: string | null) => (h ? `[\`${h}\`](${EXPLORER}/tx/${h})` : "not yet (no such event onchain)");
   const contracts = CONTRACT_NAMES.map((n) => `| ${n} | [\`${d[n]}\`](${EXPLORER}/address/${d[n]}) |`).join("\n");
   const streamed = Object.entries(t.stockStreamed).map(([s, v]) => `${s} ${formatEther(BigInt(v))}`).join(", ");
-  return `# Terra Firma — onchain proof (Robinhood Chain mainnet 4663)
+  return `# Terra Firma: onchain proof (Robinhood Chain mainnet 4663)
 
 Generated ${new Date().toISOString()} by \`pnpm tsx scripts/proof.ts\` from RPC logs, deployment block ${d.block} to head ${head}. Every number below is a sum of onchain events; rerun the script to recompute.
 
@@ -113,7 +113,7 @@ ${contracts}
 | WIF burned (Distributed events) | ${formatEther(BigInt(t.wifBurnedWei.byEvent))} |
 | WIF burned (WIF Transfer FeePool -> 0x0) | ${formatEther(BigInt(t.wifBurnedWei.byTransferToZero))} |
 | WIF burned (FeePool.totalWifBurned) | ${formatEther(BigInt(t.wifBurnedWei.feePoolTotal))} |
-| Burn sources agree | ${t.burnConsistent ? "yes" : "NO — investigate"} |
+| Burn sources agree | ${t.burnConsistent ? "yes" : "NO, investigate"} |
 | Stock streamed to stakers | ${streamed} |
 | Jars (distinct credited users) | ${t.jars} |
 | Staker claims | ${t.claims} (${formatEther(BigInt(t.claimedWei))} stock) |

@@ -1,0 +1,18 @@
+{
+ "claims": {
+  "contracts_verified": 7,
+  "wif_burned_total": "22.43",
+  "distributes": 2,
+  "claims": 2,
+  "cards_minted": 1,
+  "web_tests": 142,
+  "contract_tests": "62 fork + 25 stress"
+ },
+ "surfaces": {
+  "README.md": "badges 87/142, proof table 22.43",
+  "submission/FORM-ANSWERS.md": "22.43, seven contracts",
+  "submission/copy/description.md": "22.43, 142, 62+25",
+  "submission/HACKATHON-README.md": "verify-claims",
+  "submission/THREAD.md": "22.43, 7 contracts"
+ }
+}
