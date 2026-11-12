@@ -239,7 +239,8 @@ scans, an Envio HyperSync token, a Quicknode endpoint) are listed with comments 
 | Web unit tests (142) | `pnpm test` | Hindsight pricing and Chainlink round bracketing, quote bounds, card cache, API input validation, the event stream route, UI formatting and error states |
 | Typecheck | `pnpm typecheck && pnpm typecheck:web` | Scripts and web compile with no type errors |
 | Contract build | `pnpm forge:build` | All contracts compile (forge wrapped with a 600 s timeout) |
-| Fork tests (87) | `RPC_URL=<robinhood-rpc> FORK_BLOCK=111155803 scripts/forge.sh test -vv` | Every invariant above against a Robinhood Chain mainnet fork: $WIF sell reverts, stale oracle, JIT staking, unbacked credit, no-owner surface, route injection, burn and split math. Output: `evidence/forge-test.txt` |
+| Fork tests (62) | `RPC_URL=<robinhood-rpc> FORK_BLOCK=111155803 scripts/forge.sh test -vv` | Every invariant above against a Robinhood Chain mainnet fork: $WIF sell reverts, stale oracle, JIT staking, unbacked credit, no-owner surface, route injection, burn and split math. Output: `evidence/forge-test.txt` |
+| Stress tests (25) | `scripts/forge.sh test --match-path contracts/test/stress-p5.t.sol` on a fork | Card mint burn, zero/max/wrong-state boundaries, burn-leg sandwich cap, distribute griefing, invite replay, 3 fuzz suites. Output: `evidence/stress/p5-contract-stress.txt` |
 | Claims | `pnpm verify-claims` | Every figure in `CLAIMS.md` re-derived from its source |
 
 `pnpm check` runs typecheck, contract build, web tests and claim verification in one command; CI runs the same steps on
