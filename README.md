@@ -16,8 +16,8 @@
 <p align="center">
   <img alt="network" src="https://img.shields.io/badge/Robinhood%20Chain-mainnet%204663-1A1712" />
   <img alt="contracts" src="https://img.shields.io/badge/contracts-7%20verified%20(Sourcify%20exact__match)-3F6B4A" />
-  <img alt="fork tests" src="https://img.shields.io/badge/fork%20tests-62%20passing-3F6B4A" />
-  <img alt="web tests" src="https://img.shields.io/badge/web%20tests-133%20passing-3F6B4A" />
+  <img alt="fork tests" src="https://img.shields.io/badge/contract%20tests-87%20passing-3F6B4A" />
+  <img alt="web tests" src="https://img.shields.io/badge/web%20tests-142%20passing-3F6B4A" />
   <img alt="license" src="https://img.shields.io/badge/license-MIT-1A1712" />
 </p>
 
@@ -114,7 +114,11 @@ own demo wallet and are disclosed as team transactions, not organic volume.
 | First convert (`Converted`) | [`0xc5500b3c...2131b5`](https://robinhoodchain.blockscout.com/tx/0xc5500b3cdd258f293c22f126f614af07c8ae541b159d27bd7ca84a85872131b5) |
 | First sweep into stock (`Swept`) | [`0x7f5b2f1f...551b53`](https://robinhoodchain.blockscout.com/tx/0x7f5b2f1fb864bce8ac6f2fb0fdfebfbf5758997ad1a3bf7ea3cd5cff89551b53) |
 | First $WIF stake (`Staked`) | [`0x15551573...4bcd8f`](https://robinhoodchain.blockscout.com/tx/0x15551573a7f3ff7cfbb2ab11ce3e2b8141c64701a5ea014984b9fcd7374bcd8f) |
-| First `Distributed` with a $WIF burn, first staker claim, first card mint | Not yet onchain. `scripts/proof.ts` prints them the block they land; the live [/proof](https://terra-firma-henna.vercel.app/proof) page reads them directly. |
+| First `Distributed` with a $WIF burn | [`0xbd233684...0287c0`](https://robinhoodchain.blockscout.com/tx/0xbd23368477c98de488447b1c20895b8d438bdba9977d63b8f01835899d0287c0) |
+| First staker claim into a Jar (`Claimed`) | [`0x37441924...223834`](https://robinhoodchain.blockscout.com/tx/0x37441924dfa9af929f8c4e13dd584801658e802689f81bd2ff26839aad223834) |
+| First card mint, 1 $WIF burned (`CardMinted`) | [`0x81bfa5ff...2b9d11`](https://robinhoodchain.blockscout.com/tx/0x81bfa5ff6814b1325be443cdd62ec2008e7dbdf3280a20c5e857818f9c2b9d11) |
+
+Totals at the time of writing (live numbers on [/proof](https://terra-firma-henna.vercel.app/proof)): 11 routed trades, 2 hourly distributes, **22.43 $WIF burned** (three independent sources agree: the `Distributed` events, $WIF transfers to the burn address and `FeePool.totalWifBurned`), 2 staker claims, 1 card minted.
 
 ### Robinhood Chain Regret Index (block 112,356,207)
 
@@ -232,10 +236,10 @@ scans, an Envio HyperSync token, a Quicknode endpoint) are listed with comments 
 
 | Suite | Command | What it asserts |
 |---|---|---|
-| Web unit tests (133) | `pnpm test` | Hindsight pricing and Chainlink round bracketing, quote bounds, card cache, API input validation, the event stream route, UI formatting and error states |
+| Web unit tests (142) | `pnpm test` | Hindsight pricing and Chainlink round bracketing, quote bounds, card cache, API input validation, the event stream route, UI formatting and error states |
 | Typecheck | `pnpm typecheck && pnpm typecheck:web` | Scripts and web compile with no type errors |
 | Contract build | `pnpm forge:build` | All contracts compile (forge wrapped with a 600 s timeout) |
-| Fork tests (62) | `RPC_URL=<robinhood-rpc> FORK_BLOCK=111155803 scripts/forge.sh test -vv` | Every invariant above against a Robinhood Chain mainnet fork: $WIF sell reverts, stale oracle, JIT staking, unbacked credit, no-owner surface, route injection, burn and split math. Output: `evidence/forge-test.txt` |
+| Fork tests (87) | `RPC_URL=<robinhood-rpc> FORK_BLOCK=111155803 scripts/forge.sh test -vv` | Every invariant above against a Robinhood Chain mainnet fork: $WIF sell reverts, stale oracle, JIT staking, unbacked credit, no-owner surface, route injection, burn and split math. Output: `evidence/forge-test.txt` |
 | Claims | `pnpm verify-claims` | Every figure in `CLAIMS.md` re-derived from its source |
 
 `pnpm check` runs typecheck, contract build, web tests and claim verification in one command; CI runs the same steps on
@@ -247,7 +251,7 @@ default gate never depends on the network.
 ```
 contracts/
   src/            TerraRouter, Jar, FeePool, WifStaking, StockOracle, HindsightLens, FriendJar
-  test/           fork suite + debug regression tests (62 tests)
+  test/           fork suite, debug regressions and stress tests (87 tests)
   script/         deploy script and config
   deployments/    4663.json, the deployed addresses (source of truth)
 web/

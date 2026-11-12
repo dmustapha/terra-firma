@@ -12,3 +12,11 @@ contracts/deployments/4663.fork.json
 .vercel/
 *.log
 scripts/.cache/
+
+# demo film: founder voice takes never leave this machine; large renders stay local
+video/voice/takes/
+video/voice/*.wav
+video/guide/
+video/guide.mp4
+video/out/*.mp4
+video/**/*.webm
