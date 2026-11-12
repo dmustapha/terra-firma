@@ -49,7 +49,7 @@ export function LinkButton({ variant = "primary", className, ...p }: ComponentPr
 
 /** A ruled sheet: ink rule on top, a fresh-paper step up from the ground, hairline foot. */
 export function Panel({ className, ...p }: ComponentProps<"section">) {
-  return <section className={cx("border-t-2 border-line-strong border-b border-b-line bg-surface px-4 py-5 sm:px-6 sm:py-6", className)} {...p} />;
+  return <section className={cx("border-t-[3px] border-double border-line-strong py-5 sm:py-6", className)} {...p} />;
 }
 
 export function Badge({ tone = "neutral", children }: { tone?: "neutral" | "accent" | "warn" | "danger"; children: ReactNode }) {

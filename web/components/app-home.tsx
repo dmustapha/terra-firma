@@ -50,8 +50,8 @@ export function AppHome() {
     else router.push(`/app/convert?stock=${stock}`);
   };
 
-  const title = guest ? `Hindsight card · ${short(HISTORY_ADDR)}` : address ? `Your Hindsight card · ${short(address)}` : "Your Hindsight card";
-  const header = <PageHeader title={title} sub="What meme buys cost, priced with the Chainlink round at each block. Expand any row for receipts." />;
+  const title = guest ? "The Hindsight Edition" : "Your Hindsight Edition";
+  const header = <PageHeader title={title} sub={guest ? `An example wallet, ${short(HISTORY_ADDR)}. Connect to print yours.` : "What your meme buys cost you, priced at the Chainlink round of each buy."} />;
   const bar = guest && <DemoBar next="/app" />;
   if ((!ready && !guest) || card.isLoading) return <>{header}{bar}<CardSkeleton /></>;
   if (card.error || !card.data)

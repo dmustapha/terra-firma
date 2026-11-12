@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { ADDR, EXPLORER, STOCKS } from "@/lib/config";
+import { ADDR, STOCKS } from "@/lib/config";
 import type { Card, CardBuy, CardMeme } from "@/lib/hindsight";
 import { REGISTRY } from "@/lib/registry";
 import { DASH, date, pct, pctChange, roundTail, shares18, token, usd8, usd8Label } from "@/lib/ui-format";
-import { PlateInProof, StrataPlate } from "./strata-plate";
+import { FrontPage } from "./front-page";
 import { Guarantee } from "./guarantee";
-import { AddrLink, Badge, ExtLink, Notice, Panel, TxLink, cx } from "./ui";
+import { AddrLink, Badge, Notice, TxLink, cx } from "./ui";
 
 const payAsset = (b: CardBuy) =>
   b.payKind === 0
@@ -93,42 +93,19 @@ function MemeRow({ m, stock, worst }: { m: CardMeme; stock: (typeof STOCKS)[numb
 
 export function HindsightCard({ card, owner = true, stockControl, actions }: { card: Card; owner?: boolean; stockControl?: ReactNode; actions?: ReactNode }) {
   const stock = STOCKS.find((s) => s.symbol === card.stock) ?? STOCKS[0];
-  const empty = card.memes.length === 0 && card.unpriced.length === 0;
-  const who = owner ? "You" : "This wallet";
   return (
-    <Panel aria-label={`Hindsight card for wallet ${card.wallet}`} className="space-y-6">
-      <p className="border-b border-line pb-3 text-xs text-muted">
-        Wallet <AddrLink addr={card.wallet} className="font-mono" /> · values re-read live · as of block{" "}
-        <ExtLink href={`${EXPLORER}/block/${card.asOfBlock}`}><span className="num">{card.asOfBlock.toLocaleString("en-US")}</span></ExtLink>
-      </p>
+    <div aria-label={`Hindsight edition for wallet ${card.wallet}`} className="space-y-10">
+      <div className="mx-auto max-w-[56rem]">
+        <FrontPage card={card} owner={owner} />
+      </div>
 
       {card.partial && <PartialBanner card={card} />}
 
-      {empty ? (
-        <div className="py-6">
-          <p className="font-display text-deck">None of the {REGISTRY.memes.length} memes we track are in this wallet.</p>
-          {REGISTRY.memes.length === 0 && <p className="mt-2 text-sm text-muted">The list of tracked memes is still being built, so nothing was scanned yet.</p>}
-        </div>
-      ) : (
-        <div className="grid gap-x-10 gap-y-6 lg:grid-cols-12">
-          <div className="space-y-4 lg:col-span-7 lg:border-r lg:border-line lg:pr-10">
-            <p className="font-display text-deck text-pretty">
-              {who} put <span className="num">{usd8(card.totals.usdPaid8)}</span> into memes still held. Today{card.unquoted.length > 0 ? " (priced memes only)" : ""}: <span className="num">{usd8(card.totals.usdToday8)}</span>. In {stock.symbol}:{" "}
-              <i className="num text-accent">{usd8(card.totals.usdCounterfactual8)}</i>.
-            </p>
-            <p className="text-sm text-muted">Gross buys of memes this wallet still holds, priced with the Chainlink round at each buy. Sells and transfers out are not netted; this is not profit and loss.</p>
-            {card.worst && <WorstLine card={card} />}
-            {stockControl && <div className="border-t border-line pt-4">{stockControl}</div>}
-          </div>
-          {card.memes.length > 0 && <StrataPlate card={card} className="order-first lg:order-none lg:col-span-5" />}
-        </div>
-      )}
-
-      {empty && stockControl}
+      {stockControl && <div className="rule-head">{stockControl}</div>}
 
       {card.memes.length > 0 && (
         <div>
-          <h2 className="mb-2 font-display text-xl">Receipts, meme by meme</h2>
+          <h2 className="rule-head mb-3 font-display text-[1.75rem]">The ledger, coin by coin</h2>
           <div className="hidden grid-cols-[1.2fr_1fr_1fr_1fr_auto] gap-x-3 border-y border-fg px-3 py-2 text-[0.8125rem] font-semibold text-muted sm:grid" aria-hidden>
             <span>Meme</span><span className="text-right">Paid</span><span className="text-right">Today</span><span className="text-right">In {stock.symbol}</span><span className="w-3" />
           </div>
@@ -162,21 +139,7 @@ export function HindsightCard({ card, owner = true, stockControl, actions }: { c
       {actions}
 
       <Guarantee addr={card.wallet} stock={card.stock} />
-    </Panel>
-  );
-}
-
-/** The worst trade as two plain figures in ink: a loss is shown as the lower value, never as a red minus. */
-function WorstLine({ card }: { card: Card }) {
-  const m = card.memes.find((x) => x.symbol === card.worst?.symbol);
-  if (!m) return null;
-  return (
-    <p className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-line pt-3 text-sm text-fg">
-      <Badge>worst trade</Badge>
-      <span className="num">
-        <strong className="font-semibold">{m.symbol}</strong>: {usd8(m.usdPaid8)} paid → {m.usdToday8 === null ? `${DASH} today (no live quote)` : `${usd8(m.usdToday8)} today`}
-      </span>
-    </p>
+    </div>
   );
 }
 
@@ -221,33 +184,23 @@ export function CardSkeleton() {
     { what: "Today's value", how: "Reading live prices for the memes still held" },
   ];
   return (
-    <Panel aria-busy="true" aria-labelledby="press-title">
-      <div className="grid gap-x-10 gap-y-8 lg:grid-cols-12">
-        <div className="lg:col-span-6 lg:border-r lg:border-line lg:pr-10">
-          <p className="mb-1 font-display text-[1.375rem] italic text-accent">Hindsight card</p>
-          <h2 id="press-title" className="font-display text-title text-balance">
-            Going to press: <em className="text-accent">reading buys</em> from Robinhood Chain
-          </h2>
-          <p role="status" className="mt-4 text-[1.0625rem] font-semibold">Scanning {memes} for this wallet.</p>
-          <p className="num mt-1 text-sm text-muted">
-            <span aria-hidden>{t} s elapsed · </span>usually 5–15 seconds{t > 20 ? ". Taking longer than usual; still reading." : "."}
-          </p>
-          <p className="mt-3 max-w-[50ch] text-[0.9375rem] text-muted">Nothing is estimated: the card is set in type only after every buy and its Chainlink round are read.</p>
-          <ol className="mt-6 border-t border-fg">
+    <div aria-busy="true" className="mx-auto max-w-[56rem]">
+      <div className="paper-sheet">
+        <article aria-labelledby="press-title" className="paper px-5 pt-4 pb-6 sm:px-8 sm:pt-5">
+          <p className="border-b-[3px] border-double border-[color:var(--ink)] pb-2 text-center font-display text-[clamp(1.6rem,1.1rem+1.6vw,2.5rem)] leading-none">The Hindsight Edition</p>
+          <h2 id="press-title" className="mt-5 font-display text-[clamp(2.2rem,1.5rem+2.6vw,3.75rem)] leading-[0.92] uppercase">Going to press</h2>
+          <p role="status" className="mt-3 font-display text-[1.375rem] italic">Reading {memes} for this wallet. <span className="num not-italic">{t}s</span>, usually 5–15.{t > 20 ? " Taking longer than usual; still reading." : ""}</p>
+          <ol className="mt-5 border-t border-[color:var(--ink)]">
             {steps.map((s) => (
-              <li key={s.what} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-0.5 border-b border-line py-3 text-[0.9375rem]">
-                <span className="font-semibold">{s.what}</span>
-                <span className="inline-flex items-center gap-2 font-semibold text-accent">
-                  <span aria-hidden className="inking size-2.5 rounded-full border border-accent bg-accent-32" />
-                  On the press
-                </span>
-                <span className="col-span-2 text-sm text-muted">{s.how}</span>
+              <li key={s.what} className="flex items-baseline justify-between gap-4 border-b border-[color:var(--ink)]/30 py-3">
+                <span><b>{s.what}</b><span className="block text-[0.875rem] opacity-75">{s.how}</span></span>
+                <span aria-hidden className="inking size-2.5 shrink-0 rounded-full bg-[color:var(--moss)]" />
               </li>
             ))}
           </ol>
-        </div>
-        <PlateInProof className="lg:col-span-6" />
+          <p className="mt-4 text-[0.875rem] opacity-80">Nothing is estimated: the edition is set in type only after every buy and its Chainlink round are read.</p>
+        </article>
       </div>
-    </Panel>
+    </div>
   );
 }

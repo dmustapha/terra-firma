@@ -27,7 +27,7 @@ export function SiteHeader() {
     );
 
   return (
-    <header className="sticky top-0 z-40 border-b border-fg/20 bg-sheet/90 shadow-[var(--sh-sheet)] backdrop-blur-md">
+    <header className="sticky top-0 z-40 border-b-[3px] border-double border-line-strong bg-bg/95 backdrop-blur-sm">
       <div className="mx-auto flex w-full max-w-[80rem] items-center justify-between gap-2 px-4 sm:gap-4 py-2.5 sm:px-6 lg:px-8">
         <Link href="/" className="flex min-w-0 shrink items-center gap-2 rounded-sm font-display text-[1.375rem] leading-none sm:gap-2.5 sm:text-[1.875rem] whitespace-nowrap transition-opacity duration-150 hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-fg">
           {/* eslint-disable-next-line @next/next/no-img-element */}

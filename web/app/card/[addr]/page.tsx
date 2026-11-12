@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 import { getAddress, isAddress } from "viem";
 import { CardView } from "@/components/card-view";
-import { PageHeader } from "@/components/ui";
 import { stockBySymbol, type StockId } from "@/lib/config";
 import { getCard } from "@/lib/card-cache";
 import type { Card } from "@/lib/hindsight";
@@ -36,7 +35,8 @@ export default async function CardPage({ params, searchParams }: Props) {
   const { card, error } = await load(addr, stock.toUpperCase());
   return (
     <>
-      <PageHeader title={`Hindsight card · ${short(getAddress(addr))}`} sub="Read-only. Every number links to its transaction or Chainlink round." />
+      <h1 className="sr-only">The Hindsight Edition for wallet {short(getAddress(addr))}</h1>
+      <div className="h-6" />
       <CardView card={card} error={error} />
     </>
   );

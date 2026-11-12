@@ -17,12 +17,9 @@ import { ExtLink, Skeleton, TextLink } from "./ui";
 
 const NA = <span className="text-danger">unreadable right now</span>;
 
-function Fig({ label, value, href }: { label: string; value: ReactNode; href: string; lead?: boolean }) {
+function Fig({ label, value, href }: { label: string; value: ReactNode; href: string }) {
   return (
-    <li className="flex items-baseline gap-2">
-      <span className="num text-[1.125rem] font-bold leading-none"><ExtLink href={href} className="no-underline">{value}</ExtLink></span>
-      <span>{label}</span>
-    </li>
+    <span className="whitespace-nowrap"><b className="num"><ExtLink href={href} className="no-underline">{value}</ExtLink></b> {label}</span>
   );
 }
 
@@ -45,28 +42,22 @@ export function LiveProof() {
   const fresh = !!logs.data && only(logs.data.router, "Traded").length === 0 && only(logs.data.jar, "Credited").length === 0;
   const ago = head.data && born.data ? Number(head.data.timestamp - born.data.timestamp) : null;
   return (
-    <section aria-labelledby="proof-title" className="bleed">
-      <div className="mx-auto max-w-[80rem] px-4 pt-20 pb-4 sm:px-6 lg:px-8">
-        <div className="sheet grid gap-6 px-7 py-6 lg:grid-cols-[1.4fr_1fr] lg:items-center">
-          <div>
-            <h2 id="proof-title" className="flex items-center gap-2 text-sm font-semibold text-accent"><span className="live-dot" aria-hidden /> Live on Robinhood Chain mainnet</h2>
-            <p className="mt-2 font-display text-[1.875rem] leading-tight">
-              {ago !== null ? <>Up for <span className="num">{since(ago)}</span>.</> : "Live."}{fresh && <span className="text-accent"> The first sweep is still up for grabs.</span>}
-            </p>
-            <p className="mt-2 text-sm text-muted">
-              <TextLink inline href="/proof">{deployments.verified.length} verified contracts, every tx</TextLink> · since block <span className="num">{Number(deployments.block).toLocaleString("en-US")}</span>
-            </p>
-          </div>
-          <div className="rounded-[10px] bg-fg px-5 py-4 text-bg shadow-[var(--sh-well)]">
-            <p className="mb-2 text-xs font-semibold opacity-70">Since launch, read every 30s</p>
-            <ul className="grid gap-x-6 gap-y-1.5 text-[0.9375rem] opacity-90 min-[400px]:grid-cols-2">
-              <Fig label="$WIF burned" href={addrUrl(TF.FeePool)} value={rv(burned, (v) => token(v))} />
-              <Fig label="ETH into stakers' stock" href={addrUrl(TF.FeePool)} value={rv(toStock, (v) => eth(v))} />
-              <Fig label="slice trades" href={addrUrl(TF.TerraRouter)} value={lv((l) => only(l.router, "Traded").length)} />
-              <Fig label="Jars opened" href={addrUrl(TF.Jar)} value={lv((l) => new Set(only(l.jar, "Credited").map((x) => x.args.user.toLowerCase())).size)} />
-            </ul>
-            <p className="mt-2 text-xs opacity-70">$WIF burns when each epoch closes.</p>
-          </div>
+    <section aria-labelledby="proof-title" className="rule-head pb-16">
+      <div className="grid gap-x-10 gap-y-6 lg:grid-cols-[1fr_2fr]">
+        <div>
+          <h2 id="proof-title" className="font-display text-[1.75rem] leading-tight">Sources &amp; corrections</h2>
+          <p className="mt-2 flex items-center gap-2 text-sm font-semibold text-accent"><span className="live-dot" aria-hidden /> Live on Robinhood Chain mainnet{ago !== null && <>, up {since(ago)}</>}</p>
+        </div>
+        <div className="columns-1 gap-10 text-[0.9375rem] leading-relaxed text-fg/85 sm:columns-2 [&>p]:mb-3 [&>p]:break-inside-avoid">
+          <p>Every figure in this edition is read from Robinhood Chain logs and the Chainlink round in force at each buy. Nothing is estimated or typed in. <TextLink inline href="/proof">{deployments.verified.length} verified contracts, every transaction</TextLink>.</p>
+          <p>
+            Since launch at block <span className="num">{Number(deployments.block).toLocaleString("en-US")}</span>: <Fig label="$WIF burned" href={addrUrl(TF.FeePool)} value={rv(burned, (v) => token(v))} />,{" "}
+            <Fig label="ETH into stakers' stock" href={addrUrl(TF.FeePool)} value={rv(toStock, (v) => eth(v))} />,{" "}
+            <Fig label="slice trades" href={addrUrl(TF.TerraRouter)} value={lv((l) => only(l.router, "Traded").length)} />,{" "}
+            <Fig label="Jars opened" href={addrUrl(TF.Jar)} value={lv((l) => new Set(only(l.jar, "Credited").map((x) => x.args.user.toLowerCase())).size)} />.
+            {fresh && <b className="text-accent"> The first sweep is still up for grabs.</b>} $WIF burns when each epoch closes.
+          </p>
+          <p>Terra Firma never sells or prices $WIF. Every stock fill is bounded by Chainlink. The Hindsight Edition counts gross buys of memes a wallet still holds; it is not profit and loss.</p>
         </div>
       </div>
     </section>
