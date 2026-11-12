@@ -1,14 +1,14 @@
 Terra Firma voicebooth lines (v5). Read each section as one flowing thought. lowercase on purpose. say nvda as n-v-d-a, pons as ponz, wif as wif.
 
-01. [0.2s, 3.3s] this is a real wallet on robinhood chain.
-02. [3.5s, 7.1s] it put about eighteen thousand dollars into memes, and what's left today is worth thirty five cents.
-03. [10.6s, 6.2s] the same money in nvda, at the same moments, would be close to seventeen thousand.
+01. [0.2s, 3.2s] this is a real wallet on robinhood chain.
+02. [3.4s, 5.7s] it put thousands of dollars into memes, and almost all of it is gone.
+03. [9.1s, 7.7s] if that same money had gone into nvda at the same moments, most of it would still be there.
 
 04. [17.1s, 6.5s] i built terra firma because most of us have a number like that and never look.
 05. [23.6s, 5.2s] it shows you yours, or anyone's, then helps you do something about it.
 
-06. [29.0s, 2.8s] this is my own wallet on mainnet.
-07. [31.8s, 10.8s] i buy a meme through uniswap like i normally would, and my card tells me straight away: a dollar in, sixty cents left, nvda still a dollar.
+06. [29.0s, 2.7s] this is my own wallet on mainnet.
+07. [31.7s, 10.9s] i buy a meme through uniswap like i normally would, and my card shows what i paid, what it's worth now, and what it would be in nvda.
 
 08. [42.9s, 3.7s] that one isn't coming back, so i convert it.
 09. [46.6s, 7.9s] two signatures, the meme is sold, and it lands in my jar as nvda stock tokens, priced against chainlink.
@@ -23,9 +23,9 @@ Terra Firma voicebooth lines (v5). Read each section as one flowing thought. low
 16. [93.8s, 7.8s] if you stake wif, you get paid from every trade on the app in real stock, whichever one you pick.
 17. [101.6s, 12.1s] i stake a hundred and pick nvda. new stakes wait a full epoch, so nobody can game a payout, and staking ten thousand drops your own fee to point three percent.
 
-18. [114.0s, 4.0s] once an hour anyone can run the fee pool.
-19. [118.0s, 11.0s] half of what it collected buys wif and burns it, eleven point three six this time, and the other half buys stock for the stakers.
-20. [129.0s, 2.6s] mine goes straight into my jar.
+18. [114.0s, 4.7s] once an hour anyone can run the fee pool.
+19. [118.7s, 9.8s] half of what it collected buys wif and burns it, and the other half buys stock for the stakers.
+20. [128.5s, 3.1s] mine goes straight into my jar.
 
 21. [131.8s, 7.6s] you can also mint your card, which burns one more wif after the contract checks the numbers against chainlink.
 22. [139.4s, 4.4s] minted cards go on the leaderboard, next to the biggest jars.
