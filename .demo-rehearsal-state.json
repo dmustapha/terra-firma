@@ -2,7 +2,7 @@
  "status": "blocked",
  "blocked_reasons": [
   "missing_required_input: .deploy-state.json (deploy-to-github ran but wrote no state file; live URLs verified)",
-  "crossreview-exit-gate: distinct-model re-derivation of the actual take (rough_cut_v3) returned DISAGREE (ledger .crossmodel-events.jsonl, reviewer claude-sonnet-4-6, no reason recorded). Likely cause: the locked take itself still contains the FG-011 MetaMask frame at ~9.0 s. Fix the EDL (S02 first keep out 196.9), rebuild rough_cut_v4, re-run claude_rederive rehearsal-take."
+  "crossreview-exit-gate DISAGREE was on rough_cut_v3 (MetaMask frame); re-run claude_rederive rehearsal-take on rough_cut_v4"
  ],
  "run_profile": "CAMPAIGN",
  "audio_strategy": "separate",
@@ -148,11 +148,6 @@
    "proof": "single dark theme for the take"
   },
   {
-   "id": "FG-011",
-   "disposition": "fixed",
-   "proof": "video/TIMING-PLAN.md s02b ends 8.6 s; card c1 covers 8.6-10.7"
-  },
-  {
    "id": "FG-012",
    "disposition": "fixed",
    "proof": "recordings/edl/master.json excludes all non-app ranges; output QC at 2fps clean"
@@ -166,6 +161,16 @@
    "id": "FG-014",
    "disposition": "fixed",
    "proof": "video/SCRIPT.md numbers match footage"
+  },
+  {
+   "id": "FG-011",
+   "disposition": "fixed",
+   "proof": "rough_cut_v4 removes S02 frame at take4 197.4"
+  },
+  {
+   "id": "FG-015",
+   "disposition": "fixed",
+   "proof": "film 168.4 s, overlays only"
   }
  ],
  "demo_steps": [
@@ -197,11 +202,10 @@
    "resolution_source": "3024x1964 -> crop 3024:1701:0:244 -> 1920x1080"
   },
   {
-   "scene_id": "rough_cut_v3",
-   "file_path": "/Users/MAC/wif-hack/recordings/rough/rough_cut_v3.mp4",
-   "duration_seconds": 174.7,
+   "scene_id": "rough_cut_v4",
+   "file_path": "/Users/MAC/wif-hack/recordings/rough/rough_cut_v4.mp4",
+   "duration_seconds": 173.2,
    "audio_strategy": "separate",
-   "edl": "/Users/MAC/wif-hack/recordings/edl/master.json",
    "resolution": "1920x1080"
   }
  ],
@@ -211,11 +215,8 @@
    "today those memes are worth thirty five cents.",
    "the same dollars in nvda would be worth almost seventeen thousand.",
    "each buy priced at its own chainlink round. measured, not estimated.",
-   "this is terra firma. hindsight first, then solid ground.",
-   "three ownerless contracts on robinhood chain.",
-   "a router trades memes and keeps a slice as stock.",
-   "a jar holds it. a fee pool burns wif and pays stakers.",
-   "everything next is real, on mainnet, from my wallet.",
+   "this is terra firma. a router keeps a slice of every meme trade as stock.",
+   "a jar holds it. fees burn wif and pay stakers. all real, on mainnet.",
    "first i buy a meme. no slice.",
    "one confirmation, through uniswap. forty one wallet in.",
    "my card: one dollar in, sixty cents now. in nvda, still a dollar.",
@@ -225,25 +226,20 @@
    "but you don't have to stop trading memes. you just keep a slice.",
    "two percent of this buy lands in my jar as nvda. same transaction.",
    "selling works the same way. two pons out, with a slice to the jar.",
-   "every trade pays a half percent fee. that fee is where wif comes in.",
+   "every trade pays a half percent fee. that's where wif comes in.",
    "i buy wif. terra firma only ever buys wif. it never sells it.",
-   "then i stake it.",
-   "stake ten thousand and your trading fee drops to point three percent.",
-   "stakers pick their stock. a hundred wif, activating next epoch.",
-   "each epoch, the fee pool splits.",
-   "anyone can run it.",
+   "then i stake it to nvda. stake ten thousand and your fee drops to point three percent.",
+   "a hundred wif, activating next epoch.",
+   "each epoch, the fee pool splits. anyone can run it.",
    "half buys wif and burns it. eleven point three six burned this epoch.",
    "the other half buys stock for stakers.",
    "claimed, straight into my jar as nvda.",
    "last, i mint my card. the contract recomputes it from chainlink,",
    "then burns one wif. minted onchain.",
    "it hits the leaderboard. biggest regrets, biggest jars.",
-   "don't trust me. every number is read from the chain.",
-   "and the contract itself can recompute any card.",
-   "who's it for? meme traders on robinhood chain who know the ending.",
-   "wif holders. every trade buys wif, burns wif, and pays stakers in stock.",
-   "what it doesn't promise: it prices tracked memes paid in eth, usdg or stock.",
-   "not profit and loss. unaudited. keep it small.",
+   "don't trust me. every number is read from the chain, and any card can be recomputed onchain.",
+   "it's for meme traders on robinhood chain, and wif holders paid in stock.",
+   "tracked memes only. not profit and loss. unaudited, so keep it small.",
    "that's terra firma. stand on wif. sweep the rest into stock."
   ]
  },
@@ -325,9 +321,9 @@
    "evidence": "script-to-picture state written; status pending cross-review gate"
   }
  ],
- "timestamp": "2026-11-12T09:32:08Z",
+ "timestamp": "2026-11-12T10:30:44Z",
  "timing_plan": "video/TIMING-PLAN.md",
- "film_total_seconds": 189.66,
+ "film_total_seconds": 168.39,
  "mode": "script-to-picture (locked rough_cut_v3)",
  "live_path_gate": "PASS (demo-rehearsal-gate.sh)",
  "extra_footage": [
@@ -335,5 +331,6 @@
   "recordings/extra/home.mp4 15.0-28.0, 35.0-39.8",
   "recordings/extra/board.mp4 1.0-11.6",
   "recordings/extra/proof.mp4 12.0-22.0"
- ]
+ ],
+ "locked_picture": "recordings/rough/rough_cut_v4.mp4"
 }

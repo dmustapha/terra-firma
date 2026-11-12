@@ -13,10 +13,11 @@ Generated 2026-11-12 | Recording: real Robinhood Chain mainnet, demo wallet 0x72
 | FG-008 | public RPC 429 per IP | Parallel pipeline jobs on the same IP rate-limit browser reads | LOW | infra | Browser reads now go via `/api/rpc` (private node). No load jobs during the take. | YES (fixed dc7565b) |
 | FG-009 | deploy screenshots note | /proof shows loading placeholders for ~20-30 s on first paint | LOW | latency | Open /proof early; film after the tables fill. | YES |
 | FG-010 | theme | Dami's Chrome is in dark mode; earlier screenshots light | LOW | consistency | Keep ONE theme for the whole take (dark is fine). | YES |
-| FG-011 | rough_cut_v3 QC (script-to-picture pass) | Grey MetaMask window slides in at rough_cut_v3 ≈9.0 s (take4 ≈197.4 s), inside the S02 keep (191.0–197.9) | HIGH | edit-leak | TIMING-PLAN cuts s02b at 8.6 s and covers 8.6–10.7 with card c1; EDL should end the first S02 keep at 196.9 | YES (plan) |
+| FG-011 (FIXED in rough_cut_v4) | rough_cut_v3 QC (script-to-picture pass) | Grey MetaMask window slides in at rough_cut_v3 ≈9.0 s (take4 ≈197.4 s), inside the S02 keep (191.0–197.9) | HIGH | edit-leak | TIMING-PLAN cuts s02b at 8.6 s and covers 8.6–10.7 with card c1; EDL should end the first S02 keep at 196.9 | YES (plan) |
 | FG-012 | take4/take5 surgical review | Raw takes show VS Code (Claude chat, local paths, other projects), desktop, other Chrome profile, MetaMask home (balance, promo), Mac settings with name/email, region-check dialog naming NG | HIGH | privacy | All excluded by `recordings/edl/master.json`; only EDL ranges may be used | YES (EDL) |
 | FG-013 | rough_cut_v3 | 'Reading N memes…' card loading and 'Working…' waits | LOW | latency | Sped 2–3x with 'N s skipped' corner tag (TIMING-PLAN) | YES |
 | FG-014 | take vs plan | Actual take differs from plan: PONS buy 0.0003 ETH (not 0.001), sold 2 PONS, convert took ALL the WALLET (card at mint shows PONS: $2 into $0.30, In NVDA $2) | LOW | narration-accuracy | SCRIPT.md lines match the footage numbers exactly | YES (script) |
+| FG-015 | research/raw/js/form.js demo-video help text | Submission form: 'keep it under 3 minutes and show it working rather than slides' | HIGH | rules | Film re-cut to 2:48.4 (max 2:55), every title/card is an overlay on footage | YES (TIMING-PLAN) |
 
 Non-acknowledgeable check: `.livetest-state.json -> coldStranger.status = PASS` (13.2 s of a 60 s budget). No cold-hero footgun.
 Forbidden cause tag `cold-hero-unavailable`: not used.
