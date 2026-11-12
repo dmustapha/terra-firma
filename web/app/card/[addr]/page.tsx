@@ -5,19 +5,19 @@ import { getAddress, isAddress } from "viem";
 import { CardView } from "@/components/card-view";
 import { PageHeader } from "@/components/ui";
 import { stockBySymbol, type StockId } from "@/lib/config";
-import { getCard } from "@/lib/card-cache";
+import { getCard, getCardWithin } from "@/lib/card-cache";
 import type { Card } from "@/lib/hindsight";
 import { short } from "@/lib/ui-format";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 60; // the card load gives up at 50 s and renders the busy state, never a platform 504
 
 type Props = { params: Promise<{ addr: string }>; searchParams: Promise<{ stock?: string }> };
 
 const load = cache(async (addr: string, stock: string): Promise<{ card: Card | null; error: string | null }> => {
   const s = stockBySymbol(stock) ?? stockBySymbol("NVDA")!;
   try {
-    return { card: await getCard(getAddress(addr), s.id as StockId), error: null };
+    return { card: await getCardWithin(getAddress(addr), s.id as StockId, 50_000, getCard), error: null };
   } catch {
     return { card: null, error: "The chain is busy. Try again in a few seconds." };
   }

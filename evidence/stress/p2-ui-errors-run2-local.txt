@@ -1,0 +1,6 @@
+PASS J-ERR-HINDSIGHT-503-RECOVER :: hindsight calls 3 (2 forced 503), error alert after recovery 0, pageErrors 0, blocked external 0
+PASS J-ERR-HINDSIGHT-HARD :: hindsight calls 4 (client retries), plain error visible true, pageErrors 0
+PASS J-ERR-QUOTE-503 :: quote calls 2, notice shown true, pageErrors 0
+PASS J-GATED-FRIENDS :: status 404 (gated off by NEXT_PUBLIC_FRIEND_JARS)
+
+4/4 passed

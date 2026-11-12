@@ -1,0 +1,46 @@
+# Run 1: scripts/stress-ui.mjs against https://terra-firma-henna.vercel.app, 2026-11-12 ~07:55Z (before the coordinator's
+# no-live-load directive). Output transcribed verbatim from the run's stdout. 37/41: /friends x2 = gated 404 by design
+# (test expectation wrong); J-ERR-HINDSIGHT-HARD and J-ERR-QUOTE-503 targeted the wrong surface (see run 2, local).
+PASS J-ROUTE 375 / :: status 200 overflowX 0 pageErrors 0 consoleErrors 0
+PASS J-ROUTE 375 /app :: status 200 overflowX 0 pageErrors 0 consoleErrors 0
+PASS J-ROUTE 375 /card/0x3fDBeB0FC14cca8fDd238Dd21725F0b8585Ab09E :: status 200 overflowX 0 pageErrors 0 consoleErrors 0
+PASS J-ROUTE 375 /trade :: status 200 overflowX 0 pageErrors 0 consoleErrors 0
+PASS J-ROUTE 375 /trade/0x39dBED3a2bd333467115dE45665cC57F813C4571 :: status 200 overflowX 0 pageErrors 0 consoleErrors 0
+PASS J-ROUTE 375 /jar :: status 200 overflowX 0 pageErrors 0 consoleErrors 0
+PASS J-ROUTE 375 /stake :: status 200 overflowX 0 pageErrors 0 consoleErrors 0
+PASS J-ROUTE 375 /board :: status 200 overflowX 0 pageErrors 0 consoleErrors 0
+PASS J-ROUTE 375 /proof :: status 200 overflowX 0 pageErrors 0 consoleErrors 0
+PASS J-ROUTE 375 /app/convert :: status 200 overflowX 0 pageErrors 0 consoleErrors 0
+FAIL J-ROUTE 375 /friends :: status 404 overflowX 0 pageErrors 0 consoleErrors 1 Failed to load resource: the server responded with a status of 404 ()
+PASS J-ROUTE 375 /jar/report/0x3fDBeB0FC14cca8fDd238Dd21725F0b8585Ab09E :: status 200 overflowX 0 pageErrors 0 consoleErrors 0
+PASS J-ROUTE 1440 / :: status 200 overflowX 0 pageErrors 0 consoleErrors 0
+PASS J-ROUTE 1440 /app :: status 200 overflowX 0 pageErrors 0 consoleErrors 0
+PASS J-ROUTE 1440 /card/0x3fDBeB0FC14cca8fDd238Dd21725F0b8585Ab09E :: status 200 overflowX 0 pageErrors 0 consoleErrors 0
+PASS J-ROUTE 1440 /trade :: status 200 overflowX 0 pageErrors 0 consoleErrors 0
+PASS J-ROUTE 1440 /trade/0x39dBED3a2bd333467115dE45665cC57F813C4571 :: status 200 overflowX 0 pageErrors 0 consoleErrors 0
+PASS J-ROUTE 1440 /jar :: status 200 overflowX 0 pageErrors 0 consoleErrors 0
+PASS J-ROUTE 1440 /stake :: status 200 overflowX 0 pageErrors 0 consoleErrors 0
+PASS J-ROUTE 1440 /board :: status 200 overflowX 0 pageErrors 0 consoleErrors 0
+PASS J-ROUTE 1440 /proof :: status 200 overflowX 0 pageErrors 0 consoleErrors 0
+PASS J-ROUTE 1440 /app/convert :: status 200 overflowX 0 pageErrors 0 consoleErrors 0
+FAIL J-ROUTE 1440 /friends :: status 404 overflowX 0 pageErrors 0 consoleErrors 3 Failed to load resource: the server responded with a status of 404 ()
+PASS J-ROUTE 1440 /jar/report/0x3fDBeB0FC14cca8fDd238Dd21725F0b8585Ab09E :: status 200 overflowX 0 pageErrors 0 consoleErrors 0
+PASS J-404 :: status 404 dialogs 0 pageErrors 0
+PASS J-BADCARD :: status 200 dialogs 0 pageErrors 0
+PASS J-XSSCARD :: status 200 dialogs 0 pageErrors 0
+PASS J-XSSTRADE :: status 200 dialogs 0 pageErrors 0
+PASS J-ERR-HINDSIGHT-503-RECOVER :: forced 503s 0, recovered true
+FAIL J-ERR-HINDSIGHT-HARD :: error state visible false
+FAIL J-ERR-QUOTE-503 :: amount input found 1
+PASS J-INPUT-BOUNDARY :: crashing inputs: none
+PASS J-PASTE-CA-JUNK :: no message
+PASS S-LOCALSTORAGE-CORRUPT :: pageErrors 0
+PASS S-MALFORMED-API :: pageErrors 0 (caught by error boundary if >0 and text present)
+PASS N-SLOW-3G-LANDING :: domcontentloaded+visible in 4726 ms on 400 kbps/400 ms
+PASS N-SSE-DROPPED :: pageErrors 0
+PASS N-INTERMITTENT-503 :: api calls 0, pageErrors 0
+PASS R-REFRESH-DURING-LOAD :: card rendered after double refresh true
+PASS R-BACK-FORWARD :: ended at /stake
+PASS R-RAPID-NAV :: pageErrors 0
+
+37/41 passed
