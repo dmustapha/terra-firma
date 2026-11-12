@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="web/public/logo.svg" alt="Terra Firma" width="96" />
+  <img src="web/public/logo-seal.png" alt="Terra Firma seal" width="160" />
 </p>
 
 <h1 align="center">Terra Firma</h1>
