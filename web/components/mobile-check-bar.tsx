@@ -8,7 +8,7 @@ export function MobileCheckBar() {
   useEffect(() => {
     const field = document.getElementById("lookup");
     if (!field) return;
-    const io = new IntersectionObserver(([e]) => setShow(!e.isIntersecting && e.boundingClientRect.top > innerHeight * 0.5));
+    const io = new IntersectionObserver(([e]) => setShow(!e.isIntersecting && e.boundingClientRect.bottom < 0));
     io.observe(field);
     return () => io.disconnect();
   }, []);

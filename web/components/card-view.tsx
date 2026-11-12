@@ -10,7 +10,7 @@ import { MintButton, RecomputeButton, ShareButton } from "./card-actions";
 import { ConnectButton } from "./connect-button";
 import { HindsightCard } from "./hindsight-card";
 import { StockSelect } from "./stock-select";
-import { Button, LinkButton, Notice, Panel } from "./ui";
+import { Button, LinkButton, Notice } from "./ui";
 
 /** The main action, visible but off until a wallet is connected (read-only and demo cards). */
 export function ConvertLocked({ stock }: { stock: string }) {
@@ -30,10 +30,18 @@ export function CardView({ card, error }: { card: Card | null; error: string | n
 
   if (!card)
     return (
-      <Panel>
-        <p role="alert" className="font-display text-deck">{error}</p>
-        <Button className="mt-4" onClick={() => start(() => router.refresh())} disabled={pending}>{pending ? "Retrying…" : "Try again"}</Button>
-      </Panel>
+      <div className="plate-lit grid items-center gap-10 px-6 py-10 sm:px-10 lg:grid-cols-[0.8fr_1.2fr]">
+        <div className="well-bore flex min-h-[22rem] flex-col items-center justify-center gap-0 px-4 py-6" aria-hidden>
+          <span className="drill-bit relative z-10" />
+          <span className="relative z-10 -mt-1 h-56 w-40 rounded-b-[999px] rounded-t-[999px] bg-[color:var(--rock-void)] [background-image:repeating-linear-gradient(-35deg,transparent_0_9px,color-mix(in_oklab,var(--fg)_14%,transparent)_9px_10px)] [clip-path:inset(8%_0_0_0_round_20px)]" />
+        </div>
+        <div>
+          <p className="eyebrow text-[color:var(--brick)]">Core jammed</p>
+          <p role="alert" className="mt-3 font-display text-[clamp(2.2rem,1.4rem+2.6vw,3.75rem)] leading-[0.95]">The chain is busy. <em className="text-accent">The bit is stuck, not your bag.</em></p>
+          <p className="mt-3 max-w-[42ch] text-muted">{error} Nothing is shown in its place: no number here is ever guessed.</p>
+          <Button className="mt-6" onClick={() => start(() => router.refresh())} disabled={pending}>{pending ? "Drilling again…" : "Drill again"}</Button>
+        </div>
+      </div>
     );
 
   const own = isConnected && address?.toLowerCase() === card.wallet.toLowerCase();

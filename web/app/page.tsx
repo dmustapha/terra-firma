@@ -10,18 +10,21 @@ import { getCard } from "@/lib/card-cache";
 import type { Card } from "@/lib/hindsight";
 import { FEE_BPS } from "@/lib/config";
 import { HISTORY_ADDR } from "@/lib/ui-chain";
+import snapshot from "@/data/hero-snapshot.json";
 import { shares18, usd8, usdWhole8 } from "@/lib/ui-format";
 
 // The example core is the same cached on-chain read /api/hindsight serves (5-min TTL); re-render on that cadence.
 export const revalidate = 300;
 
-async function heroCard(): Promise<Card | null> {
-  const cap = new Promise<null>((r) => setTimeout(() => r(null), 25000));
+/** Live read, capped at 8s. If the chain is slow, fall back to a RECORDED real read of the same wallet (labelled with its
+ *  block in the UI) so the signature is never absent; the client swaps in the live read when it lands. */
+async function heroCard(): Promise<{ card: Card; recorded: boolean }> {
+  const cap = new Promise<null>((r) => setTimeout(() => r(null), 8000));
   try {
-    return await Promise.race([getCard(getAddress(HISTORY_ADDR), 0), cap]);
-  } catch {
-    return null;
-  }
+    const live = await Promise.race([getCard(getAddress(HISTORY_ADDR), 0), cap]);
+    if (live) return { card: live, recorded: false };
+  } catch {}
+  return { card: snapshot as unknown as Card, recorded: true };
 }
 
 const STRATA = [
@@ -31,7 +34,7 @@ const STRATA = [
 ];
 
 export default async function Home() {
-  const card = await heroCard();
+  const { card, recorded } = await heroCard();
   const top = card?.memes.slice().sort((a, b) => Number(BigInt(b.usdPaid8) - BigInt(a.usdPaid8)))[0];
   const tag = (i: number) =>
     !card || !top ? ["surface", "the sweep", "bedrock"][i]
@@ -47,6 +50,7 @@ export default async function Home() {
         <HeroCore
           addr={HISTORY_ADDR}
           initial={card}
+          recorded={recorded}
           headline={
             <>
               <p className="eyebrow text-muted">Field report · Robinhood Chain · read live</p>

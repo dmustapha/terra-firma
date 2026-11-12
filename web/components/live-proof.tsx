@@ -15,7 +15,7 @@ import { only, type TfLogs } from "@/lib/ui-logs";
 import { useTfLogs } from "./hooks";
 import { ExtLink, Skeleton, TextLink } from "./ui";
 
-const NA = <span className="text-danger">unreadable right now</span>;
+const NA = <span className="eyebrow rounded-full bg-[color:var(--well-bg)] px-2 py-0.5 text-[0.625rem] text-muted">reading…</span>;
 
 function Fig({ label, value, href }: { label: string; value: ReactNode; href: string }) {
   return (

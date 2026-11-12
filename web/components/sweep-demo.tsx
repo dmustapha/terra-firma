@@ -77,7 +77,7 @@ export function SweepDemo({ initial }: { initial: Card | null }) {
         {/* bedrock layer that forms */}
         <div className="relative mt-6 h-16 overflow-hidden rounded-[3px] border border-dashed border-line-strong/50">
           <div className={cx("absolute inset-0 ","origin-bottom rounded-[3px] bg-[color:var(--rock-bg)] [background-image:repeating-linear-gradient(-35deg,transparent_0_6px,var(--rock-line)_6px_7.5px)] transition-[transform,opacity] duration-700 [transition-timing-function:var(--ease-out)]",
-            phase === "done" ? "scale-y-100 opacity-100" : "scale-y-0 opacity-0")} />
+            phase === "done" ? "scale-y-100 opacity-100" : phase === "idle" ? "scale-y-100 opacity-25" : "scale-y-0 opacity-0")} />
         </div>
         <p className={cx("mt-4 min-h-[7.5rem] text-center transition-opacity duration-500", phase === "done" ? "opacity-100" : "opacity-30")}>
           <span className="eyebrow block text-muted">Lands in the Jar as</span>

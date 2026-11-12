@@ -9,9 +9,10 @@ import { usd8, usdWhole8 } from "@/lib/ui-format";
 import { CoreSample, quoted, useDrill } from "./core-sample";
 import { useCard } from "./hooks";
 
-export function HeroCore({ addr, initial, headline, action }: { addr: string; initial: Card | null; headline: ReactNode; action: ReactNode }) {
+export function HeroCore({ addr, initial, recorded = false, headline, action }: { addr: string; initial: Card | null; recorded?: boolean; headline: ReactNode; action: ReactNode }) {
   const q = useCard(addr, "NVDA");
   const c = q.data ?? initial;
+  const isRecorded = !q.data && recorded;
   const { ref, k, replay } = useDrill();
   const ready = c && c.memes.length > 0;
   const qt = ready ? quoted(c) : null;
@@ -39,10 +40,10 @@ export function HeroCore({ addr, initial, headline, action }: { addr: string; in
           <>
             <p className="eyebrow mb-1 flex justify-between px-2 text-muted">
               <span>Core · {c.wallet.slice(0, 6)}…{c.wallet.slice(-4)}</span>
-              <span className="num">block {c.asOfBlock.toLocaleString("en-US")}</span>
+              <span className="num">{isRecorded ? "recorded read · " : "live · "}block {c.asOfBlock.toLocaleString("en-US")}</span>
             </p>
-            <div onMouseEnter={() => k === 1 && replay()}><CoreSample card={c} k={k} /></div>
-            <p className="mt-1 flex justify-between px-2 text-sm">
+            <div className="-mx-2 -mb-10 lg:-mr-10 lg:-mb-16" onMouseEnter={() => k === 1 && replay()}><CoreSample card={c} k={k} /></div>
+            <p className="relative mt-1 flex justify-between px-2 text-sm">
               <button type="button" onClick={replay} className="font-semibold underline underline-offset-4 hover:text-accent">Drill again</button>
               <Link href={`/card/${c.wallet}`} className="font-semibold underline underline-offset-4 hover:text-accent">Every layer →</Link>
             </p>

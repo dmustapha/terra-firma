@@ -7,6 +7,8 @@ import { stockBySymbol, type StockId } from "@/lib/config";
 import { getCard } from "@/lib/card-cache";
 import type { Card } from "@/lib/hindsight";
 import { short } from "@/lib/ui-format";
+import { HISTORY_ADDR } from "@/lib/ui-chain";
+import snapshot from "@/data/hero-snapshot.json";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -18,6 +20,8 @@ const load = cache(async (addr: string, stock: string): Promise<{ card: Card | n
   try {
     return { card: await getCard(getAddress(addr), s.id as StockId), error: null };
   } catch {
+    // the example wallet falls back to its recorded real read (block shown on the core); any other wallet shows the jammed core
+    if (addr.toLowerCase() === HISTORY_ADDR.toLowerCase() && s.symbol === "NVDA") return { card: snapshot as unknown as Card, error: null };
     return { card: null, error: "The chain is busy. Try again in a few seconds." };
   }
 });
