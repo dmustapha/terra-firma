@@ -3,13 +3,14 @@
 
 Platform: custom form at https://worldisflat.fun/build (Dami signs in). Submissions close 2026-11-12 17:30 UTC (18:30 WAT). Edits lock at close; only the logo can change after.
 
-## Before you start (checklist)
-- [ ] Demo film uploaded to YouTube (unlisted is fine), under 3 minutes, link copied
-- [ ] Payout wallet address ready (your own, double checked character by character)
-- [ ] Telegram or discord handle (optional)
-- [ ] Logo file: web/public/logo-seal.png (512x512, engraved seal)
-- [ ] Repo is public: https://github.com/dmustapha/terra-firma (no wifonrh invite needed)
-- [ ] Latest commits pushed and deployed (check the live site shows the seal logo and Convert tab)
+## Status (2026-11-12, 16:30 UTC)
+- [x] Form submitted on worldisflat.fun/build (Dami)
+- [x] Demo film on YouTube, public: https://youtu.be/4tybHV9ezGc (2:58, under the 3-minute rule)
+- [x] Film also plays inline at the top of the repo README
+- [x] Repo public: https://github.com/dmustapha/terra-firma
+- [x] Latest commits pushed and deployed (Friend Jars, Quicknode badge, HyperSync live)
+- [ ] Before 17:29 UTC: re-open the entry, check the demo video field holds https://youtu.be/4tybHV9ezGc and every field saved, then screenshot the confirmation (Dami; the browser tool cannot read worldisflat.fun)
+- [ ] Pin terra-firma on github.com/dmustapha (profile, Customize your pins)
 
 ## Fill the form, section by section
 All answers are in submission/FORM-ANSWERS.md with character counts. Paste each block into the matching field:
@@ -26,16 +27,14 @@ All answers are in submission/FORM-ANSWERS.md with character counts. Paste each 
 
 ## Assets
 - Logo: web/public/logo-seal.png (512 px)
-- Screenshots in docs/screenshots/ PREDATE the v3.1 redesign and the seal logo. Retake before using any of them: home, app, card, trade, jar, stake, board, proof (desktop + mobile).
+- Screenshots: docs/screenshots/ (retaken 2026-11-12 on the final design, desktop + mobile for home, app, card, jar, stake, board, proof); the picks for the form are in submission/screenshots/.
 
 ## Known caveat to mention if asked
 Some wallets (Zerion and others using Blockaid) flag the new domain as a malicious dApp. A developer verification was filed with Blockaid on 2026-11-12. The app never asks for a seed phrase or permit signature.
 
-Generated 2026-11-12T12:09Z.
+Generated 2026-11-12T12:09Z, refreshed 2026-11-12T16:30Z.
 
 ## Final checklist (do these last, in order)
-- [ ] Submit the form now with the video field empty or holding the live link, so it joins the earliest approval batch (edits stay open until 17:29 UTC).
-- [ ] Upload `video/out/terra-firma-demo.mp4` to YouTube (unlisted is fine), then paste the link into the form's demo video field AND replace the "Demo video" placeholder lines in `README.md` and `submission/HACKATHON-README.md`.
-- [ ] Re-open the submitted entry and check every field saved (edits persisted), then screenshot the confirmation.
-- [ ] Pin `terra-firma` on github.com/dmustapha (profile, Customize your pins).
-- [ ] Optional: post the launch tweet and thread from `submission/launch-tweet.draft.md` and `submission/THREAD.md` once the video link is in; send the organizer note in `ORGANIZER-OUTREACH.draft.md` after submission.
+- [ ] Re-open the submitted entry before 17:29 UTC: demo video field = https://youtu.be/4tybHV9ezGc, every field saved. Screenshot the confirmation.
+- [ ] Pin `terra-firma` on github.com/dmustapha.
+- [ ] Post the thread from `submission/THREAD.md` (Dami posts; nothing is auto-sent), then the vote ask when voting opens Nov 14.

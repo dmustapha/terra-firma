@@ -104,10 +104,10 @@ Traders come back because their Jar keeps growing with every trade and the card 
 https://github.com/dmustapha/terra-firma
 ```
 
-## demo video  (106 chars)
+## demo video  (28 chars)
 
 ```
-[DAMI: paste the YouTube (unlisted is fine) link here once the film is uploaded. It runs under 3 minutes.]
+https://youtu.be/4tybHV9ezGc
 ```
 
 ## live link  (33 chars)

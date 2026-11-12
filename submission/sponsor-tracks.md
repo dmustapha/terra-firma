@@ -47,5 +47,15 @@ World is Flat has one prize and no sponsor bounties, so this file justifies the 
 
 ## Quicknode Stock Token API
 
-**Where in the code:** `web/app/api/qn-jar/route.ts:29` (`qn_getStockTokenBalances`).
-> **Honest note:** the cross-check is built and tested, but the production deployment has no Quicknode token configured, so the badge is hidden on the live site. We do not claim it as live.
+**What we use:** the Stock Token API add-on on a Robinhood Chain mainnet endpoint.
+**Where in the code:** `web/app/api/qn-jar/route.ts:29` (`qn_getStockTokenBalances`), badge in `web/components/jar-view.tsx:124`.
+**What it does in our project:** the Jar page asks Quicknode what Stock Tokens the Jar contract holds and compares it to direct `balanceOf` reads. When they agree to the wei it shows "Verified by Quicknode Stock Token API". Display only, never in the money path.
+**Proof of integration:** live at https://terrafirma-wif.vercel.app/api/qn-jar (on 2026-11-12 both sides read 8401797135669796 NVDA units).
+**Integration depth:** Silver.
+
+## Envio HyperSync
+
+**What we use:** Robinhood Chain HyperSync for wallet transfer history.
+**Where in the code:** `web/lib/hypersync.ts`, called from `web/lib/hindsight.ts:95`.
+**What it does in our project:** a Hindsight card needs every meme buy a wallet made. HyperSync returns those transfers in one query; if it errors, the card falls back to a chunked `eth_getLogs` scan, so a card never depends on one indexer.
+**Integration depth:** Silver.

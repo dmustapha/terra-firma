@@ -42,7 +42,7 @@ Terra Firma builds a **Hindsight card** for any wallet from its real onchain buy
 | Jar | `0xa921DCaF524c4A50f46F26543B0EA3DBD2a4d5bF` |
 | HindsightLens | `0x2402898497B0532BCbdEE6339987F1D7056d4422` |
 | StockOracle | `0xA79a67F16262DEF44f1DDaeF247d96a0a36EdA81` |
-| FriendJar | `0x07E1b71f45890f995c81Df316f4d303cfc786769` (deployed, UI switched off) |
+| FriendJar | `0x07E1b71f45890f995c81Df316f4d303cfc786769` (live at /friends) |
 
 ## Hackathon Alignment
 ✔ Primary category: Stock Tokens · also hooks and defi, consumer and payments. $WIF is used onchain in four ways: hourly buy-and-burn from fees, staking paid in Stock Tokens, a staker fee discount, and a burn per card mint.
@@ -51,4 +51,4 @@ Terra Firma builds a **Hindsight card** for any wallet from its real onchain buy
 - Live app: https://terrafirma-wif.vercel.app
 - Proof page: https://terrafirma-wif.vercel.app/proof
 - GitHub: https://github.com/dmustapha/terra-firma
-- Demo video: [added at submission]
+- Demo video: https://youtu.be/4tybHV9ezGc

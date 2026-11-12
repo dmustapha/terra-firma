@@ -36,7 +36,7 @@ On the site, the Recompute box on [/proof](https://terrafirma-wif.vercel.app/pro
 Open https://terrafirma-wif.vercel.app and paste any Robinhood Chain wallet, or connect your own. Wallets new to the domain may show a generic warning; MetaMask works once you acknowledge it.
 
 ## Demo Walkthrough
-Demo video (under 3 minutes, recorded on mainnet): [added at submission]
+Demo video (2:58, every transaction real on Robinhood Chain mainnet): https://youtu.be/4tybHV9ezGc. The same film plays inline at the top of the [repo README](https://github.com/dmustapha/terra-firma#readme).
 
 ## Team
 Solo build by Dami Mustapha ([@dmustapha](https://github.com/dmustapha)).

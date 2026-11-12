@@ -4,6 +4,9 @@
 - [x] Same app, original domain: https://terra-firma-henna.vercel.app (HTTP 200)
 - [x] Proof page: https://terrafirma-wif.vercel.app/proof (HTTP 200)
 - [x] GitHub: https://github.com/dmustapha/terra-firma (HTTP 200)
-- [ ] Demo video: pending YouTube upload
+- [x] Demo video: https://youtu.be/4tybHV9ezGc (HTTP 200, public)
+- [x] Demo film inline in the README: https://github.com/dmustapha/terra-firma#readme (GitHub-hosted 720p copy)
+- [x] Friend Jars: https://terrafirma-wif.vercel.app/friends (HTTP 200)
+- [x] Quicknode cross-check: https://terrafirma-wif.vercel.app/api/qn-jar (HTTP 200, enabled:true, agreement:true)
 - [x] Explorer sample tx: https://robinhoodchain.blockscout.com/tx/0x0d23d2d3fbba68a4a84e497bd9063bdc222df376d65cd383271f5ac41764aa9d (HTTP 200)
-Last verified: 2026-11-12T12:09Z
+Last verified: 2026-11-12T17:40Z
