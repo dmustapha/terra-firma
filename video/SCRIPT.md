@@ -1,6 +1,6 @@
-# SCRIPT: Terra Firma demo film (v3, one argument, human tone)
+# SCRIPT: Terra Firma demo film (v4, one argument, human tone)
 
-Narrator: Dami, own voice in the voicebooth. Each section is ONE continuous thought; read it as running speech, the line breaks are only for recording. Thread carried through the film: what if that meme money had gone somewhere solid? Rules applied: Dami's demo-video standards (one argument, bridging lines, ~2.6 words/s) and human writing style (full sentences, uneven lengths, no em dashes, no AI scaffolding). Picture: rough_cut_v4 per video/TIMING-PLAN.md, total 2:48.4. Every claim checked against what is on screen in that window.
+Narrator: Dami, own voice in the voicebooth. Each section is ONE continuous thought; read it as running speech, the line breaks are only for recording. Thread: what if that meme money had gone somewhere solid? Rules: Dami's demo-video standards (one argument, bridging lines, ~2.6 words/s) and human writing style (full sentences, uneven lengths, no em dashes, no AI scaffolding). Facts from the contracts: slice up to 10% (TerraRouter MAX_SWEEP_BPS 1000) on buys and sells; 10,000 staked $WIF = 0.3% fee (DISCOUNT_STAKE). Picture: rough_cut_v4 per video/TIMING-PLAN.md, total 2:48.4.
 
 ## the pain (0.2s to 16.8s, 40 words, 2.41 w/s)
 On screen: card 0x3fDB: $18,421 into $0.35, In NVDA $16,972
@@ -22,33 +22,33 @@ On screen: Convert -> approve + convert -> You own 0.003688 NVDA -> Jar $1.25, W
 
 > that one isn't coming back, so i convert it. two signatures, the meme is sold, and what comes out lands in my jar as real nvda stock tokens. nobody has an admin key to the jar, so i can take it out whenever i want.
 
-## keep a slice (61.4s to 81.4s, 45 words, 2.25 w/s)
-On screen: PONS buy 2% -> NVDA slice to Jar -> sell 2 PONS at 2%
+## keep a slice (61.4s to 81.4s, 52 words, 2.60 w/s)
+On screen: PONS buy, slice 2% to NVDA -> NVDA slice to Jar -> sell 2 PONS at 2%
 
-> people are always going to trade memes, so we might as well take advantage of that. when i buy pons i leave a two percent slice on, and in that same transaction a bit of nvda goes into my jar. selling works the same way.
+> people are always going to trade memes, so we might as well take advantage of that. any buy or sell can keep a slice, up to ten percent, and it lands in your jar as stock in the same transaction. i buy pons with two percent, and selling works the same way.
 
 ## where wif comes in (81.6s to 109.1s, 64 words, 2.33 w/s)
 On screen: fee quote line -> $WIF buy only, buy 0.0001 ETH -> Stake page, NVDA, 10,000 -> 0.3% badge, 100 activating
 
-> this is where wif comes in. every trade pays a half percent fee, and that money only ever buys wif, it never sells it. if you hold wif you can stake it and choose which stock you get paid in. i stake a hundred and pick nvda, and if you stake ten thousand your own trades get cheaper, point three percent instead of half.
+> this is where wif comes in. every trade pays a half percent fee, and that money only ever buys wif, it never sells it. if you stake wif, you get paid from every trade on the app in real stock, whichever one you pick. i stake a hundred and pick nvda, and staking ten thousand also drops your own fee to point three percent.
 
-## the hourly split (109.4s to 127.0s, 43 words, 2.44 w/s)
+## the hourly split (109.4s to 127.0s, 40 words, 2.27 w/s)
 On screen: Proof Run distribute -> Epoch 23 paid out 11.36 $WIF burned -> Distributed -> Claimed
 
-> once an hour anyone can run the fee pool, and it splits what it's collected. half of it buys wif and burns it, eleven point three six this time, and the other half buys stock for stakers. mine goes straight into my jar.
+> once an hour anyone can run the fee pool. half of what it collected buys wif and burns it, eleven point three six this time, and the other half buys stock for the stakers. mine goes straight into my jar.
 
 ## mint and the loop (127.2s to 143.5s, 39 words, 2.39 w/s)
 On screen: card -> Mint -> Minted onchain 1 $WIF burned -> Leaderboard
 
-> you can also mint your card. the contract works the numbers out again from chainlink, burns one wif, and puts it on the leaderboard. so the more people trade, the more wif burns and the more stock stakers get.
+> you can also mint your card, which burns one more wif after the contract checks the numbers against chainlink. so wif gets bought on every trade and burned every hour, and the people holding it get paid in stock.
 
 ## proof (143.7s to 152.5s, 20 words, 2.27 w/s)
 On screen: Proof: 22.43 burned, dispatches
 
 > every transaction you just saw is on the proof page, so you don't have to take my word for it.
 
-## who it's for, limits (152.8s to 168.2s, 38 words, 2.47 w/s)
+## who it's for (152.8s to 168.2s, 34 words, 2.21 w/s)
 On screen: board tubes -> proof claims -> Stand on bedrock
 
-> it's for people trading memes on robinhood chain and for wif holders who want stock. it only prices memes it tracks, it isn't profit and loss, and it's not audited yet, so keep it small. that's terra firma.
+> it's for anyone trading memes on robinhood chain, and for wif holders who'd rather be paid in stock. it only prices the memes it tracks, and it isn't profit and loss. that's terra firma.
 
