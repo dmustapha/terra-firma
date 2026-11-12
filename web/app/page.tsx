@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getAddress } from "viem";
 import { AddressLookup } from "@/components/address-lookup";
+import { BurnSeam } from "@/components/burn-seam";
 import { DepthGauge } from "@/components/depth-gauge";
 import { HeroCore } from "@/components/hero-core";
 import { LiveProof } from "@/components/live-proof";
@@ -92,7 +93,8 @@ export default async function Home() {
 
       <LiveProof />
 
-      {/* CLOSER — bedrock, full bleed */}
+      {/* CLOSER — bedrock, full bleed, with the live burn seam at its edge */}
+      <div className="bleed"><BurnSeam /></div>
       <section aria-labelledby="closer-title" className="bedrock-band bleed">
         <div className="mx-auto grid max-w-[80rem] items-end gap-10 px-4 py-24 sm:px-6 lg:grid-cols-[1.2fr_1fr] lg:px-8">
           <div>
