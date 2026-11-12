@@ -5,6 +5,8 @@ import deployments from "@/data/deployments.json";
 
 export const CHAIN_ID = 4663;
 export const PUBLIC_RPC = "https://rpc.mainnet.chain.robinhood.com";
+/** Browser reads go through the site's own read-only proxy (private node, public fallback); SSR uses the public RPC. */
+export const BROWSER_RPC = typeof window === "undefined" ? PUBLIC_RPC : `${window.location.origin}/api/rpc`;
 export const EXPLORER = "https://robinhoodchain.blockscout.com";
 
 export const ADDR = {
