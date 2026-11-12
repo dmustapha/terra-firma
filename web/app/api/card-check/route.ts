@@ -5,11 +5,13 @@
 // so varying usdPaid8 can neither bypass the cache nor grow it.
 import { NextResponse } from "next/server";
 import { getAddress, isAddress } from "viem";
-import { cardFailure, getCard, matchesClaim } from "@/lib/card-cache";
+import { cardFailure, getCard, getCardWithin, matchesClaim } from "@/lib/card-cache";
 import type { StockId } from "@/lib/config";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
+/** Answer 503 + Retry-After before maxDuration so a slow cold build never surfaces as a platform 504. */
+const ROUTE_DEADLINE_MS = 50_000;
 
 export async function GET(req: Request) {
   const u = new URL(req.url);
@@ -20,7 +22,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "bad_request" }, { status: 400 });
   }
   try {
-    const card = await getCard(getAddress(addr), Number(sid) as StockId);
+    const card = await getCardWithin(getAddress(addr), Number(sid) as StockId, ROUTE_DEADLINE_MS, getCard);
     const derived = BigInt(card.totals.usdPaid8);
     return NextResponse.json({ verified: matchesClaim(derived, BigInt(claimed)), derived: derived.toString() });
   } catch (e) {
