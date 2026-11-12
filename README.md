@@ -198,6 +198,10 @@ and in `SECURITY.md`. Stock Token issuer and transfer restrictions apply indepen
 ## Honest limitations
 
 - Unaudited hackathon software. Use small amounts.
+- New domain, new contracts: some wallets (Zerion and others using Blockaid) currently show a generic "malicious dApp"
+  warning for `terra-firma-henna.vercel.app`. A developer verification was filed with Blockaid on 2026-11-12. The site
+  never asks for a seed phrase, password or permit signature; it only requests exact-amount approvals to the 7
+  source-verified contracts listed above.
 - The WIF/ETH pool used for the burn has a third-party hook that Terra Firma does not own or control (disclosed in
   `SECURITY.md`; the burn swap is wrapped so a hook revert skips the burn and carries the ETH).
 - Hindsight covers a curated registry of Robinhood Chain memes and buys paid in ETH, WETH, USDG or the curated stocks.
