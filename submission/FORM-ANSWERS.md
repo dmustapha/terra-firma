@@ -35,31 +35,31 @@ Terra Firma
 ## one liner  (80/80)
 
 ```
-See what your memes would be in stock, then keep a slice of every trade as stock
+Memes, in real stock: see what could've been, slice trades, stake $WIF for stock
 ```
 
 ## what it does  (1496/1500)
 
 ```
-Terra Firma starts with a question most meme traders on Robinhood Chain never ask: what would all that money be worth if it had gone into a real stock instead? You paste any wallet, or connect your own, and it builds a Hindsight card from that wallet's actual onchain buys. Every buy is priced with the Chainlink round that was live at that exact moment, and the same dollars are walked into NVDA at the same moments, so the gap between what you paid, what it is worth now and what it would have been is measured, not estimated.
+Terra Firma starts with a question most meme traders on Robinhood Chain never ask: what would all that money be worth if it had gone into a real stock instead? Paste any wallet, or connect yours, and it builds a Hindsight card from that wallet's actual onchain buys. Every buy is priced with the Chainlink round that was live at that moment, and the same dollars are walked into NVDA at the same moments, so the gap is measured, not estimated.
 
-Then it lets you do something about it. With one convert, dead memes are sold through Uniswap and the proceeds land in your Jar as real Stock Tokens. The Jar is an ownerless contract with no admin key, and you can withdraw whenever you want. Because people are going to keep trading memes anyway, every buy or sell through the meme terminal can keep a slice of up to ten percent, which lands in your Jar as stock in the same transaction.
+Then it lets you do something about it. One convert sells dead memes through Uniswap and lands the proceeds in your Jar as real Stock Tokens. The Jar is an ownerless contract with no admin key, so you can withdraw any time. Because people are always going to trade memes, every buy or sell through the terminal can keep a slice of up to 10% that lands in your Jar as stock in the same transaction. Friend Jars let a group chat save into one shared Jar of one stock, each owning their share.
 
-Every trade pays a half percent fee. That fee only ever buys $WIF. Once an hour the fee pool splits it: half buys $WIF and burns it, the other half buys Stock Tokens for $WIF stakers. You can also mint your card onchain, which burns one $WIF after the contract recomputes it from Chainlink.
+Every trade pays a 0.5% fee that only ever buys $WIF. Every hour half of it buys $WIF and burns it, and the other half buys Stock Tokens for $WIF stakers, in the stock they pick. Staking 10,000 $WIF drops your own fee to 0.3%, and minting your card onchain burns one more $WIF.
 
-It is all live on Robinhood Chain mainnet with seven source-verified contracts, and every number on the site can be checked on the proof page. It is a new domain, so some wallets warn on connect; MetaMask works once you acknowledge it.
+It is all live on Robinhood Chain mainnet with seven source-verified contracts, and every number on the site can be checked on the proof page. It is a new domain, so some wallets warn on connect.
 ```
 
 ## who it's for  (427/500)
 
 ```
-Mostly people who trade memes on Robinhood Chain. Most of them have a number like the one on our landing card and have never looked at it. Terra Firma gives them a way to keep trading but leave something behind every time. The second group is $WIF holders: staking turns their $WIF into a share of the fees from every trade on the app, paid in real Stock Tokens of the stock they pick, and every trade buys and burns more $WIF.
+Mostly people who trade memes on Robinhood Chain. Most of them have a number like the one on our landing card and have never looked at it. Terra Firma lets them keep trading but leave something behind every time, and friends can save into one Jar together. The second group is $WIF holders: staking turns their $WIF into a share of the fees from every trade on the app, paid in real Stock Tokens of the stock they pick, and every trade buys and burns more $WIF.
 ```
 
 ## how does it use $wif  (911/1000)
 
 ```
-$WIF is the asset the whole thing runs on, and the contracts only ever buy it, they never sell it (TerraRouter reverts if you try to sell or convert $WIF). Every trade, convert and buy-with-stock pays a 0.5% fee into the FeePool. Once an hour anyone can call distribute (our keeper does it on a schedule): half of the pool buys $WIF on Uniswap and burns it, and the other half buys real Stock Tokens that stream to $WIF stakers. Stakers choose which stock they want to be paid in, and a new stake only starts earning after a full epoch so nobody can jump in right before a payout. Anyone with 10,000 $WIF staked trades at 0.3% instead of 0.5%. Minting your Hindsight card onchain burns exactly 1 $WIF. So far 22.43 $WIF has been burned on mainnet across two distributes, and the burn is checked three ways on the proof page: the Distributed event, the transfer to the zero address and the FeePool's own counter.
+$WIF is the asset the whole thing runs on, and the contracts only ever buy it, they never sell it (TerraRouter reverts if you try to sell or convert $WIF). Every trade, convert and buy-with-stock pays a 0.5% fee into the FeePool. Once an hour anyone can call distribute (our keeper does it on a schedule): half of the pool buys $WIF on Uniswap and burns it, and the other half buys real Stock Tokens that stream to $WIF stakers. Stakers choose which stock they want to be paid in, and a new stake only starts earning after a full epoch so nobody can jump in right before a payout. Anyone with 10,000 $WIF staked trades at 0.3% instead of 0.5%. Minting your Hindsight card onchain burns exactly 1 $WIF. The burn already runs on mainnet, and every one is checked three ways on the proof page: the Distributed event, the transfer to the zero address and the FeePool's own counter.
 ```
 
 ## integration type (options visible only signed in)  (367 chars)
@@ -71,31 +71,31 @@ Pick every option that matches these: $WIF bought and burned by protocol fees (b
 ## contract addresses (Robinhood Chain 4663)  (371 chars)
 
 ```
-TerraRouter 0xBa4d301D9fD6f5e96c47961EE582851AF4db56Fa
-FeePool 0xb1FDE1C822a3fA7542B7A87D730a1969B2bFf5EB
-WifStaking 0x065783d9C37c10E1067B5042108E9EEa24429571
-Jar 0xa921DCaF524c4A50f46F26543B0EA3DBD2a4d5bF
-HindsightLens 0x2402898497B0532BCbdEE6339987F1D7056d4422
-StockOracle 0xA79a67F16262DEF44f1DDaeF247d96a0a36EdA81
-FriendJar 0x07E1b71f45890f995c81Df316f4d303cfc786769
+0xBa4d301D9fD6f5e96c47961EE582851AF4db56Fa
+0xb1FDE1C822a3fA7542B7A87D730a1969B2bFf5EB
+0x065783d9C37c10E1067B5042108E9EEa24429571
+0xa921DCaF524c4A50f46F26543B0EA3DBD2a4d5bF
+0x07E1b71f45890f995c81Df316f4d303cfc786769
+0x2402898497B0532BCbdEE6339987F1D7056d4422
+0xA79a67F16262DEF44f1DDaeF247d96a0a36EdA81
 ```
 
 ## flywheel: what does someone do  (321/500)
 
 ```
-They trade memes like they already do, just through Terra Firma's terminal, and leave a small slice of each trade on so it lands in their Jar as stock. When a meme is clearly dead, they convert it into a Stock Token in one go. Holders of $WIF stake it, pick the stock they want to be paid in, and claim it into their Jar.
+They trade memes like they already do, just through Terra Firma's terminal, with a small slice of each trade landing in their Jar as stock. When a meme is clearly dead, they convert it into a Stock Token in one go, on their own or into a Friend Jar with their group chat. $WIF holders stake it, pick the stock they want to be paid in, and claim it into their Jar. Anyone can mint their Hindsight card onchain and climb the leaderboard.
 ```
 
 ## flywheel: what happens to $wif when they do it  (317/500)
 
 ```
-Every one of those trades pays a 0.5% fee that only ever buys $WIF. Every hour half of that buys $WIF and burns it, and the other half buys real stock for the people staking $WIF. Minting a card burns another $WIF. Nothing in the protocol ever sells $WIF, so trading volume turns directly into $WIF bought and burned.
+Every one of those trades pays a 0.5% fee that only ever buys $WIF. Every hour half of it buys $WIF and burns it, and the other half buys real stock for the people staking $WIF. Staking takes $WIF off the market, and minting a card burns another one. Nothing in the protocol ever sells $WIF, so trading volume turns straight into $WIF bought and burned.
 ```
 
 ## flywheel: why does that bring them, or others, back  (425/500)
 
 ```
-Traders come back because their Jar keeps growing with every trade and the card shows them, in real numbers, how much better the stock side is doing than the memes. Stakers come back because every trade anyone makes pays them in stock, so they want more people trading, and staking 10,000 makes their own trades cheaper too. More trades mean more $WIF burned and more stock paid out, which is a reason to hold and stake $WIF.
+Traders come back because their Jar keeps growing with every trade and the card shows them, in real numbers, how far the stock side is ahead of the memes. Friend Jars pull the whole group chat in together. Stakers come back because every trade anyone makes pays them in stock, so they want more people trading, and staking 10,000 makes their own trades cheaper. More trades mean more $WIF burned and more stock paid out, which is a reason to hold and stake $WIF.
 ```
 
 ## github repo  (40 chars)
@@ -119,31 +119,29 @@ https://terrafirma-wif.vercel.app
 ## transactions (real Robinhood Chain txs where the product uses $wif)  (1570 chars)
 
 ```
-First distribute, buys and burns $WIF (11.07 burned): https://robinhoodchain.blockscout.com/tx/0xbd23368477c98de488447b1c20895b8d438bdba9977d63b8f01835899d0287c0
-Second distribute, buys and burns $WIF (22.43 burned in total): https://robinhoodchain.blockscout.com/tx/0x0d23d2d3fbba68a4a84e497bd9063bdc222df376d65cd383271f5ac41764aa9d
-Card mint, burns 1 $WIF: https://robinhoodchain.blockscout.com/tx/0x81bfa5ff6814b1325be443cdd62ec2008e7dbdf3280a20c5e857818f9c2b9d11
-Stake $WIF to earn NVDA: https://robinhoodchain.blockscout.com/tx/0x15551573a7f3ff7cfbb2ab11ce3e2b8141c64701a5ea014984b9fcd7374bcd8f
-Second stake: https://robinhoodchain.blockscout.com/tx/0x5a0f33f20f27f172bbc6b20457b01785f4072e758b12edcb1ff985d05de46f11
-Staker claim, paid in NVDA: https://robinhoodchain.blockscout.com/tx/0x37441924dfa9af929f8c4e13dd584801658e802689f81bd2ff26839aad223834
-Second staker claim: https://robinhoodchain.blockscout.com/tx/0x28331afbb69b2abaf3ca44bd7708c5bf7b0c304725e96f12021d527f90d75717
-Buy $WIF through the router: https://robinhoodchain.blockscout.com/tx/0x7cb39e57df916bd6541b5f79fd7701785282653d065617d2bde27fcabf4c64c9
-Buy $WIF through the router: https://robinhoodchain.blockscout.com/tx/0x379a83cd95f23c51a7935507f3cd5d3e26926b46b1129b880fbb00f6fea8ea75
-Meme buy with a 2% slice into NVDA (fee buys $WIF): https://robinhoodchain.blockscout.com/tx/0xea3f511478a2f387dd0bf118b37fe5d8d84feac77c7b8cfc1c49ebb3052f20d3
-Convert a meme into NVDA (fee buys $WIF): https://robinhoodchain.blockscout.com/tx/0xc5500b3cdd258f293c22f126f614af07c8ae541b159d27bd7ca84a85872131b5
+0xbd23368477c98de488447b1c20895b8d438bdba9977d63b8f01835899d0287c0
+0x0d23d2d3fbba68a4a84e497bd9063bdc222df376d65cd383271f5ac41764aa9d
+0x81bfa5ff6814b1325be443cdd62ec2008e7dbdf3280a20c5e857818f9c2b9d11
+0x15551573a7f3ff7cfbb2ab11ce3e2b8141c64701a5ea014984b9fcd7374bcd8f
+0x37441924dfa9af929f8c4e13dd584801658e802689f81bd2ff26839aad223834
+0x28331afbb69b2abaf3ca44bd7708c5bf7b0c304725e96f12021d527f90d75717
+0x7cb39e57df916bd6541b5f79fd7701785282653d065617d2bde27fcabf4c64c9
+0xea3f511478a2f387dd0bf118b37fe5d8d84feac77c7b8cfc1c49ebb3052f20d3
+0xc5500b3cdd258f293c22f126f614af07c8ae541b159d27bd7ca84a85872131b5
 ```
 
 ## how it's made  (1427/1500)
 
 ```
-Seven Solidity contracts (Foundry, solc 0.8.26) on Robinhood Chain mainnet: TerraRouter for meme trades, slices and converts through the Uniswap Universal Router, an ownerless Jar that holds Stock Tokens per user, the FeePool that buys and burns $WIF, WifStaking with epoch-delayed activation, StockOracle and HindsightLens over Chainlink, and FriendJar for group Jars. All seven are source verified. The app is Next.js 15 with wagmi and viem on Vercel, an hourly keeper runs in GitHub Actions, reads go through a small server proxy to a private GetBlock node, cards pull transfers from Envio HyperSync, and the Jar page is cross-checked by the Quicknode Stock Token API. Tests are 62 contract tests against a fork of mainnet, 25 more adversarial and fuzz tests, and 143 web tests.
+Seven Solidity contracts (Foundry, solc 0.8.26) on Robinhood Chain mainnet, all source verified: TerraRouter for meme trades, slices and converts through the Uniswap Universal Router, an ownerless Jar that holds Stock Tokens per user, FriendJar for shared group Jars, the FeePool that buys and burns $WIF, WifStaking with epoch-delayed activation, and StockOracle and HindsightLens over Chainlink. The app is Next.js 15 with wagmi and viem on Vercel. Cards pull a wallet's history from Envio HyperSync, the Jar's holdings are cross-checked against Quicknode's Stock Token API, reads go through a private GetBlock node, and an hourly keeper runs in GitHub Actions. 87 contract tests (62 against a mainnet fork, 25 adversarial and fuzz) and 143 web tests.
 
-The hardest part was making Hindsight honest. Pricing a buy means finding the Chainlink round that was actually live at that second, which is fiddly because round ids jump between phases, and early NVDA rounds report at a different scale. I wanted anyone to be able to check a card, so HindsightLens recomputes it onchain from the same rounds and rejects a round that was not the one in effect. The second hard part was the routing: memes on this chain sit across v2, v3 and v4 pools, including the hooked $WIF/ETH v4 pool, so the router quotes all of them and every stock fill is bounded by Chainlink so a bad price reverts instead of filling.
+The hardest part was making Hindsight honest. Pricing a buy means finding the Chainlink round that was actually live at that second, which is fiddly because round ids jump between phases, and early NVDA rounds report at a different scale. I wanted anyone to be able to check a card, so HindsightLens recomputes it onchain from the same rounds and rejects a round that was not the one in effect. The second hard part was routing: memes on this chain sit across v2, v3 and v4 pools, including the hooked $WIF/ETH v4 pool, so the router quotes all of them and every stock fill is bounded by Chainlink, so a bad price reverts instead of filling.
 ```
 
 ## what's next (optional)  (377/500)
 
 ```
-Grow Friend Jars, where a group saves into one Jar together, with more mainnet use. Add more memes and stocks as their pools and feeds appear on Robinhood Chain. Get a proper audit before anyone puts real size in. And the leaderboard and weekly Jar report card are a good base for a small season where the people who saved the most into stock get featured.
+Add more memes and stocks as their pools and Chainlink feeds appear on Robinhood Chain. Get a proper audit before anyone puts real size in. Turn the leaderboard and weekly Jar report card into small seasons where the people who saved the most into stock get featured, with Friend Jars competing as groups. Longer term, the slice can become a default for other meme apps on the chain, so every meme trade anywhere leaves a little stock behind.
 ```
 
 ## categories (pick all that fit)
