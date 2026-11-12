@@ -57,5 +57,7 @@ export const HISTORY_ADDR = process.env.NEXT_PUBLIC_HISTORY_ADDR || "0x3fDBeB0FC
 /** Addresses marked Blockscout-verified in data/deployments.json ("verified": [...]) after `forge verify-contract`. Empty = no badge. */
 export const VERIFIED = new Set(((TF as unknown as { verified?: string[] }).verified ?? []).map((a) => a.toLowerCase()));
 
-/** Contracts shown on /proof: FriendJar only when the feature flag is on. */
-export const SHOWN_CONTRACTS = CONTRACTS.filter((c) => c.key !== "FriendJar" || FRIEND_JARS);
+/** Contracts shown on /proof: all 7 deployed + verified (PRD F-016). FriendJar's screen is gated, so its row says so. */
+export const SHOWN_CONTRACTS = CONTRACTS.map((c) =>
+  c.key === "FriendJar" && !FRIEND_JARS ? { ...c, role: `${c.role} Deployed and tested; its screen is switched off for this submission.` } : c,
+);
