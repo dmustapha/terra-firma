@@ -202,7 +202,7 @@ fly = dict(t0=T_FLY, t1=T_PROOF, bought=W(22, 'bought'), burned=W(22, 'burned'),
 who = dict(traders=W(24, 'trading') - 0.2, holders=W(24, 'wif') - 0.2, end=T_LIM)
 limits = dict(t=W(25, 'only') - 0.2, end=T_CLOSE)
 close = dict(t=T_CLOSE, end=T_END)
-WIPES = [T_HOME, T_FLY]  # two signature strata wipes; every other chapter change is a soft crossfade
+WIPES = []  # no strata wipes: every chapter change is a soft 12-frame crossfade (the tricolour bands read as a flag)
 # 'left on the table' on the WALLET card: the app floors $0.62 to $0 (display bug, fixed in the app separately);
 # cover that one number with the exact value from the ledger on screen: In NVDA $1.22 minus today $0.60 = $0.62
 PATCHES = [dict(f0=x['f0'], f1=x['f1'], rect=[884, 618, 330, 132], text='$0.62') for x in SEGS if x['clip'] == 'v4' and 14.99 <= x['s0'] < 17.33]

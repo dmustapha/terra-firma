@@ -2,7 +2,7 @@
 
 Runtime 2:57.80 (177.80 s), 1920x1080, 30 fps. Generated from remotion/src/plan.json by scripts/storyboard.py.
 Voice is master: each row is one narration line at its placed time; the picture spans under it were solved from the anchors in build/anchors.json.
-Chapter wipes (strata) at: 0:16.75, 2:23.55.
+Chapter wipes (strata) at: .
 
 | # | film | line | picture (source s, speed) | wallet cards | callouts / overlays |
 |---|---|---|---|---|---|

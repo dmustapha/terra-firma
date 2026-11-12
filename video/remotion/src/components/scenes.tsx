@@ -16,7 +16,7 @@ const Kicker: React.FC<{ children: React.ReactNode; color?: string }> = ({ child
 
 // (1) hook: the card's own three numbers, counted up on the words that name them
 export const HookCount: React.FC<{ t: number }> = ({ t }) => {
-  const h = plan.hook, end = plan.wipes[0];
+  const h = plan.hook, end = (plan.segs as any[]).find((s) => s.scene === 'home').f0;
   const k = ramp(t, h.paid - 0.5, h.paid - 0.1, end - 0.5, end - 0.35);
   if (k <= 0) return null;
   const paid = interpolate(t, [h.paid - 0.2, h.paid + 1.1], [0, 18421], { ...clamp, easing: Easing.out(Easing.cubic) });

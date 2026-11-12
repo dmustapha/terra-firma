@@ -84,7 +84,7 @@
    "f1": 20.7,
    "s0": 0.6,
    "speed": 1.1139,
-   "join": "cut",
+   "join": "xfade",
    "scene": "home",
    "tag": null
   },
@@ -1046,7 +1046,7 @@
    "f1": 149.8,
    "s0": 128.2,
    "speed": 0.8,
-   "join": "cut",
+   "join": "xfade",
    "scene": "flywheel",
    "tag": null
   },
@@ -1984,8 +1984,5 @@
   "t": 171.733,
   "end": 177.80100000000002
  },
- "wipes": [
-  16.75,
-  143.55
- ]
+ "wipes": []
 }
