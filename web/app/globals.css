@@ -196,11 +196,6 @@ dialog::backdrop {
 }
 
 /* Double rule under the masthead (2px over 1px). */
-.dblrule {
-  height: 5px;
-  border-top: 2px solid var(--line-strong);
-  border-bottom: 1px solid var(--line-strong);
-}
 
 /* ---- Halftone ground band: an authored layer, never a flat fill ----
    Each <i> is a moss dot screen (repeating-radial-gradient) clipped by a wave mask; dots grow with depth. */
@@ -288,53 +283,16 @@ dialog::backdrop {
   border-radius: 10px;
   box-shadow: var(--sh-well);
 }
-.ui-label {
-  font-family: var(--font-sans);
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
 /* Rubber stamp: brick ink, rotated, a double ring. Sits across the plate edge. */
-.stamp {
-  display: inline-block;
-  padding: 0.35em 0.6em 0.3em;
-  border: 3px double var(--danger);
-  border-radius: 8px;
-  color: var(--danger);
-  background: color-mix(in oklab, var(--plate) 82%, transparent);
-  font-family: var(--font-display);
-  line-height: 1;
-  transform: rotate(-7deg);
-  box-shadow: 2px 2px 0 rgb(155 59 31 / 0.25);
-}
-.drain { width: var(--to); }
 .live-dot { display: inline-block; width: 0.5rem; height: 0.5rem; border-radius: 999px; background: var(--accent); }
 
 @media (prefers-reduced-motion: no-preference) {
   /* entrance: the plate drops from above and SEATS onto its ink offset */
-  .seat { animation: seat 700ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
   /* state: the stamp lands once the numbers resolve */
-  .stamp-land { animation: stamp-land 520ms cubic-bezier(0.3, 1.4, 0.5, 1) 650ms both; }
   /* entrance: steps rise one after another */
-  .drain { width: var(--to); animation: drain 1400ms cubic-bezier(0.6, 0, 0.2, 1) 500ms both; }
-  .grow-x { transform-origin: left; animation: grow-x 900ms cubic-bezier(0.2, 0.8, 0.2, 1) 400ms both; }
-  .rise { animation: rise 600ms cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: calc(var(--i, 0) * 90ms + 120ms); }
   /* ambient: the live dot breathes (the only loop above the fold) */
   .live-dot { animation: live 2.4s ease-in-out infinite; }
 }
-@keyframes seat {
-  from { opacity: 0; transform: translate(8px, -14px); box-shadow: 0 0 0 var(--plate-offset), 0 10px 30px -20px transparent; }
-  to { opacity: 1; transform: none; }
-}
-@keyframes stamp-land {
-  0% { opacity: 0; transform: rotate(-16deg) scale(1.7); }
-  70% { opacity: 1; transform: rotate(-6deg) scale(0.96); }
-  100% { opacity: 1; transform: rotate(-7deg) scale(1); }
-}
-@keyframes drain { from { width: 100%; } to { width: var(--to); } }
-@keyframes grow-x { from { transform: scaleX(0); } to { transform: none; } }
-@keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @keyframes live { 0%, 100% { box-shadow: 0 0 0 0 var(--accent-55); } 50% { box-shadow: 0 0 0 5px transparent; } }
 
 /* The seal: multiply onto light paper (its cream ground disappears); in dark, inverted to cream strokes and screened out. */
@@ -344,21 +302,6 @@ dialog::backdrop {
 /* ================= THE HINDSIGHT EDITION (v3) =================
    One object per page: a real sheet of newsprint. Everything else is type and rules set straight on the ground.
    The sheet keeps light-paper ink in both themes (a printed page on a dark desk at night). */
-.paper {
-  --ink: #16130e;
-  --brick: #a13a1c;
-  --moss: #2f5c3e;
-  color: var(--ink);
-  background-color: #f7f2e5;
-  background-image:
-    linear-gradient(90deg, transparent 49.6%, rgb(22 19 14 / 0.05) 50%, transparent 50.4%),
-    radial-gradient(rgb(22 19 14 / 0.06) 0.6px, transparent 0.8px),
-    linear-gradient(180deg, rgb(255 255 255 / 0.5), transparent 30%);
-  background-size: 100% 100%, 4px 4px, 100% 100%;
-}
-.paper-sheet { filter: drop-shadow(0 1px 1px rgb(30 22 10 / 0.18)) drop-shadow(0 22px 28px rgb(40 30 12 / 0.28)); }
-:root[data-theme="dark"] .paper-sheet { filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.6)) drop-shadow(0 30px 40px rgb(0 0 0 / 0.65)); }
-.paper .stamp, .paper-sheet .stamp { --plate: #f7f2e5; --danger: #a13a1c; }
 /* rules-only section heads, set on the ground */
 .rule-head { border-top: 3px double var(--line-strong); padding-top: 0.75rem; }
 
@@ -396,7 +339,6 @@ dialog::backdrop {
 }
 @keyframes bloom { from { transform: scale(1); opacity: 0.85; } to { transform: scale(1.07); opacity: 1; } }
 .eyebrow { font-family: var(--font-mono); font-size: 0.6875rem; font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase; }
-.hairline-step { background: color-mix(in oklab, var(--fg) 3%, transparent); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--fg) 10%, transparent); }
 /* core-sample materials (light: survey paper; dark: night survey) */
 :root {
   --brick: #9b3b1f; --moss: #2f5c3e;
@@ -408,16 +350,12 @@ dialog::backdrop {
   --sed-bg: #4a2a1d; --sed-dot: #e39477;
   --rock-bg: #4f7d5a; --rock-line: #2f5239; --rock-void: #110e0a; --rock-seam: #86b391;
 }
-.core-glow { position: relative; isolation: isolate; }
-.core-glow::before { content: ""; position: absolute; inset: 8% 4% 0; z-index: -1; border-radius: 50%;
-  background: radial-gradient(closest-side, var(--glow), transparent); filter: blur(30px); }
 .drill-tip { width: 11px; height: 14px; background: var(--accent); clip-path: polygon(0 0, 100% 0, 100% 45%, 50% 100%, 0 45%); }
 .drill-bit { width: 22px; height: 30px; background: var(--accent); clip-path: polygon(0 0, 100% 0, 100% 45%, 50% 100%, 0 45%); }
 @media (prefers-reduced-motion: no-preference) { .drill-bit { animation: drill 0.9s var(--ease-quart) infinite alternate; } }
 @keyframes drill { from { transform: translateY(-6px); } to { transform: translateY(6px); } }
 /* bedrock band (closer): the ground beneath everything */
 .bedrock-band { background-color: var(--rock-bg); background-image: repeating-linear-gradient(-35deg, transparent 0 14px, rgb(0 0 0 / 0.14) 14px 16px), radial-gradient(80% 120% at 80% 0%, rgb(255 255 255 / 0.12), transparent 60%); color: #f6f0e1; }
-.strata-seam { height: 10px; background: linear-gradient(var(--line-strong), var(--line-strong)) top/100% 1px no-repeat, repeating-linear-gradient(90deg, var(--line-strong) 0 2px, transparent 2px 9px) bottom/100% 4px no-repeat; opacity: 0.55; }
 
 /* ================= v3.1 DEPTH: chit's doctrine in the survey world =================
    ground (darker) → lit PLATE (gradient + corner light + rim + hairline, colored glow behind) → recessed WELL (darker, inner shade)

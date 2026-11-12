@@ -7,20 +7,20 @@ import { cx } from "./ui";
 export function StockSelect({ value, onChange, label = "Stock", name = "stock" }: { value: string; onChange: (symbol: string) => void; label?: string; name?: string }) {
   return (
     <fieldset>
-      <legend className="mb-2 text-sm text-muted">{label}</legend>
-      <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+      <legend className="eyebrow mb-3 text-muted">{label}</legend>
+      <div className="flex flex-wrap gap-x-7 gap-y-3">
         {STOCKS.map((s) => (
           <label
             key={s.symbol}
             className={cx(
-              "relative flex min-h-11 cursor-pointer flex-col items-center justify-center rounded-sm border px-2 py-1.5 text-center transition-[background-color,border-color,color,transform] duration-150 hover:-translate-y-px",
+              "relative flex min-h-11 cursor-pointer flex-col items-start justify-end pb-2 transition-colors duration-150 after:absolute after:inset-x-0 after:bottom-0 after:h-1.5 after:rounded-[2px] after:transition-opacity",
               "has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-fg",
-              value === s.symbol ? "border-accent bg-accent-soft text-fg shadow-[inset_3px_0_0_var(--accent)]" : "border-fg/40 bg-surface text-muted hover:border-fg hover:text-fg",
+              value === s.symbol ? "text-fg after:bg-[color:var(--rock-bg)] after:[background-image:repeating-linear-gradient(-35deg,transparent_0_4px,var(--rock-line)_4px_5px)] after:opacity-100" : "text-muted after:bg-line-strong after:opacity-20 hover:text-fg",
             )}
           >
             <input type="radio" name={name} value={s.symbol} checked={value === s.symbol} onChange={() => onChange(s.symbol)} className="sr-only" />
-            <span className="text-sm font-semibold">{s.symbol}</span>
-            <span className="text-[0.7rem] leading-tight">{s.hours}</span>
+            <span className="font-display text-[1.75rem] leading-none">{s.symbol}</span>
+            <span className="eyebrow mt-1 text-[0.5625rem]">{s.hours}</span>
           </label>
         ))}
       </div>

@@ -178,7 +178,7 @@ export function CoreSample({ card: c, k, label = true }: { card: Card; k: number
       {label && (
         <g fontFamily="var(--font-mono)" fontSize="10.5" letterSpacing="0.06em" fill="var(--fg)">
           {/* left: depth scale */}
-          <g fillOpacity="0.6">
+          <g fillOpacity="0.82">
             <text x={CX - R - 16} y={TOP + CAP + 4} textAnchor="end">SURFACE</text>
             <text x={CX - R - 16} y={seamY + 11} textAnchor="end">SIEVE</text>
             <text x={CX - R - 16} y={bottom + 4} textAnchor="end">BEDROCK</text>

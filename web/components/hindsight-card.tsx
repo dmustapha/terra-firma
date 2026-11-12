@@ -102,8 +102,9 @@ export function HindsightCard({ card, owner = true, stockControl, actions }: { c
       {stockControl && <div className="rule-head">{stockControl}</div>}
 
       {card.memes.length > 0 && (
-        <div>
-          <h2 className="rule-head mb-3 font-display text-[1.75rem]">The ledger, coin by coin</h2>
+        <div className="plate-lit px-5 py-7 sm:px-8">
+          <p className="eyebrow text-accent">Every layer</p>
+          <h2 className="mt-2 mb-4 font-display text-[clamp(2rem,1.4rem+2vw,3rem)] leading-none">The ledger, coin by coin.</h2>
           <div className="hidden grid-cols-[1.2fr_1fr_1fr_1fr_auto] gap-x-3 border-y border-fg px-3 py-2 text-[0.8125rem] font-semibold text-muted sm:grid" aria-hidden>
             <span>Meme</span><span className="text-right">Paid</span><span className="text-right">Today</span><span className="text-right">In {stock.symbol}</span><span className="w-3" />
           </div>

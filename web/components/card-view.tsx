@@ -55,15 +55,17 @@ export function CardView({ card, error }: { card: Card | null; error: string | n
         }
       />
       {pending && <Notice>Repricing against the selected stock…</Notice>}
-      <Panel className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="font-display text-deck">{own ? "This is your wallet." : "Connect to fix yours."}</p>
-        {isConnected ? <LinkButton href="/app">Open your card</LinkButton> : <ConnectButton label="Connect to fix yours" onConnected={() => router.push("/app")} />}
-      </Panel>
-      <Panel aria-labelledby="card-lookup-title" className="space-y-3">
-        <h2 id="card-lookup-title" className="font-display text-deck">Look up another wallet</h2>
-        {card.wallet.toLowerCase() !== HISTORY_ADDR.toLowerCase() && <LinkButton href={`/card/${HISTORY_ADDR}`} variant="secondary">See a wallet with real history</LinkButton>}
-        <AddressLookup id="card-lookup" placeholder="Wallet address: 0x…" />
-      </Panel>
+      <section className="rule-head grid gap-8 pt-6 lg:grid-cols-2">
+        <div>
+          <p className="font-display text-[clamp(2rem,1.4rem+2vw,3rem)] leading-[0.95]">{own ? "This is your core." : <>Drill your own. <em className="text-accent">Then sweep it.</em></>}</p>
+          <div className="mt-5">{isConnected ? <LinkButton href="/app">Open your core</LinkButton> : <ConnectButton label="Connect to drill yours" onConnected={() => router.push("/app")} />}</div>
+        </div>
+        <div aria-labelledby="card-lookup-title">
+          <h2 id="card-lookup-title" className="eyebrow mb-3 text-muted">Or drill another wallet</h2>
+          <AddressLookup id="card-lookup" placeholder="0x… any wallet" button="Drill it" />
+          {card.wallet.toLowerCase() !== HISTORY_ADDR.toLowerCase() && <LinkButton href={`/card/${HISTORY_ADDR}`} variant="secondary" className="mt-3">See a wallet with real history</LinkButton>}
+        </div>
+      </section>
     </div>
   );
 }
