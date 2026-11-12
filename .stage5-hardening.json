@@ -1,0 +1,47 @@
+{
+  "slice": "terra-firma mainnet slice (7 contracts on Robinhood Chain 4663 + web/api)",
+  "complete": true,
+  "profile": "campaign",
+  "attack_classes": [
+    {"class": "reentrancy", "owner": "debug"},
+    {"class": "oracle-staleness", "owner": "debug"},
+    {"class": "access-control", "owner": "stress"},
+    {"class": "front-running-sandwich", "owner": "stress"},
+    {"class": "griefing-dos", "owner": "stress"},
+    {"class": "input-malformation", "owner": "stress", "fuzz": true},
+    {"class": "invite-replay-brute-force", "owner": "stress", "fuzz": true},
+    {"class": "fabricated-claim-provenance", "owner": "stress"},
+    {"class": "concurrency-saturation", "owner": "stress"}
+  ],
+  "fuzz": {"ran": true, "target": "contracts/test/stress-p5.t.sol testFuzz_buyFeeAndSweepAccounting, testFuzz_joinOnlyWithExactInvite, testFuzz_sweepAboveMaxReverts (48 runs each, mainnet fork) + base testFuzz_stakingAccounting", "cases": 144},
+  "spine": {"paths": [
+    {"vector": "TerraRouter buy/sell/convert ETH and token flows (fee exact, router keeps no ETH, Jar backed)", "status": "CLOSED"},
+    {"vector": "Router executes caller-supplied UR commands / route-token mismatch", "status": "CLOSED"},
+    {"vector": "$WIF sold through router (sell/convert)", "status": "CLOSED"},
+    {"vector": "Jar credit by non-router / withdraw beyond own balance / stranger withdraw", "status": "CLOSED"},
+    {"vector": "WifStaking notifyReward by non-FeePool, JIT stake, overdraw, early withdraw", "status": "CLOSED"},
+    {"vector": "FeePool distribute: sandwich of burn leg bounded by MAX_WIF_BUY_ETH, once per epoch, threshold", "status": "CLOSED"},
+    {"vector": "HindsightLens mintCard: burns exactly 1e18, no burn on fabricated round, needs approval", "status": "CLOSED"},
+    {"vector": "FriendJar exit isolation under invite replay", "status": "CLOSED"},
+    {"vector": "Stale Chainlink feed priced into a stock leg", "status": "CLOSED"}
+  ]},
+  "findings": [
+    {"id": "ST-DH9", "severity": "H", "spine": false, "status": "FIXED",
+     "summary": "20 concurrent cold Hindsight cards: 6 requests died as platform 504 at the 60 s function limit instead of a handled 503",
+     "fix_commit": "8fc6f57", "new_test": "web/lib/card-cache.test.ts",
+     "drill_evidence": "evidence/stress/p4-api-stress.txt",
+     "revector_pass": true, "revector_evidence": "evidence/stress/dh9-revector-local.txt"},
+    {"id": "ST-DH9b", "severity": "H", "spine": false, "status": "FIXED",
+     "summary": "/card/[addr] page + OG image built the card server-side with no deadline (same 504 path on page render)",
+     "fix_commit": "b001e51", "new_test": "web/lib/api-hindsight.test.ts",
+     "drill_evidence": "evidence/stress/p4-api-stress.txt", "revector_pass": true, "revector_evidence": "evidence/stress/p2-ui-errors-run2-local.txt"},
+    {"id": "ST-INFRA-429", "severity": "H", "spine": false, "status": "OPEN-INFRA",
+     "summary": "Cold-card capacity is bounded by the public RPC eth_getLogs rate limit (429); HyperSync (P5.0) needs Dami's Envio token"},
+    {"id": "ST-L1", "severity": "L", "spine": false, "status": "DOCUMENTED",
+     "summary": "FriendJar invite travels in plaintext calldata: after the first join anyone can replay it (membership only lets you add your own ETH; exit isolation proven). UI gated off."},
+    {"id": "ST-L2", "severity": "L", "spine": false, "status": "MITIGATED",
+     "summary": "mintCard takes self-reported buys (an empty or fabricated card can be minted); /board ranks only cards re-derived by /api/card-check (API-CC-02 proves a 100x fabricated claim does not verify)"},
+    {"id": "ST-M1", "severity": "M", "spine": false, "status": "DOCUMENTED",
+     "summary": "Keeper only fires at >= 0.0002 ETH while the contract floor is 0.00001 ETH: low-volume epochs need a manual distribute (by design, gas)"}
+  ]
+}
