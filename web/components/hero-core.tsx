@@ -42,11 +42,11 @@ export function HeroCore({ addr, initial, recorded = false, headline, action }: 
               <span>Core · {c.wallet.slice(0, 6)}…{c.wallet.slice(-4)}</span>
               <span className="num">{isRecorded ? "recorded read · " : "live · "}block {c.asOfBlock.toLocaleString("en-US")}</span>
             </p>
-            <div className="-mx-2 -mb-10 lg:-mr-10 lg:-mb-16" onMouseEnter={() => k === 1 && replay()}><CoreSample card={c} k={k} /></div>
-            <p className="relative mt-1 flex justify-between px-2 text-sm">
+            <p className="relative mb-1 flex justify-end gap-5 px-2 text-sm">
               <button type="button" onClick={replay} className="font-semibold underline underline-offset-4 hover:text-accent">Drill again</button>
               <Link href={`/card/${c.wallet}`} className="font-semibold underline underline-offset-4 hover:text-accent">Every layer →</Link>
             </p>
+            <div className="-mx-2 -mb-10 lg:-mr-10 lg:-mb-16" onMouseEnter={() => k === 1 && replay()}><CoreSample card={c} k={k} /></div>
           </>
         ) : (
           <div role="status" className="flex min-h-[30rem] flex-col items-center justify-center gap-4 text-center">
