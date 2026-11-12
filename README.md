@@ -14,7 +14,9 @@
   <a href="https://github.com/dmustapha/terra-firma">Repo</a>
 </p>
 
-<p align="center"><b>Demo video:</b> link coming with the submission (under 3 minutes, recorded on mainnet)</p>
+<p align="center"><b>Demo video</b> (2:58, every transaction real on Robinhood Chain mainnet) · <a href="https://youtu.be/4tybHV9ezGc">watch in full quality on YouTube</a></p>
+
+https://github.com/user-attachments/assets/67395a74-94e6-40eb-9359-37b86548ed57
 
 <p align="center">
   <img alt="network" src="https://img.shields.io/badge/Robinhood%20Chain-mainnet%204663-1A1712" />
