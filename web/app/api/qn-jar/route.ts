@@ -1,7 +1,7 @@
 // File: web/app/api/qn-jar/route.ts
 // Cross-checks the Jar contract's Stock Token balances via Quicknode qn_getStockTokenBalances against direct
-// ERC-20 balanceOf reads. Display-only (never in the money path). [UNVERIFIED] Quicknode response field names:
-// parsed defensively; anything unparseable returns enabled:false so the UI hides the badge.
+// ERC-20 balanceOf reads. Display-only (never in the money path). Verified shape (2026-11-12, Robinhood Chain mainnet):
+// params [address] -> { result: { holdings: [{ token, balanceRaw, ... }] } }. Anything else returns enabled:false.
 import { NextResponse } from "next/server";
 import { erc20Abi } from "@/lib/abi";
 import { STOCKS, TF } from "@/lib/config";
@@ -11,12 +11,12 @@ import { DEPLOYED, publicClient } from "@/lib/ui-chain";
 export const runtime = "nodejs";
 export const revalidate = 0;
 
-type QnRow = { address?: string; contractAddress?: string; token?: string; balance?: string; rawBalance?: string };
+type QnRow = { address?: string; contractAddress?: string; token?: string; balance?: string; rawBalance?: string; balanceRaw?: string };
 
 function rowsOf(result: unknown): QnRow[] {
   if (Array.isArray(result)) return result as QnRow[];
-  const r = result as { balances?: QnRow[]; tokens?: QnRow[]; assets?: QnRow[] } | null;
-  return r?.balances ?? r?.tokens ?? r?.assets ?? [];
+  const r = result as { holdings?: QnRow[]; balances?: QnRow[]; tokens?: QnRow[]; assets?: QnRow[] } | null;
+  return r?.holdings ?? r?.balances ?? r?.tokens ?? r?.assets ?? [];
 }
 
 export async function GET() {
@@ -26,7 +26,7 @@ export async function GET() {
     const res = await fetch(url, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "qn_getStockTokenBalances", params: [{ wallet: TF.Jar }] }),
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "qn_getStockTokenBalances", params: [TF.Jar] }),
       cache: "no-store",
       signal: AbortSignal.timeout(8_000),
     });
@@ -34,7 +34,7 @@ export async function GET() {
     if (!res.ok || body.error || body.result === undefined) return NextResponse.json({ enabled: false });
     const qn = new Map(
       rowsOf(body.result)
-        .map((r) => [(r.address ?? r.contractAddress ?? r.token ?? "").toLowerCase(), r.rawBalance ?? r.balance] as const)
+        .map((r) => [(r.address ?? r.contractAddress ?? r.token ?? "").toLowerCase(), r.balanceRaw ?? r.rawBalance ?? r.balance] as const)
         .filter(([a, b]) => a && b !== undefined),
     );
     const direct = await publicClient.multicall({

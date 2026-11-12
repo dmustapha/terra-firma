@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { DEPLOYED } from "@/lib/ui-chain";
+import { DEPLOYED, FRIEND_JARS } from "@/lib/ui-chain";
 import { ConnectButton } from "./connect-button";
 import { ThemeToggle } from "./theme-toggle";
 import { cx } from "./ui";
@@ -12,6 +12,7 @@ const NAV = [
   { href: "/app/convert", label: "Convert" },
   { href: "/trade", label: "Trade" },
   { href: "/jar", label: "My Jar" },
+  ...(FRIEND_JARS ? [{ href: "/friends", label: "Friend Jars" }] : []),
   { href: "/stake", label: "Stake $WIF" },
   { href: "/board", label: "Leaderboard" },
 ];
