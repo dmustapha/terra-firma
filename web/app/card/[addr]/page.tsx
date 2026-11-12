@@ -4,21 +4,21 @@ import { cache } from "react";
 import { getAddress, isAddress } from "viem";
 import { CardView } from "@/components/card-view";
 import { stockBySymbol, type StockId } from "@/lib/config";
-import { getCard } from "@/lib/card-cache";
+import { getCard, getCardWithin } from "@/lib/card-cache";
 import type { Card } from "@/lib/hindsight";
 import { short } from "@/lib/ui-format";
 import { HISTORY_ADDR } from "@/lib/ui-chain";
 import snapshot from "@/data/hero-snapshot.json";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 60; // the card load gives up at 50 s and renders the busy state, never a platform 504
 
 type Props = { params: Promise<{ addr: string }>; searchParams: Promise<{ stock?: string }> };
 
 const load = cache(async (addr: string, stock: string): Promise<{ card: Card | null; error: string | null }> => {
   const s = stockBySymbol(stock) ?? stockBySymbol("NVDA")!;
   try {
-    return { card: await getCard(getAddress(addr), s.id as StockId), error: null };
+    return { card: await getCardWithin(getAddress(addr), s.id as StockId, 50_000, getCard), error: null };
   } catch {
     // the example wallet falls back to its recorded real read (block shown on the core); any other wallet shows the jammed core
     if (addr.toLowerCase() === HISTORY_ADDR.toLowerCase() && s.symbol === "NVDA") return { card: snapshot as unknown as Card, error: null };
