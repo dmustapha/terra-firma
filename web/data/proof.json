@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-11-12T07:31:39.432Z",
+  "generatedAt": "2026-11-12T09:01:45.280Z",
   "chainId": 4663,
   "fromBlock": 111602102,
-  "head": 112357645,
+  "head": 112406935,
   "contracts": {
     "StockOracle": "0xA79a67F16262DEF44f1DDaeF247d96a0a36EdA81",
     "Jar": "0xa921DCaF524c4A50f46F26543B0EA3DBD2a4d5bF",
@@ -19,24 +19,24 @@
     "distributeWithBurn": "0xbd23368477c98de488447b1c20895b8d438bdba9977d63b8f01835899d0287c0",
     "stake": "0x15551573a7f3ff7cfbb2ab11ce3e2b8141c64701a5ea014984b9fcd7374bcd8f",
     "claim": "0x37441924dfa9af929f8c4e13dd584801658e802689f81bd2ff26839aad223834",
-    "cardMint": null
+    "cardMint": "0x81bfa5ff6814b1325be443cdd62ec2008e7dbdf3280a20c5e857818f9c2b9d11"
   },
   "totals": {
-    "trades": 5,
-    "routedEthWei": "2473013468316603",
-    "tradeFeesWei": "12365067341583",
-    "feePoolReceivedWei": "13830509820193",
-    "sweeps": 2,
-    "converts": 1,
-    "distributions": 1,
+    "trades": 11,
+    "routedEthWei": "5017717548370526",
+    "tradeFeesWei": "25088587741852",
+    "feePoolReceivedWei": "28016829488497",
+    "sweeps": 6,
+    "converts": 2,
+    "distributions": 2,
     "wifBurnedWei": {
-      "byEvent": "11066654700738518500",
-      "byTransferToZero": "11066654700738518500",
-      "feePoolTotal": "11066654700738518500"
+      "byEvent": "22430322849521702563",
+      "byTransferToZero": "22430322849521702563",
+      "feePoolTotal": "22430322849521702563"
     },
     "burnConsistent": true,
     "stockStreamed": {
-      "NVDA": "87790798490783",
+      "NVDA": "177415992626683",
       "TSLA": "0",
       "GOOGL": "0",
       "SNDK": "0",
@@ -44,8 +44,8 @@
       "QQQ": "0"
     },
     "jars": 1,
-    "claims": 1,
-    "claimedWei": "87790798490733",
-    "cardsMinted": 0
+    "claims": 2,
+    "claimedWei": "177415992626619",
+    "cardsMinted": 1
   }
 }
