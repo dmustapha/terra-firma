@@ -88,3 +88,14 @@ Rules: every sped-up span carries a small corner tag `N s skipped · xK` (Plumbl
 - Approvals (`c2`, `c5`, `c11`) carry no tx hash (the approve tx is on the token contract); every other card uses the real hash listed (all from mainnet logs, blocks 112,377,285 to 112,406,524).
 - Line 12 runs about 2 s into the convert page (s04a); acceptable, or slow `s03c` to 1.5x (+1.3 s) if the cut needs it on the card.
 - Outro: `o1` board tubes + who-it's-for cards (lines 34-35), `o2` proof 'How to check every claim' + honest-limits card (36-37), `o3` home 'Stand on bedrock.' + close card with `terrafirma-wif.vercel.app` and the repo (38). Use `terrafirma-wif.vercel.app` (wallet-safe domain) on screen everywhere.
+
+## REVISION 2 (2:50.42): hard 3-minute cap from the submission form
+Source: worldisflat.fun form help text "keep it under 3 minutes and show it working rather than slides. youtube, loom, vimeo or x links all work." Picture now `rough_cut_v4.mp4` (173.2 s): vs v3 everything after S02 is -1.0 s and after S06 -1.5 s (re-map v3 ranges accordingly at render).
+- i5 GRAPHIC title card REMOVED (no slides); the title becomes a lower-third over i6.
+- i6 = `extra/home.mp4` 15.0-24.0 (9.0 s) at film 16.8-25.8; lines 5-6.
+- s01 at 1x (2.6 s) at film 25.8-28.4; line 7. Every later app row shifts -9.11 s.
+- s14a 146.19-148.19, s14b 148.19-150.55, s14c (v4 168.5-173.1) at 1.5x 150.55-153.62; line 30.
+- o1 = `extra/board.mp4` 1.0-7.0 at 153.62-159.62; line 31.
+- o2 = `extra/proof.mp4` 12.0-18.0 at 159.62-165.62; line 32.
+- o3 = `extra/home.mp4` 35.0-39.8 at 165.62-170.42; line 33. TOTAL 170.42 s.
+Narration: `video/SCRIPT.md` (33 lines) and `video/voicebooth-lines.txt` are authoritative for line windows.
