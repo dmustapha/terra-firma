@@ -1,6 +1,6 @@
 # Terra Firma — onchain proof (Robinhood Chain mainnet 4663)
 
-Generated 2026-11-12T06:13:45.281Z by `pnpm tsx scripts/proof.ts` from RPC logs, deployment block 111602102 to head 112314215. Every number below is a sum of onchain events; rerun the script to recompute.
+Generated 2026-11-12T07:01:28.163Z by `pnpm tsx scripts/proof.ts` from RPC logs, deployment block 111602102 to head 112340661. Every number below is a sum of onchain events; rerun the script to recompute.
 
 ## Contracts
 | Contract | Address |
@@ -19,7 +19,7 @@ Generated 2026-11-12T06:13:45.281Z by `pnpm tsx scripts/proof.ts` from RPC logs,
 | First routed trade (Traded) | [`0xffe2d3906357a4de2620f7c224bb35c884f8a18af0720469d30dcfcde51939d8`](https://robinhoodchain.blockscout.com/tx/0xffe2d3906357a4de2620f7c224bb35c884f8a18af0720469d30dcfcde51939d8) |
 | First convert (Converted) | [`0xc5500b3cdd258f293c22f126f614af07c8ae541b159d27bd7ca84a85872131b5`](https://robinhoodchain.blockscout.com/tx/0xc5500b3cdd258f293c22f126f614af07c8ae541b159d27bd7ca84a85872131b5) |
 | First sweep trade (Swept) | [`0x7f5b2f1fb864bce8ac6f2fb0fdfebfbf5758997ad1a3bf7ea3cd5cff89551b53`](https://robinhoodchain.blockscout.com/tx/0x7f5b2f1fb864bce8ac6f2fb0fdfebfbf5758997ad1a3bf7ea3cd5cff89551b53) |
-| First Distributed with WIF burn | not yet (no such event onchain) |
+| First Distributed with WIF burn | [`0xbd23368477c98de488447b1c20895b8d438bdba9977d63b8f01835899d0287c0`](https://robinhoodchain.blockscout.com/tx/0xbd23368477c98de488447b1c20895b8d438bdba9977d63b8f01835899d0287c0) |
 | First stake (Staked) | [`0x15551573a7f3ff7cfbb2ab11ce3e2b8141c64701a5ea014984b9fcd7374bcd8f`](https://robinhoodchain.blockscout.com/tx/0x15551573a7f3ff7cfbb2ab11ce3e2b8141c64701a5ea014984b9fcd7374bcd8f) |
 | First staker claim (Claimed) | not yet (no such event onchain) |
 | First card mint (CardMinted) | not yet (no such event onchain) |
@@ -27,17 +27,17 @@ Generated 2026-11-12T06:13:45.281Z by `pnpm tsx scripts/proof.ts` from RPC logs,
 ## Totals
 | Metric | Value |
 |---|---|
-| Routed trades | 4 |
-| Routed ETH (Traded.ethAmount) | 0.002373013468316603 ETH |
-| Trade fees (Traded.fee) | 0.000011865067341583 ETH |
-| ETH received by FeePool (all fees) | 0.000013330509820193 ETH |
-| Sweeps / converts | 1 / 1 |
-| Distributions | 0 |
-| WIF burned (Distributed events) | 0 |
-| WIF burned (WIF Transfer FeePool -> 0x0) | 0 |
-| WIF burned (FeePool.totalWifBurned) | 0 |
+| Routed trades | 5 |
+| Routed ETH (Traded.ethAmount) | 0.002473013468316603 ETH |
+| Trade fees (Traded.fee) | 0.000012365067341583 ETH |
+| ETH received by FeePool (all fees) | 0.000013830509820193 ETH |
+| Sweeps / converts | 2 / 1 |
+| Distributions | 1 |
+| WIF burned (Distributed events) | 11.0666547007385185 |
+| WIF burned (WIF Transfer FeePool -> 0x0) | 11.0666547007385185 |
+| WIF burned (FeePool.totalWifBurned) | 11.0666547007385185 |
 | Burn sources agree | yes |
-| Stock streamed to stakers | NVDA 0, TSLA 0, GOOGL 0, SNDK 0, SPY 0, QQQ 0 |
+| Stock streamed to stakers | NVDA 0.000087790798490783, TSLA 0, GOOGL 0, SNDK 0, SPY 0, QQQ 0 |
 | Jars (distinct credited users) | 1 |
 | Staker claims | 0 (0 stock) |
 | Cards minted | 0 |
