@@ -1,0 +1,29 @@
+{
+ "status": "complete",
+ "mode": "STANDARD",
+ "personas_run": 13,
+ "personas_total": 13,
+ "findings": {
+  "total": 8,
+  "P0": 0,
+  "P1": 3,
+  "P2": 4,
+  "P3": 1,
+  "P4": 0,
+  "unverified": 0
+ },
+ "gate_status": {
+  "demo_gate": "HAZARDS",
+  "submission_gate": "WARNING"
+ },
+ "demo_hazards": [
+  {
+   "title": "Blockaid flags both domains: Zerion blocks the dApp outright; MetaMask shows red 'unknown address/high-risk' and requires acknowledging the risk on every signature",
+   "impact": "WARNS",
+   "fix_guidance": "Blockaid developer verification filed 2026-11-12 (pending). Video already masks it. Keep the README disclosure; in the submission text tell judges MetaMask works after 'proceed anyway'; a custom domain would likely start clean"
+  }
+ ],
+ "submission_blockers": [],
+ "timestamp": "2026-11-12T12:12:48.522303+00:00",
+ "working_dir": "/Users/MAC/wif-hack/tf-v2"
+}

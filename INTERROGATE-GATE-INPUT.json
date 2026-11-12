@@ -1,0 +1,52 @@
+{
+ "findings": [
+  {
+   "id": "I-1",
+   "severity": "P1",
+   "demo_impact": "NONE",
+   "submission_impact": "NONE"
+  },
+  {
+   "id": "I-2",
+   "severity": "P2",
+   "demo_impact": "NONE",
+   "submission_impact": "NONE"
+  },
+  {
+   "id": "I-3",
+   "severity": "P1",
+   "demo_impact": "NONE",
+   "submission_impact": "NONE"
+  },
+  {
+   "id": "I-4",
+   "severity": "P1",
+   "demo_impact": "WARNS",
+   "submission_impact": "WARNS"
+  },
+  {
+   "id": "I-5",
+   "severity": "P2",
+   "demo_impact": "NONE",
+   "submission_impact": "WARNS"
+  },
+  {
+   "id": "I-6",
+   "severity": "P2",
+   "demo_impact": "NONE",
+   "submission_impact": "NONE"
+  },
+  {
+   "id": "I-7",
+   "severity": "P2",
+   "demo_impact": "NONE",
+   "submission_impact": "NONE"
+  },
+  {
+   "id": "I-8",
+   "severity": "P3",
+   "demo_impact": "NONE",
+   "submission_impact": "NONE"
+  }
+ ]
+}
