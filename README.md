@@ -104,7 +104,7 @@ Deployed at block **111,602,102**. All seven contracts are verified with a Sourc
 | WifStaking | [`0x065783d9C37c10E1067B5042108E9EEa24429571`](https://robinhoodchain.blockscout.com/address/0x065783d9C37c10E1067B5042108E9EEa24429571) | Stake $WIF, pick a stock, claim to Jar |
 | StockOracle | [`0xA79a67F16262DEF44f1DDaeF247d96a0a36EdA81`](https://robinhoodchain.blockscout.com/address/0xA79a67F16262DEF44f1DDaeF247d96a0a36EdA81) | Chainlink freshness + 3% min-out band for every stock fill |
 | HindsightLens | [`0x2402898497B0532BCbdEE6339987F1D7056d4422`](https://robinhoodchain.blockscout.com/address/0x2402898497B0532BCbdEE6339987F1D7056d4422) | Onchain recompute of any card; card mint burns 1 $WIF |
-| FriendJar | [`0x07E1b71f45890f995c81Df316f4d303cfc786769`](https://robinhoodchain.blockscout.com/address/0x07E1b71f45890f995c81Df316f4d303cfc786769) | Shared group Jar (contract live and tested; UI gated) |
+| FriendJar | [`0x07E1b71f45890f995c81Df316f4d303cfc786769`](https://robinhoodchain.blockscout.com/address/0x07E1b71f45890f995c81Df316f4d303cfc786769) | Shared group Jar (live at /friends) |
 
 ### First-of-kind mainnet transactions
 
@@ -217,7 +217,8 @@ and in `SECURITY.md`. Stock Token issuer and transfer restrictions apply indepen
   Other payments are shown as unpriced, never estimated.
 - Hindsight shows gross buys of memes still held. It does not net sells or transfers and is not profit and loss.
 - SPY and QQQ feeds pause on weekends; fills against a stale feed revert, and the FeePool skips and carries.
-- Friend Jars: the FriendJar contract is live on mainnet, source verified, and covered by the fork test suite (create a group Jar, contribute pro rata, exit with your share, replayed invites rejected). The screen that drives it is switched off for this submission, so the shared Jar is only reachable onchain for now.
+- Friend Jars (`/friends`): start a group Jar in one stock, share an invite code, everyone contributes ETH and owns the stock pro rata, and anyone can exit with their share. The FriendJar contract is source verified and covered by the fork test suite (create, contribute pro rata, exit, replayed invites rejected). It is the newest screen, so keep amounts small.
+- Quicknode Stock Token API: the Jar page cross-checks the Jar's Stock Token holdings with `qn_getStockTokenBalances` against direct `balanceOf` reads and shows a "Verified by Quicknode Stock Token API" badge when they agree to the wei (`web/app/api/qn-jar/route.ts`). Display only, never in the money path.
 
 The full list is in `LIMITATIONS.md`, and every "must not claim" item with where it is avoided is in `HONESTY.md`.
 

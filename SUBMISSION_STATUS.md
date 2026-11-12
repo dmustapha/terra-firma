@@ -15,10 +15,10 @@ _Last updated: verify_preflight, 2026-11-12 ~15:20 UTC (submissions close 17:29 
 
 ## Live integrations
 - **Envio HyperSync for card loads:** enabled in production. The card route pulls a wallet's meme transfers from Robinhood Chain HyperSync, and falls back to the RPC log scan on any error, so a HyperSync outage never breaks a card.
+- **Quicknode Stock Token API badge (F-018):** live on /jar. `qn_getStockTokenBalances` on the Jar matches direct `balanceOf` to the wei (checked 2026-11-12: NVDA 8401797135669796 both ways).
+- **Friend Jars (F-020):** live at /friends and in the nav. Contract source verified and fork tested; newest screen, keep amounts small.
 
 ## Intentional cuts (with reasons)
-- **Quicknode "verified Jar" badge (F-018):** built but not shown. Reason: the Quicknode endpoint token was never available (QUICKNODE_TOKEN empty). The Jar reads directly from the contract instead.
-- **Friend Jars (F-020):** contract deployed and tested, UI switched off. Reason: scope gate OD7; it needs more mainnet testing before people pool money in it.
 - **Weekly Jar report card and live ticker:** built, not featured in the demo film. Reason: 3-minute limit.
 
 ## Known limitations

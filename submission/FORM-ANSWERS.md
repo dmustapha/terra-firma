@@ -132,10 +132,10 @@ Meme buy with a 2% slice into NVDA (fee buys $WIF): https://robinhoodchain.block
 Convert a meme into NVDA (fee buys $WIF): https://robinhoodchain.blockscout.com/tx/0xc5500b3cdd258f293c22f126f614af07c8ae541b159d27bd7ca84a85872131b5
 ```
 
-## how it's made  (1407/1500)
+## how it's made  (1427/1500)
 
 ```
-Seven Solidity contracts (Foundry, solc 0.8.26) on Robinhood Chain mainnet: TerraRouter for meme trades, slices and converts through the Uniswap Universal Router, an ownerless Jar that holds Stock Tokens per user, the FeePool that buys and burns $WIF, WifStaking with epoch-delayed activation, StockOracle and HindsightLens over Chainlink, and FriendJar which is deployed but switched off for now. All seven are source verified. The app is Next.js 15 with wagmi and viem on Vercel, an hourly keeper runs in GitHub Actions, and reads go through a small server proxy to a private GetBlock node so the public RPC rate limit does not break the page. Tests are 62 contract tests against a fork of mainnet, 25 more adversarial and fuzz tests, and about 140 web tests.
+Seven Solidity contracts (Foundry, solc 0.8.26) on Robinhood Chain mainnet: TerraRouter for meme trades, slices and converts through the Uniswap Universal Router, an ownerless Jar that holds Stock Tokens per user, the FeePool that buys and burns $WIF, WifStaking with epoch-delayed activation, StockOracle and HindsightLens over Chainlink, and FriendJar for group Jars. All seven are source verified. The app is Next.js 15 with wagmi and viem on Vercel, an hourly keeper runs in GitHub Actions, reads go through a small server proxy to a private GetBlock node, cards pull transfers from Envio HyperSync, and the Jar page is cross-checked by the Quicknode Stock Token API. Tests are 62 contract tests against a fork of mainnet, 25 more adversarial and fuzz tests, and 143 web tests.
 
 The hardest part was making Hindsight honest. Pricing a buy means finding the Chainlink round that was actually live at that second, which is fiddly because round ids jump between phases, and early NVDA rounds report at a different scale. I wanted anyone to be able to check a card, so HindsightLens recomputes it onchain from the same rounds and rejects a round that was not the one in effect. The second hard part was the routing: memes on this chain sit across v2, v3 and v4 pools, including the hooked $WIF/ETH v4 pool, so the router quotes all of them and every stock fill is bounded by Chainlink so a bad price reverts instead of filling.
 ```
@@ -143,7 +143,7 @@ The hardest part was making Hindsight honest. Pricing a buy means finding the Ch
 ## what's next (optional)  (377/500)
 
 ```
-Turn on Friend Jars, where a group saves into one Jar together, once it has had more testing on mainnet. Add more memes and stocks as their pools and feeds appear on Robinhood Chain. Get a proper audit before anyone puts real size in. And the leaderboard and weekly Jar report card are a good base for a small season where the people who saved the most into stock get featured.
+Grow Friend Jars, where a group saves into one Jar together, with more mainnet use. Add more memes and stocks as their pools and feeds appear on Robinhood Chain. Get a proper audit before anyone puts real size in. And the leaderboard and weekly Jar report card are a good base for a small season where the people who saved the most into stock get featured.
 ```
 
 ## categories (pick all that fit)
