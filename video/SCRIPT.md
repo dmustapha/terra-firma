@@ -22,10 +22,10 @@ On screen: Convert -> approve + convert -> You own 0.003688 NVDA -> Jar $1.25, W
 
 > that one isn't coming back, so i convert it. two signatures, the meme is sold, and what comes out lands in my jar as real nvda stock tokens. nobody has an admin key to the jar, so i can take it out whenever i want.
 
-## keep a slice (61.4s to 81.4s, 46 words, 2.30 w/s)
+## keep a slice (61.4s to 81.4s, 45 words, 2.25 w/s)
 On screen: PONS buy 2% -> NVDA slice to Jar -> sell 2 PONS at 2%
 
-> i'm not going to pretend people will stop trading memes, so the app doesn't ask you to. when i buy pons i leave a two percent slice on, and in that same transaction a bit of nvda goes into my jar. selling works the same way.
+> people are always going to trade memes, so we might as well take advantage of that. when i buy pons i leave a two percent slice on, and in that same transaction a bit of nvda goes into my jar. selling works the same way.
 
 ## where wif comes in (81.6s to 109.1s, 64 words, 2.33 w/s)
 On screen: fee quote line -> $WIF buy only, buy 0.0001 ETH -> Stake page, NVDA, 10,000 -> 0.3% badge, 100 activating
