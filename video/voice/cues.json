@@ -1,0 +1,143 @@
+{
+ "video": "guide.mp4",
+ "end": 176.6,
+ "voice_out": "terra-firma-voice.mp4",
+ "vocabulary": "Terra Firma, Robinhood Chain, wif (said 'wif'), nvda (said 'n-v-d-a'), pons (said 'ponz'), uniswap, chainlink, stock tokens, onchain, epoch",
+ "lines": [
+  {
+   "t": 0.2,
+   "text": "this is a real wallet on robinhood chain.",
+   "slot": 3.2
+  },
+  {
+   "t": 3.4,
+   "text": "it put thousands of dollars into memes, and almost all of it is gone.",
+   "slot": 5.7
+  },
+  {
+   "t": 9.1,
+   "text": "if that same money had gone into nvda at the same moments, most of it would still be there.",
+   "slot": 7.7
+  },
+  {
+   "t": 17.1,
+   "text": "i built terra firma because most of us have a number like that and never look.",
+   "slot": 6.5
+  },
+  {
+   "t": 23.6,
+   "text": "it shows you yours, or anyone's, then helps you do something about it.",
+   "slot": 5.2
+  },
+  {
+   "t": 29.0,
+   "text": "this is my own wallet on mainnet.",
+   "slot": 2.7
+  },
+  {
+   "t": 31.7,
+   "text": "i buy a meme through uniswap like i normally would, and my card shows what i paid, what it's worth now, and what it would be in nvda.",
+   "slot": 10.9
+  },
+  {
+   "t": 42.9,
+   "text": "that one isn't coming back, so i convert it.",
+   "slot": 3.7
+  },
+  {
+   "t": 46.6,
+   "text": "two signatures, the meme is sold, and it lands in my jar as nvda stock tokens, priced against chainlink.",
+   "slot": 7.9
+  },
+  {
+   "t": 54.5,
+   "text": "nobody has an admin key to the jar, so i can take it out whenever i want, and it keeps a saving streak.",
+   "slot": 9.5
+  },
+  {
+   "t": 64.3,
+   "text": "people are always going to trade memes, so we might as well take advantage of that.",
+   "slot": 6.2
+  },
+  {
+   "t": 70.5,
+   "text": "any meme buy or sell can keep a slice, up to ten percent, that lands in your jar as stock in the same transaction.",
+   "slot": 9.2
+  },
+  {
+   "t": 79.7,
+   "text": "i buy pons with two percent, then sell some the same way.",
+   "slot": 4.6
+  },
+  {
+   "t": 84.5,
+   "text": "this is where wif comes in.",
+   "slot": 2.3
+  },
+  {
+   "t": 86.8,
+   "text": "every trade pays a half percent fee, and that money only ever buys wif, it never sells it.",
+   "slot": 7.0
+  },
+  {
+   "t": 93.8,
+   "text": "if you stake wif, you get paid from every trade on the app in real stock, whichever one you pick.",
+   "slot": 7.8
+  },
+  {
+   "t": 101.6,
+   "text": "i stake a hundred and pick nvda. new stakes wait a full epoch, so nobody can game a payout, and staking ten thousand drops your own fee to point three percent.",
+   "slot": 12.1
+  },
+  {
+   "t": 114.0,
+   "text": "once an hour anyone can run the fee pool.",
+   "slot": 4.7
+  },
+  {
+   "t": 118.7,
+   "text": "half of what it collected buys wif and burns it, and the other half buys stock for the stakers.",
+   "slot": 9.8
+  },
+  {
+   "t": 128.5,
+   "text": "mine goes straight into my jar.",
+   "slot": 3.1
+  },
+  {
+   "t": 131.8,
+   "text": "you can also mint your card, which burns one more wif after the contract checks the numbers against chainlink.",
+   "slot": 7.6
+  },
+  {
+   "t": 139.4,
+   "text": "minted cards go on the leaderboard, next to the biggest jars.",
+   "slot": 4.4
+  },
+  {
+   "t": 143.8,
+   "text": "so wif gets bought on every trade and burned every hour, and the people holding it get paid in stock.",
+   "slot": 8.0
+  },
+  {
+   "t": 152.0,
+   "text": "it's on the proof page, and any card can be recomputed onchain, so you don't have to take my word for it.",
+   "slot": 8.8
+  },
+  {
+   "t": 161.1,
+   "text": "it's for anyone trading memes on robinhood chain, and for wif holders who'd rather be paid in stock.",
+   "slot": 8.2
+  },
+  {
+   "t": 169.3,
+   "text": "it only prices the memes it tracks, and it isn't profit and loss.",
+   "slot": 5.9
+  },
+  {
+   "t": 175.1,
+   "text": "that's terra firma.",
+   "slot": 1.4
+  }
+ ]
+}

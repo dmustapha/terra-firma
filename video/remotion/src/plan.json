@@ -1,0 +1,1886 @@
+{
+ "total": 177.801,
+ "segs": [
+  {
+   "clip": "card3fdb",
+   "f0": 0.0,
+   "f1": 16.75,
+   "s0": 9.0,
+   "speed": 1.0,
+   "join": "cut",
+   "scene": "hook",
+   "tag": null
+  },
+  {
+   "clip": "home",
+   "f0": 16.75,
+   "f1": 20.7,
+   "s0": 0.6,
+   "speed": 1.1139,
+   "join": "cut",
+   "scene": "home",
+   "tag": null
+  },
+  {
+   "clip": "home",
+   "f0": 20.7,
+   "f1": 23.62,
+   "s0": 13.5,
+   "speed": 1.8836,
+   "join": "cut",
+   "scene": "home",
+   "tag": "2x"
+  },
+  {
+   "clip": "home",
+   "f0": 23.62,
+   "f1": 24.182,
+   "s0": 19.0,
+   "speed": 0.8,
+   "join": "cont",
+   "scene": "home",
+   "tag": null
+  },
+  {
+   "clip": "home",
+   "f0": 24.182,
+   "f1": 28.766,
+   "s0": 19.41,
+   "speed": 0,
+   "join": "cont",
+   "scene": "home",
+   "tag": null,
+   "img": "freeze/home_19410.png"
+  },
+  {
+   "clip": "v4",
+   "f0": 28.766,
+   "f1": 30.016,
+   "s0": 0.0,
+   "speed": 0.8,
+   "join": "cut",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 30.016,
+   "f1": 30.2,
+   "s0": 0.96,
+   "speed": 0,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null,
+   "img": "freeze/v4_960.png"
+  },
+  {
+   "clip": "v4",
+   "f0": 30.2,
+   "f1": 33.96,
+   "s0": 1.0,
+   "speed": 1.1702,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 33.96,
+   "f1": 35.042,
+   "s0": 5.4,
+   "speed": 2.8662,
+   "join": "cont",
+   "scene": "trade",
+   "tag": "3x"
+  },
+  {
+   "clip": "v4",
+   "f0": 35.042,
+   "f1": 36.026,
+   "s0": 8.45,
+   "speed": 0,
+   "join": "cont",
+   "card": {
+    "action": "buy WALLET through Uniswap",
+    "tx": "0x0dfe\u202604c0",
+    "step": null
+   },
+   "scene": "trade",
+   "tag": null,
+   "img": "freeze/v4_8450.png"
+  },
+  {
+   "clip": "v4",
+   "f0": 36.026,
+   "f1": 36.48,
+   "s0": 13.7,
+   "speed": 2.8662,
+   "join": "cut",
+   "scene": "trade",
+   "tag": "3x"
+  },
+  {
+   "clip": "v4",
+   "f0": 36.48,
+   "f1": 38.24,
+   "s0": 15.0,
+   "speed": 0.9091,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 38.24,
+   "f1": 39.115,
+   "s0": 16.6,
+   "speed": 0.8,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 39.115,
+   "f1": 42.62,
+   "s0": 17.26,
+   "speed": 0,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null,
+   "img": "freeze/v4_17260.png"
+  },
+  {
+   "clip": "v4",
+   "f0": 42.62,
+   "f1": 43.86,
+   "s0": 17.3,
+   "speed": 1.6935,
+   "join": "cont",
+   "scene": "trade",
+   "tag": "1.5x"
+  },
+  {
+   "clip": "v4",
+   "f0": 43.86,
+   "f1": 45.56,
+   "s0": 19.4,
+   "speed": 2.2353,
+   "join": "cont",
+   "scene": "trade",
+   "tag": "2x"
+  },
+  {
+   "clip": "v4",
+   "f0": 45.56,
+   "f1": 47.22,
+   "s0": 23.2,
+   "speed": 1.5663,
+   "join": "cont",
+   "scene": "trade",
+   "tag": "1.5x"
+  },
+  {
+   "clip": "v4",
+   "f0": 47.22,
+   "f1": 47.415,
+   "s0": 25.8,
+   "speed": 2.5688,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 47.415,
+   "f1": 48.315,
+   "s0": 26.25,
+   "speed": 0,
+   "join": "cont",
+   "card": {
+    "action": "approve WALLET",
+    "tx": null,
+    "step": "signature 1 of 2"
+   },
+   "scene": "trade",
+   "tag": null,
+   "img": "freeze/v4_26250.png"
+  },
+  {
+   "clip": "v4",
+   "f0": 48.315,
+   "f1": 48.665,
+   "s0": 27.3,
+   "speed": 2.5688,
+   "join": "cut",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 48.665,
+   "f1": 49.21,
+   "s0": 29.7,
+   "speed": 2.5688,
+   "join": "cut",
+   "scene": "trade",
+   "tag": "2.5x"
+  },
+  {
+   "clip": "v4",
+   "f0": 49.21,
+   "f1": 50.16,
+   "s0": 31.05,
+   "speed": 0,
+   "join": "cont",
+   "card": {
+    "action": "convert WALLET to NVDA",
+    "tx": "0x9425\u20267108",
+    "step": "signature 2 of 2"
+   },
+   "scene": "trade",
+   "tag": null,
+   "img": "freeze/v4_31050.png"
+  },
+  {
+   "clip": "v4",
+   "f0": 50.16,
+   "f1": 50.43,
+   "s0": 32.1,
+   "speed": 1.1111,
+   "join": "cut",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 50.43,
+   "f1": 50.7,
+   "s0": 34.7,
+   "speed": 1.1111,
+   "join": "cut",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 50.7,
+   "f1": 53.2,
+   "s0": 35.0,
+   "speed": 0.8,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 53.2,
+   "f1": 54.1,
+   "s0": 36.96,
+   "speed": 0,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null,
+   "img": "freeze/v4_36960.png"
+  },
+  {
+   "clip": "v4",
+   "f0": 54.1,
+   "f1": 56.34,
+   "s0": 37.0,
+   "speed": 1.875,
+   "join": "cont",
+   "scene": "trade",
+   "tag": "2x"
+  },
+  {
+   "clip": "v4",
+   "f0": 56.34,
+   "f1": 58.48,
+   "s0": 41.2,
+   "speed": 1.729,
+   "join": "cont",
+   "scene": "trade",
+   "tag": "1.5x"
+  },
+  {
+   "clip": "v4",
+   "f0": 58.48,
+   "f1": 59.355,
+   "s0": 44.9,
+   "speed": 0.8,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 59.355,
+   "f1": 62.137,
+   "s0": 45.56,
+   "speed": 0,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null,
+   "img": "freeze/v4_45560.png"
+  },
+  {
+   "clip": "v4",
+   "f0": 62.137,
+   "f1": 64.1,
+   "s0": 45.6,
+   "speed": 2.0377,
+   "join": "cont",
+   "scene": "trade",
+   "tag": "2x"
+  },
+  {
+   "clip": "v4",
+   "f0": 64.1,
+   "f1": 70.1,
+   "s0": 49.6,
+   "speed": 0.8,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 70.1,
+   "f1": 70.66,
+   "s0": 54.36,
+   "speed": 0,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null,
+   "img": "freeze/v4_54360.png"
+  },
+  {
+   "clip": "v4",
+   "f0": 70.66,
+   "f1": 74.427,
+   "s0": 54.4,
+   "speed": 0.9557,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 74.427,
+   "f1": 77.427,
+   "s0": 58.0,
+   "speed": 0.8,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 77.427,
+   "f1": 78.06,
+   "s0": 60.36,
+   "speed": 0,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null,
+   "img": "freeze/v4_60360.png"
+  },
+  {
+   "clip": "v4",
+   "f0": 78.06,
+   "f1": 79.958,
+   "s0": 60.4,
+   "speed": 1.0535,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 79.958,
+   "f1": 81.003,
+   "s0": 62.35,
+   "speed": 0,
+   "join": "cont",
+   "card": {
+    "action": "buy PONS, 2% to NVDA",
+    "tx": "0xea3f\u202620d3",
+    "step": null
+   },
+   "scene": "trade",
+   "tag": null,
+   "img": "freeze/v4_62350.png"
+  },
+  {
+   "clip": "v4",
+   "f0": 81.003,
+   "f1": 81.383,
+   "s0": 66.9,
+   "speed": 1.0535,
+   "join": "cut",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 81.383,
+   "f1": 81.836,
+   "s0": 67.3,
+   "speed": 1.104,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 81.836,
+   "f1": 82.47,
+   "s0": 70.3,
+   "speed": 1.104,
+   "join": "cut",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 82.47,
+   "f1": 84.302,
+   "s0": 71.0,
+   "speed": 2.0225,
+   "join": "cont",
+   "scene": "trade",
+   "tag": "2x"
+  },
+  {
+   "clip": "v4",
+   "f0": 84.302,
+   "f1": 85.152,
+   "s0": 82.25,
+   "speed": 0,
+   "join": "cont",
+   "card": {
+    "action": "approve + sell PONS, 2% to NVDA",
+    "tx": "0x4e26\u20263b35",
+    "step": null
+   },
+   "scene": "trade",
+   "tag": null,
+   "img": "freeze/v4_82250.png"
+  },
+  {
+   "clip": "v4",
+   "f0": 85.152,
+   "f1": 85.57,
+   "s0": 90.4,
+   "speed": 0.9574,
+   "join": "cut",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 85.57,
+   "f1": 88.59,
+   "s0": 90.8,
+   "speed": 2.2185,
+   "join": "cont",
+   "scene": "trade",
+   "tag": "2x"
+  },
+  {
+   "clip": "v4",
+   "f0": 88.59,
+   "f1": 89.215,
+   "s0": 97.5,
+   "speed": 0.8,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 89.215,
+   "f1": 91.05,
+   "s0": 97.96,
+   "speed": 0,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null,
+   "img": "freeze/v4_97960.png"
+  },
+  {
+   "clip": "v4",
+   "f0": 91.05,
+   "f1": 91.8,
+   "s0": 98.0,
+   "speed": 0.8,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 91.8,
+   "f1": 92.17,
+   "s0": 98.56,
+   "speed": 0,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null,
+   "img": "freeze/v4_98560.png"
+  },
+  {
+   "clip": "v4",
+   "f0": 92.17,
+   "f1": 92.822,
+   "s0": 98.6,
+   "speed": 1.84,
+   "join": "cont",
+   "scene": "trade",
+   "tag": "2x"
+  },
+  {
+   "clip": "v4",
+   "f0": 92.822,
+   "f1": 93.772,
+   "s0": 99.75,
+   "speed": 0,
+   "join": "cont",
+   "card": {
+    "action": "buy $WIF",
+    "tx": "0x379a\u2026ea75",
+    "step": null
+   },
+   "scene": "trade",
+   "tag": null,
+   "img": "freeze/v4_99750.png"
+  },
+  {
+   "clip": "v4",
+   "f0": 93.772,
+   "f1": 94.37,
+   "s0": 105.5,
+   "speed": 1.84,
+   "join": "cut",
+   "scene": "trade",
+   "tag": "2x"
+  },
+  {
+   "clip": "v4",
+   "f0": 94.37,
+   "f1": 95.12,
+   "s0": 106.6,
+   "speed": 0.8,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 95.12,
+   "f1": 98.89,
+   "s0": 107.16,
+   "speed": 0,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null,
+   "img": "freeze/v4_107160.png"
+  },
+  {
+   "clip": "v4",
+   "f0": 98.89,
+   "f1": 99.033,
+   "s0": 107.2,
+   "speed": 1.4,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 99.033,
+   "f1": 99.39,
+   "s0": 109.3,
+   "speed": 1.4,
+   "join": "cut",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 99.39,
+   "f1": 102.43,
+   "s0": 109.8,
+   "speed": 1.0526,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 102.43,
+   "f1": 103.18,
+   "s0": 113.0,
+   "speed": 0.8,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 103.18,
+   "f1": 103.85,
+   "s0": 113.56,
+   "speed": 0,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null,
+   "img": "freeze/v4_113560.png"
+  },
+  {
+   "clip": "v4",
+   "f0": 103.85,
+   "f1": 104.304,
+   "s0": 113.6,
+   "speed": 0.9917,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 104.304,
+   "f1": 105.254,
+   "s0": 116.05,
+   "speed": 0,
+   "join": "cont",
+   "card": {
+    "action": "approve + stake 100 $WIF",
+    "tx": "0x5a0f\u20266f11",
+    "step": null
+   },
+   "scene": "trade",
+   "tag": null,
+   "img": "freeze/v4_116050.png"
+  },
+  {
+   "clip": "v4",
+   "f0": 105.254,
+   "f1": 106.363,
+   "s0": 117.5,
+   "speed": 0.9917,
+   "join": "cut",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 106.363,
+   "f1": 108.113,
+   "s0": 118.6,
+   "speed": 0.8,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 108.113,
+   "f1": 112.077,
+   "s0": 119.96,
+   "speed": 0,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null,
+   "img": "freeze/v4_119960.png"
+  },
+  {
+   "clip": "v4",
+   "f0": 112.077,
+   "f1": 113.97,
+   "s0": 120.0,
+   "speed": 1.0565,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 113.97,
+   "f1": 116.19,
+   "s0": 122.0,
+   "speed": 1.7568,
+   "join": "cont",
+   "scene": "trade",
+   "tag": "2x"
+  },
+  {
+   "clip": "v4",
+   "f0": 116.19,
+   "f1": 117.013,
+   "s0": 125.9,
+   "speed": 0.8506,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 117.013,
+   "f1": 117.963,
+   "s0": 126.55,
+   "speed": 0,
+   "join": "cont",
+   "card": {
+    "action": "run distribute",
+    "tx": "0x0d23\u2026aa9d",
+    "step": null
+   },
+   "scene": "trade",
+   "tag": null,
+   "img": "freeze/v4_126550.png"
+  },
+  {
+   "clip": "v4",
+   "f0": 117.963,
+   "f1": 121.49,
+   "s0": 127.8,
+   "speed": 0.8506,
+   "join": "cut",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 121.49,
+   "f1": 123.74,
+   "s0": 130.8,
+   "speed": 0.8,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 123.74,
+   "f1": 124.77,
+   "s0": 132.56,
+   "speed": 0,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null,
+   "img": "freeze/v4_132560.png"
+  },
+  {
+   "clip": "v4",
+   "f0": 124.77,
+   "f1": 128.27,
+   "s0": 132.6,
+   "speed": 0.9429,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 128.27,
+   "f1": 128.982,
+   "s0": 135.9,
+   "speed": 0.9836,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 128.982,
+   "f1": 129.882,
+   "s0": 136.55,
+   "speed": 0,
+   "join": "cont",
+   "card": {
+    "action": "claim to Jar",
+    "tx": "0x2833\u20265717",
+    "step": null
+   },
+   "scene": "trade",
+   "tag": null,
+   "img": "freeze/v4_136550.png"
+  },
+  {
+   "clip": "v4",
+   "f0": 129.882,
+   "f1": 130.39,
+   "s0": 137.8,
+   "speed": 0.9836,
+   "join": "cut",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 130.39,
+   "f1": 131.088,
+   "s0": 138.3,
+   "speed": 2.4348,
+   "join": "cont",
+   "scene": "trade",
+   "tag": "2.5x"
+  },
+  {
+   "clip": "v4",
+   "f0": 131.088,
+   "f1": 132.69,
+   "s0": 142.0,
+   "speed": 2.4348,
+   "join": "cut",
+   "scene": "trade",
+   "tag": "2.5x"
+  },
+  {
+   "clip": "v4",
+   "f0": 132.69,
+   "f1": 132.994,
+   "s0": 145.9,
+   "speed": 1.1515,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 132.994,
+   "f1": 133.794,
+   "s0": 146.2,
+   "speed": 0,
+   "join": "cont",
+   "card": {
+    "action": "approve 1 $WIF",
+    "tx": null,
+    "step": "signature 1 of 2"
+   },
+   "scene": "trade",
+   "tag": null,
+   "img": "freeze/v4_146200.png"
+  },
+  {
+   "clip": "v4",
+   "f0": 133.794,
+   "f1": 135.01,
+   "s0": 147.25,
+   "speed": 1.1515,
+   "join": "cut",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 135.01,
+   "f1": 135.96,
+   "s0": 148.6,
+   "speed": 0,
+   "join": "cont",
+   "card": {
+    "action": "mint card, burns 1 $WIF",
+    "tx": "0x81bf\u20269d11",
+    "step": "signature 2 of 2"
+   },
+   "scene": "trade",
+   "tag": null,
+   "img": "freeze/v4_148600.png"
+  },
+  {
+   "clip": "v4",
+   "f0": 135.96,
+   "f1": 138.261,
+   "s0": 149.65,
+   "speed": 1.1515,
+   "join": "cut",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 138.261,
+   "f1": 140.886,
+   "s0": 152.3,
+   "speed": 0.8,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 140.886,
+   "f1": 141.05,
+   "s0": 154.36,
+   "speed": 0,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null,
+   "img": "freeze/v4_154360.png"
+  },
+  {
+   "clip": "v4",
+   "f0": 141.05,
+   "f1": 142.83,
+   "s0": 154.4,
+   "speed": 1.0674,
+   "join": "cont",
+   "scene": "trade",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 142.83,
+   "f1": 143.55,
+   "s0": 156.3,
+   "speed": 1.8056,
+   "join": "cont",
+   "scene": "trade",
+   "tag": "2x"
+  },
+  {
+   "clip": "v4",
+   "f0": 143.55,
+   "f1": 149.8,
+   "s0": 128.2,
+   "speed": 0.8,
+   "join": "cut",
+   "scene": "flywheel",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 149.8,
+   "f1": 151.65,
+   "s0": 133.16,
+   "speed": 0,
+   "join": "cont",
+   "scene": "flywheel",
+   "tag": null,
+   "img": "freeze/v4_133160.png"
+  },
+  {
+   "clip": "v4",
+   "f0": 151.65,
+   "f1": 152.525,
+   "s0": 160.7,
+   "speed": 0.8,
+   "join": "cut",
+   "scene": "proof",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 152.525,
+   "f1": 152.77,
+   "s0": 161.36,
+   "speed": 0,
+   "join": "cont",
+   "scene": "proof",
+   "tag": null,
+   "img": "freeze/v4_161360.png"
+  },
+  {
+   "clip": "v4",
+   "f0": 152.77,
+   "f1": 153.77,
+   "s0": 161.4,
+   "speed": 1.0,
+   "join": "cont",
+   "scene": "proof",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 153.77,
+   "f1": 154.52,
+   "s0": 169.4,
+   "speed": 0.8,
+   "join": "cut",
+   "scene": "proof",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 154.52,
+   "f1": 154.75,
+   "s0": 169.96,
+   "speed": 0,
+   "join": "cont",
+   "scene": "proof",
+   "tag": null,
+   "img": "freeze/v4_169960.png"
+  },
+  {
+   "clip": "v4",
+   "f0": 154.75,
+   "f1": 158.0,
+   "s0": 170.0,
+   "speed": 0.8,
+   "join": "cont",
+   "scene": "proof",
+   "tag": null
+  },
+  {
+   "clip": "v4",
+   "f0": 158.0,
+   "f1": 160.8,
+   "s0": 172.56,
+   "speed": 0,
+   "join": "cont",
+   "scene": "proof",
+   "tag": null,
+   "img": "freeze/v4_172560.png"
+  },
+  {
+   "clip": "board",
+   "f0": 160.8,
+   "f1": 168.85,
+   "s0": 0.4,
+   "speed": 1.0,
+   "join": "cut",
+   "scene": "who",
+   "tag": null
+  },
+  {
+   "clip": "proof",
+   "f0": 168.85,
+   "f1": 173.533,
+   "s0": 11.6,
+   "speed": 1.0,
+   "join": "cut",
+   "scene": "limits",
+   "tag": null
+  },
+  {
+   "clip": "home",
+   "f0": 173.533,
+   "f1": 177.801,
+   "s0": 36.4,
+   "speed": 1.2184,
+   "join": "cut",
+   "scene": "close",
+   "tag": null
+  }
+ ],
+ "calls": [
+  {
+   "t": 30.0,
+   "d": 2.2,
+   "rect": [
+    1540,
+    8,
+    168,
+    56
+   ],
+   "label": "my wallet, live on mainnet",
+   "sub": "Robinhood Chain",
+   "place": "left",
+   "zoom": null
+  },
+  {
+   "t": 33.61,
+   "d": 1.5,
+   "rect": [
+    216,
+    842,
+    990,
+    56
+   ],
+   "label": "swapped through Uniswap",
+   "sub": null,
+   "place": "above",
+   "zoom": null
+  },
+  {
+   "t": 37.34,
+   "d": 1.3,
+   "rect": [
+    1186,
+    370,
+    62,
+    82
+   ],
+   "label": "paid",
+   "sub": "$1 of WALLET",
+   "place": "below",
+   "zoom": 1.12
+  },
+  {
+   "t": 38.58,
+   "d": 1.4,
+   "rect": [
+    1384,
+    370,
+    172,
+    82
+   ],
+   "label": "worth now",
+   "sub": "$0.60",
+   "place": "below",
+   "zoom": 1.12
+  },
+  {
+   "t": 40.42,
+   "d": 1.6,
+   "rect": [
+    890,
+    448,
+    346,
+    82
+   ],
+   "label": "same dollars in NVDA",
+   "sub": "priced at the Chainlink round of each buy",
+   "place": "below",
+   "zoom": 1.12
+  },
+  {
+   "t": 44.02,
+   "d": 1.6,
+   "rect": [
+    226,
+    446,
+    1468,
+    54
+   ],
+   "label": "down 51%, not coming back",
+   "sub": null,
+   "place": "above",
+   "zoom": null
+  },
+  {
+   "t": 51.02,
+   "d": 2.6,
+   "rect": [
+    216,
+    440,
+    1488,
+    60
+   ],
+   "label": "NVDA Stock Tokens, in my Jar",
+   "sub": "minimum set from Chainlink before I sign",
+   "place": "below",
+   "zoom": 1.1
+  },
+  {
+   "t": 56.14,
+   "d": 1.9,
+   "rect": [
+    176,
+    160,
+    580,
+    190
+   ],
+   "label": "ownerless contract",
+   "sub": "no admin key",
+   "place": "right",
+   "zoom": null
+  },
+  {
+   "t": 58.18,
+   "d": 1.6,
+   "rect": [
+    1532,
+    686,
+    152,
+    52
+   ],
+   "label": "withdraw any time",
+   "sub": null,
+   "place": "above",
+   "zoom": 1.12
+  },
+  {
+   "t": 61.837,
+   "d": 1.3,
+   "rect": [
+    1440,
+    150,
+    160,
+    95
+   ],
+   "label": "saving streak",
+   "sub": null,
+   "place": "below",
+   "zoom": 1.12
+  },
+  {
+   "t": 72.92,
+   "d": 2.2,
+   "rect": [
+    240,
+    548,
+    940,
+    46
+   ],
+   "label": "keep a slice, 0 to 10%",
+   "sub": "chosen per trade",
+   "place": "above",
+   "zoom": 1.1
+  },
+  {
+   "t": 77.6,
+   "d": 1.8,
+   "rect": [
+    216,
+    794,
+    990,
+    100
+   ],
+   "label": "the slice buys NVDA in the same transaction",
+   "sub": null,
+   "place": "above",
+   "zoom": null
+  },
+  {
+   "t": 81.233,
+   "d": 1.6,
+   "rect": [
+    990,
+    205,
+    186,
+    100
+   ],
+   "label": "2% slice",
+   "sub": "0.00007601 NVDA went to my Jar",
+   "place": "left",
+   "zoom": 1.1
+  },
+  {
+   "t": 82.37,
+   "d": 1.2,
+   "rect": [
+    920,
+    330,
+    290,
+    60
+   ],
+   "label": "Sell, same 2% slice",
+   "sub": null,
+   "place": "below",
+   "zoom": null
+  },
+  {
+   "t": 84.97,
+   "d": 0.95,
+   "rect": [
+    236,
+    744,
+    700,
+    56
+   ],
+   "label": "$WIF",
+   "sub": "buy only: Terra Firma never sells it",
+   "place": "above",
+   "zoom": null
+  },
+  {
+   "t": 88.44,
+   "d": 2.0,
+   "rect": [
+    230,
+    798,
+    600,
+    44
+   ],
+   "label": "0.5% fee, every trade",
+   "sub": "it builds the $WIF burn",
+   "place": "above",
+   "zoom": 1.12
+  },
+  {
+   "t": 90.8,
+   "d": 1.9,
+   "rect": [
+    934,
+    152,
+    146,
+    42
+   ],
+   "label": "buy only",
+   "sub": "the router refuses any $WIF sell",
+   "place": "below",
+   "zoom": 1.15
+  },
+  {
+   "t": 98.07,
+   "d": 1.6,
+   "rect": [
+    515,
+    165,
+    480,
+    92
+   ],
+   "label": "paid in real stock",
+   "sub": null,
+   "place": "below",
+   "zoom": 1.08
+  },
+  {
+   "t": 99.29,
+   "d": 1.9,
+   "rect": [
+    176,
+    440,
+    140,
+    300
+   ],
+   "label": "pick your stock",
+   "sub": "NVDA, TSLA, GOOGL, SNDK, SPY, QQQ",
+   "place": "right",
+   "zoom": null
+  },
+  {
+   "t": 103.51,
+   "d": 1.3,
+   "rect": [
+    968,
+    790,
+    84,
+    74
+   ],
+   "label": "NVDA",
+   "sub": null,
+   "place": "above",
+   "zoom": 1.15
+  },
+  {
+   "t": 106.063,
+   "d": 2.0,
+   "rect": [
+    966,
+    376,
+    170,
+    108
+   ],
+   "label": "activating 100",
+   "sub": "earns from epoch 25, not now",
+   "place": "below",
+   "zoom": 1.12
+  },
+  {
+   "t": 109.67,
+   "d": 3.3,
+   "rect": [
+    1290,
+    218,
+    410,
+    28
+   ],
+   "label": "10,000 staked: 0.3% fee",
+   "sub": "instead of 0.5%",
+   "place": "below",
+   "zoom": 1.18
+  },
+  {
+   "t": 115.89,
+   "d": 1.1,
+   "rect": [
+    970,
+    346,
+    766,
+    60
+   ],
+   "label": "anyone can run it",
+   "sub": "once an hour",
+   "place": "below",
+   "zoom": null
+  },
+  {
+   "t": 121.24,
+   "d": 1.9,
+   "rect": [
+    180,
+    914,
+    770,
+    42
+   ],
+   "label": "Epoch 23 paid out",
+   "sub": "11.36 $WIF burned",
+   "place": "above",
+   "zoom": 1.1
+  },
+  {
+   "t": 124.37,
+   "d": 1.8,
+   "rect": [
+    968,
+    486,
+    768,
+    42
+   ],
+   "label": "other half: stock for stakers",
+   "sub": null,
+   "place": "below",
+   "zoom": null
+  },
+  {
+   "t": 128.17,
+   "d": 1.2,
+   "rect": [
+    1326,
+    200,
+    372,
+    72
+   ],
+   "label": "my reward",
+   "sub": null,
+   "place": "below",
+   "zoom": 1.1
+  },
+  {
+   "t": 130.29,
+   "d": 1.5,
+   "rect": [
+    216,
+    870,
+    1488,
+    54
+   ],
+   "label": "claimed into my Jar",
+   "sub": null,
+   "place": "above",
+   "zoom": null
+  },
+  {
+   "t": 132.49,
+   "d": 1.3,
+   "rect": [
+    636,
+    476,
+    336,
+    60
+   ],
+   "label": "Mint this card",
+   "sub": "burns 1 $WIF",
+   "place": "below",
+   "zoom": 1.12
+  },
+  {
+   "t": 137.661,
+   "d": 2.0,
+   "rect": [
+    640,
+    556,
+    334,
+    50
+   ],
+   "label": "minted onchain, 1 $WIF burned",
+   "sub": "numbers checked against Chainlink",
+   "place": "right",
+   "zoom": 1.12
+  },
+  {
+   "t": 142.58,
+   "d": 1.4,
+   "rect": [
+    724,
+    276,
+    466,
+    640
+   ],
+   "label": "biggest Jars",
+   "sub": null,
+   "place": "right",
+   "zoom": null
+  },
+  {
+   "t": 152.57,
+   "d": 1.8,
+   "rect": [
+    326,
+    676,
+    140,
+    72
+   ],
+   "label": "22.43 $WIF burned",
+   "sub": "read live from Robinhood Chain",
+   "place": "right",
+   "zoom": null
+  },
+  {
+   "t": 154.55,
+   "d": 2.2,
+   "rect": [
+    182,
+    530,
+    770,
+    190
+   ],
+   "label": "recompute any card onchain",
+   "sub": null,
+   "place": "right",
+   "zoom": null
+  }
+ ],
+ "caps": [
+  {
+   "t": 0.0,
+   "e": 3.09,
+   "text": "this is a real wallet on robinhood chain."
+  },
+  {
+   "t": 3.52,
+   "e": 5.92,
+   "text": "it put thousands of dollars into memes"
+  },
+  {
+   "t": 5.92,
+   "e": 8.45,
+   "text": "and almost all of it is gone."
+  },
+  {
+   "t": 9.12,
+   "e": 11.62,
+   "text": "if that same money had gone into nvda"
+  },
+  {
+   "t": 11.62,
+   "e": 13.52,
+   "text": "at the same moments"
+  },
+  {
+   "t": 13.52,
+   "e": 15.57,
+   "text": "most of it would still be there."
+  },
+  {
+   "t": 17.16,
+   "e": 19.36,
+   "text": "i built terra firma because most of us"
+  },
+  {
+   "t": 19.36,
+   "e": 21.95,
+   "text": "have a number like that and never look."
+  },
+  {
+   "t": 23.64,
+   "e": 25.16,
+   "text": "it shows you yours"
+  },
+  {
+   "t": 25.16,
+   "e": 28.35,
+   "text": "or anyone's, then helps you do something about it."
+  },
+  {
+   "t": 29.26,
+   "e": 31.53,
+   "text": "this is my own wallet on mainnet."
+  },
+  {
+   "t": 32.92,
+   "e": 35.7,
+   "text": "i buy a meme through uniswap like i normally would"
+  },
+  {
+   "t": 35.7,
+   "e": 37.79,
+   "text": "and my card shows what i paid"
+  },
+  {
+   "t": 37.98,
+   "e": 39.12,
+   "text": "what it's worth now"
+  },
+  {
+   "t": 39.12,
+   "e": 42.27,
+   "text": "and what it would be in nvda."
+  },
+  {
+   "t": 43.6,
+   "e": 44.94,
+   "text": "that one isn't coming back"
+  },
+  {
+   "t": 44.94,
+   "e": 46.97,
+   "text": "so i convert it."
+  },
+  {
+   "t": 47.14,
+   "e": 49.44,
+   "text": "two signatures, the meme is sold"
+  },
+  {
+   "t": 49.44,
+   "e": 52.46,
+   "text": "and it lands in my jar as nvda stock tokens"
+  },
+  {
+   "t": 52.46,
+   "e": 54.25,
+   "text": "priced against chainlink."
+  },
+  {
+   "t": 55.18,
+   "e": 57.22,
+   "text": "nobody has an admin key to the jar"
+  },
+  {
+   "t": 57.22,
+   "e": 59.56,
+   "text": "so i can take it out whenever i want"
+  },
+  {
+   "t": 59.56,
+   "e": 62.986,
+   "text": "and it keeps a saving streak."
+  },
+  {
+   "t": 64.66,
+   "e": 66.18,
+   "text": "people are always going to trade memes"
+  },
+  {
+   "t": 66.18,
+   "e": 69.47,
+   "text": "so we might as well take advantage of that."
+  },
+  {
+   "t": 70.58,
+   "e": 73.22,
+   "text": "any meme buy or sell can keep a slice"
+  },
+  {
+   "t": 73.22,
+   "e": 75.36,
+   "text": "up to ten percent"
+  },
+  {
+   "t": 75.36,
+   "e": 77.18,
+   "text": "that lands in your jar as stock"
+  },
+  {
+   "t": 77.18,
+   "e": 78.46,
+   "text": "in the same transaction."
+  },
+  {
+   "t": 79.695,
+   "e": 82.05,
+   "text": "i buy pons with two percent"
+  },
+  {
+   "t": 82.05,
+   "e": 84.4,
+   "text": "then sell some the same way."
+  },
+  {
+   "t": 84.57,
+   "e": 86.9,
+   "text": "this is where wif comes in."
+  },
+  {
+   "t": 87.01,
+   "e": 89.53,
+   "text": "every trade pays a half percent fee"
+  },
+  {
+   "t": 89.53,
+   "e": 91.97,
+   "text": "and that money only ever buys wif"
+  },
+  {
+   "t": 91.97,
+   "e": 93.32,
+   "text": "it never sells it."
+  },
+  {
+   "t": 93.85,
+   "e": 95.43,
+   "text": "if you stake wif"
+  },
+  {
+   "t": 95.43,
+   "e": 97.73,
+   "text": "you get paid from every trade on the app"
+  },
+  {
+   "t": 97.73,
+   "e": 99.04,
+   "text": "in real stock"
+  },
+  {
+   "t": 99.31,
+   "e": 100.6,
+   "text": "whichever one you pick."
+  },
+  {
+   "t": 101.21,
+   "e": 105.07,
+   "text": "i stake a hundred and pick nvda."
+  },
+  {
+   "t": 105.07,
+   "e": 106.47,
+   "text": "new stakes wait a full epoch"
+  },
+  {
+   "t": 106.47,
+   "e": 108.95,
+   "text": "so nobody can game a payout"
+  },
+  {
+   "t": 108.95,
+   "e": 111.01,
+   "text": "and staking ten thousand drops your own fee"
+  },
+  {
+   "t": 111.01,
+   "e": 112.654,
+   "text": "to point three percent."
+  },
+  {
+   "t": 113.89,
+   "e": 117.6,
+   "text": "once an hour anyone can run the fee pool."
+  },
+  {
+   "t": 118.73,
+   "e": 122.31,
+   "text": "half of what it collected buys wif and burns it"
+  },
+  {
+   "t": 122.31,
+   "e": 125.56,
+   "text": "and the other half buys stock for the stakers."
+  },
+  {
+   "t": 128.19,
+   "e": 130.92,
+   "text": "mine goes straight into my jar."
+  },
+  {
+   "t": 131.89,
+   "e": 133.37,
+   "text": "you can also mint your card"
+  },
+  {
+   "t": 133.37,
+   "e": 135.27,
+   "text": "which burns one more wif"
+  },
+  {
+   "t": 135.27,
+   "e": 138.411,
+   "text": "after the contract checks the numbers against chainlink."
+  },
+  {
+   "t": 139.43,
+   "e": 141.57,
+   "text": "minted cards go on the leaderboard"
+  },
+  {
+   "t": 141.57,
+   "e": 143.34,
+   "text": "next to the biggest jars."
+  },
+  {
+   "t": 143.89,
+   "e": 146.19,
+   "text": "so wif gets bought on every trade"
+  },
+  {
+   "t": 146.19,
+   "e": 147.91,
+   "text": "and burned every hour"
+  },
+  {
+   "t": 147.91,
+   "e": 150.9,
+   "text": "and the people holding it get paid in stock."
+  },
+  {
+   "t": 151.65,
+   "e": 153.35,
+   "text": "it's on the proof page"
+  },
+  {
+   "t": 153.35,
+   "e": 155.73,
+   "text": "and any card can be recomputed onchain"
+  },
+  {
+   "t": 155.73,
+   "e": 159.22,
+   "text": "so you don't have to take my word for it."
+  },
+  {
+   "t": 161.27,
+   "e": 163.81,
+   "text": "it's for anyone trading memes on robinhood chain"
+  },
+  {
+   "t": 163.81,
+   "e": 167.58,
+   "text": "and for wif holders who'd rather be paid in stock."
+  },
+  {
+   "t": 169.25,
+   "e": 171.41,
+   "text": "it only prices the memes it tracks"
+  },
+  {
+   "t": 171.41,
+   "e": 173.8,
+   "text": "and it isn't profit and loss."
+  },
+  {
+   "t": 175.11,
+   "e": 176.401,
+   "text": "that's terra firma."
+  }
+ ],
+ "hook": {
+  "paid": 4.22,
+  "gone": 7.9,
+  "nvda": 11.04,
+  "there": 15.42
+ },
+ "title": {
+  "t": 17.45,
+  "d": 3.0
+ },
+ "labels": {
+  "t": 23.52,
+  "end": 28.766000000000002
+ },
+ "fly": {
+  "t0": 143.55,
+  "t1": 151.65,
+  "bought": 145.01,
+  "burned": 146.97,
+  "holding": 148.81,
+  "paid": 149.71,
+  "stock": 150.75
+ },
+ "who": {
+  "traders": 161.91000000000003,
+  "holders": 164.58,
+  "end": 168.85000000000002
+ },
+ "limits": {
+  "t": 169.21,
+  "end": 173.533
+ },
+ "close": {
+  "t": 173.533,
+  "end": 177.80100000000002
+ },
+ "wipes": [
+  16.75,
+  28.766,
+  143.55,
+  151.65,
+  160.8,
+  168.85,
+  173.533
+ ]
+}

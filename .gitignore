@@ -20,3 +20,8 @@ video/guide/
 video/guide.mp4
 video/out/*.mp4
 video/**/*.webm
+video/build/
+video/out/
+video/remotion/node_modules
+video/remotion/public/clips/
+video/remotion/public/freeze/
