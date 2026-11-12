@@ -20,7 +20,7 @@
   <img alt="network" src="https://img.shields.io/badge/Robinhood%20Chain-mainnet%204663-1A1712" />
   <img alt="contracts" src="https://img.shields.io/badge/contracts-7%20verified%20(Sourcify%20exact__match)-3F6B4A" />
   <img alt="fork tests" src="https://img.shields.io/badge/contract%20tests-87%20passing-3F6B4A" />
-  <img alt="web tests" src="https://img.shields.io/badge/web%20tests-142%20passing-3F6B4A" />
+  <img alt="web tests" src="https://img.shields.io/badge/web%20tests-143%20passing-3F6B4A" />
   <img alt="license" src="https://img.shields.io/badge/license-MIT-1A1712" />
 </p>
 
@@ -217,7 +217,7 @@ and in `SECURITY.md`. Stock Token issuer and transfer restrictions apply indepen
   Other payments are shown as unpriced, never estimated.
 - Hindsight shows gross buys of memes still held. It does not net sells or transfers and is not profit and loss.
 - SPY and QQQ feeds pause on weekends; fills against a stale feed revert, and the FeePool skips and carries.
-- Friend Jars: the contract is deployed and tested; its UI is gated off for this submission.
+- Friend Jars: the FriendJar contract is live on mainnet, source verified, and covered by the fork test suite (create a group Jar, contribute pro rata, exit with your share, replayed invites rejected). The screen that drives it is switched off for this submission, so the shared Jar is only reachable onchain for now.
 
 The full list is in `LIMITATIONS.md`, and every "must not claim" item with where it is avoided is in `HONESTY.md`.
 
@@ -239,7 +239,7 @@ scans, an Envio HyperSync token, a Quicknode endpoint) are listed with comments 
 
 | Suite | Command | What it asserts |
 |---|---|---|
-| Web unit tests (142) | `pnpm test` | Hindsight pricing and Chainlink round bracketing, quote bounds, card cache, API input validation, the event stream route, UI formatting and error states |
+| Web unit tests (143) | `pnpm test` | Hindsight pricing and Chainlink round bracketing, quote bounds, card cache, API input validation, the event stream route, UI formatting and error states |
 | Typecheck | `pnpm typecheck && pnpm typecheck:web` | Scripts and web compile with no type errors |
 | Contract build | `pnpm forge:build` | All contracts compile (forge wrapped with a 600 s timeout) |
 | Fork tests (62) | `RPC_URL=<robinhood-rpc> FORK_BLOCK=111155803 scripts/forge.sh test -vv` | Every invariant above against a Robinhood Chain mainnet fork: $WIF sell reverts, stale oracle, JIT staking, unbacked credit, no-owner surface, route injection, burn and split math. Output: `evidence/forge-test.txt` |
