@@ -4,12 +4,14 @@
 
 <h1 align="center">Terra Firma</h1>
 
-<p align="center"><b>Your memes, in real stock. Stand on $WIF, sweep the rest into Stock Tokens.</b></p>
+<p align="center"><b>Your memes, in real stock: see what they could have been, convert the dead ones, keep a slice of every trade, and stake $WIF to earn stock from every fee.</b></p>
 
 <p align="center">
   <a href="https://terrafirma-wif.vercel.app">Live app</a> ·
   <a href="https://terrafirma-wif.vercel.app/card/0x3fDBeB0FC14cca8fDd238Dd21725F0b8585Ab09E">A real Hindsight card</a> ·
   <a href="https://terrafirma-wif.vercel.app/proof">Proof page</a> ·
+  <a href="https://terrafirma-wif.vercel.app/board">Leaderboard</a> ·
+  <a href="https://terrafirma-wif.vercel.app/friends">Friend Jars</a> ·
   <a href="#proof-robinhood-chain-mainnet-4663">Contracts</a> ·
   <a href="https://github.com/dmustapha/terra-firma">Repo</a>
 </p>
@@ -53,18 +55,86 @@ by anyone through `HindsightLens.recompute`. No number on the site is typed by h
 
 ## What Terra Firma does
 
-1. **Hindsight card.** Paste or connect any wallet. Terra Firma indexes its meme buys from onchain logs, prices what was
-   paid with the Chainlink round in force at each buy, and prices the counterfactual from the historical round of a
-   stock you pick (NVDA, TSLA, GOOGL, SNDK, SPY, QQQ). Read-only cards work for any wallet, no connection needed.
-2. **Convert.** Pick the non-$WIF memes you hold and sell them into a real Stock Token in one transaction (after a
-   one-time approval per meme). The stock lands in your **Jar**, an ownerless contract ledger you can withdraw from at
-   any time.
-3. **Meme terminal with a sweep.** Paste a token address, buy or sell through the Uniswap Universal Router across
-   v2/v3/v4 pools (including hooked launchpad pools). A slice of every trade you choose (default 2%, 0 to 10%) is swept
-   into real stock in your Jar, in the same transaction.
-4. **Stake $WIF, earn real stock.** Every routed trade and convert pays a 0.5% fee into the FeePool. Each hourly epoch
-   half the pool buys $WIF and burns it, and half buys real stock that streams to $WIF stakers, each staker choosing
-   their reward stock.
+People are always going to trade memes, so Terra Firma takes advantage of that: every meme trade, every dead bag and
+every fee ends up as real Stock Tokens or as $WIF bought and burned. Everything below is live on Robinhood Chain mainnet.
+
+### See it: the Hindsight card
+- **Any wallet, no connection needed.** Paste an address on `/`, `/app` or `/card/<address>` and Terra Firma rebuilds its
+  meme buys from chain history (Envio HyperSync, falling back to an RPC log scan), prices each buy with the Chainlink
+  round that was live at that block, and walks the same dollars into a stock you pick (NVDA, TSLA, GOOGL, SNDK, SPY, QQQ).
+- **Every row is clickable proof.** Each buy carries its transaction hash and Chainlink round id; the card draws itself
+  to scale as a core sample (memes as sediment, the stock as bedrock).
+- **Recompute it onchain.** The card's own inputs can be fed to `HindsightLens.recompute` from the card or the
+  [/proof](https://terrafirma-wif.vercel.app/proof) page, and the result sits next to the API's totals.
+- **Mint it.** The owner can mint the card onchain, which burns 1 $WIF (`HindsightLens.mintCard`).
+- **Share it.** Every card URL renders its own share image (`/card/[addr]/opengraph-image`), so a pasted link shows
+  the wallet's numbers in the preview.
+
+### Act on it
+- **Convert** (`/app/convert`): pick the non-$WIF memes you hold, get a quote per meme, approve exact amounts, and one
+  `TerraRouter.convert` sells them through Uniswap into a real Stock Token in your Jar.
+- **Trade with a slice** (`/trade`, `/trade/<token>`): a meme terminal over the Uniswap Universal Router across v2, v3
+  and v4 pools, including hooked launchpad pools, with live pool depth for every tracked meme. Every buy or sell can keep
+  a slice of 0 to 10% (default 2%) that is swept into stock in the same transaction. Quotes come from `/api/quote` and
+  warn before you sign if the stock leg would land under the Chainlink floor. $WIF is buy only.
+- **Friend Jars** (`/friends`): start a shared Jar in one stock, share an invite code (only its hash goes onchain),
+  friends join and contribute ETH, everyone owns the stock pro rata and can exit with their share at any time.
+
+### Own it: the Jar
+- **Ownerless.** The Jar contract has no owner, no pause and no admin withdraw. Only the router and staking contract
+  can credit it, never beyond tokens actually received.
+- **Your Jar page** (`/jar`): shares per stock, withdraw to your wallet, a saving streak (consecutive UTC days with a
+  sweep or convert) and a core log of every credit and withdrawal showing where each share came from (sweep, convert
+  or staking claim).
+- **Verified by Quicknode.** The Jar page cross-checks the Jar contract's Stock Token holdings through Quicknode's
+  `qn_getStockTokenBalances` against direct `balanceOf` reads and shows "Verified by Quicknode Stock Token API" when
+  they agree to the wei (`/api/qn-jar`). Display only, never in the money path.
+- **Weekly Jar report** (`/jar/report/<address>`): the last 7 days of Jar growth per stock, with its own share image
+  and a Share to X button.
+
+### Earn from it: stake $WIF
+- Every routed trade and convert pays a 0.5% fee into the FeePool. Once an hour `distribute()` splits it: half buys
+  $WIF and burns it, half buys real stock for $WIF stakers.
+- Stakers pick the stock they want to be paid in, watch the next epoch count down on `/stake`, and claim straight into
+  their Jar. A stake placed in epoch e earns from e+2, so nobody can jump in just before a payout.
+- 10,000 $WIF staked and active cuts your own trade fee from 0.5% to 0.3%.
+
+### Compete and follow along
+- **Leaderboard** (`/board`): three boards read from chain logs. Biggest regret (minted cards, each rebuilt from chain
+  history by `/api/card-check` before it is allowed to rank), Biggest Jars (stock added minus withdrawn) and Most fees
+  paid.
+- **Live protocol feed.** The landing page streams protocol events as they happen (`/api/stream`, server-sent events
+  over a GetBlock websocket, with log polling as a fallback) and shows live totals: $WIF bought with fees and burned,
+  ETH streamed into stakers' stock, trades routed and wallets with a Jar. `/proof` reads the same totals from chain.
+  Nothing on the page is typed by hand; a failed read shows as words, never a stale number.
+- **Anyone can run the burn.** `distribute()` is permissionless; the hourly keeper calls it, and so can anyone from `/proof`.
+
+### Pages and APIs at a glance
+
+| Route | What it is |
+|---|---|
+| `/` | Landing: a real wallet's card, the sweep demo, live protocol totals and event feed, wallet lookup |
+| `/app` | Your card when connected, a read-only demo card for guests |
+| `/app/convert` | One-transaction convert of dead memes into stock |
+| `/card/[address]` | Any wallet's Hindsight card, with recompute, mint and a share image |
+| `/trade`, `/trade/[token]` | Meme terminal with the same-transaction slice |
+| `/jar` | Your Jar: holdings, withdraw, history, Quicknode badge |
+| `/jar/report/[address]` | Weekly Jar report with a share image |
+| `/stake` | Stake $WIF, pick a payout stock, epoch countdown, claim to Jar |
+| `/friends` | Friend Jars: create, join, contribute, exit |
+| `/board` | Leaderboard: regret, Jars, fees |
+| `/proof` | Contracts, live totals, recompute box, permissionless `distribute()` |
+
+| API | Purpose |
+|---|---|
+| `GET /api/hindsight` | Build a card for a wallet and stock (cached 5 minutes per pair, in-flight de-duplication) |
+| `GET /api/quote` | Route and fee/slice math mirroring `TerraRouter`, with the Chainlink floor for the stock leg |
+| `GET /api/card-check` | Re-derives a minted card from chain logs to prove its provenance |
+| `GET /api/qn-jar` | Quicknode Stock Token API vs direct `balanceOf` for the Jar |
+| `GET /api/stream` | Server-sent events of protocol logs |
+| `GET /api/geo` | Restricted-jurisdiction check for Stock Token actions |
+| `POST /api/rpc` | Read-only JSON-RPC proxy for the browser (allowlisted read methods only, rejects sends) |
+| `GET /api/health` | Chain and contract health for monitoring |
 
 ## How $WIF is used onchain
 
@@ -85,13 +155,16 @@ Delete $WIF and the staker stock stream, the burn and the fee discount all disap
 | Landing | Meme terminal |
 |---|---|
 | ![Landing](docs/screenshots/home-desktop.png) | ![Trade](docs/screenshots/trade-desktop.png) |
-| **Stake $WIF** | **Proof** |
-| ![Stake](docs/screenshots/stake-desktop.png) | ![Proof](docs/screenshots/proof-desktop.png) |
+| **My Jar** | **Stake $WIF** |
+| ![Jar](docs/screenshots/jar-desktop.png) | ![Stake](docs/screenshots/stake-desktop.png) |
+| **Leaderboard** | **Friend Jars** |
+| ![Leaderboard](docs/screenshots/board-desktop.png) | ![Friend Jars](docs/screenshots/friends-desktop.png) |
+| **Proof** | **Hindsight card at 375px** |
+| ![Proof](docs/screenshots/proof-desktop.png) | <img src="docs/screenshots/card-mobile.png" alt="Hindsight card at 375px" width="260" /> |
 
 Every route was also captured at 375px with mobile emulation and has no horizontal overflow
 (`docs/screenshots/*-mobile.png`).
 
-<p align="center"><img src="docs/screenshots/card-mobile.png" alt="Hindsight card at 375px" width="280" /></p>
 
 ## Proof (Robinhood Chain mainnet 4663)
 
@@ -168,11 +241,11 @@ Each one is a law in `INVARIANTS.md`, enforced in code and covered by a named fo
 
 ```
             Browser (Next.js 15, wagmi, viem)
-   card · convert · trade · jar · stake · board · proof
+   card · convert · trade · jar · report · friends · stake · board · proof
                       |                    |
           signed txs  |                    | read-only API (web/app/api)
                       v                    v
- +-------------- Robinhood Chain mainnet 4663 ----------------+      hindsight  - HyperSync / log scan + Chainlink rounds
+ +-------------- Robinhood Chain mainnet 4663 ----------------+      hindsight  - Envio HyperSync / log scan + Chainlink rounds
  |                                                            |      quote      - route + oracle-bounded quotes
  |  TerraRouter --fee--> FeePool --50%--> buy $WIF --> burn   |      card-check - re-derives a minted card
  |      |  \                   \--50%--> buy stock --> WifStaking --claim--> Jar
@@ -180,10 +253,11 @@ Each one is a law in `INVARIANTS.md`, enforced in code and covered by a named fo
  |      v                                                     |      stream     - SSE of protocol events
  |  Uniswap Universal Router (v2 / v3 / v4, hooked pools)     |      geo        - restricted-country check
  |  StockOracle (Chainlink) bounds every stock fill           |
- |  HindsightLens recomputes any card; mint burns 1 $WIF      |
+ |  HindsightLens recomputes any card; mint burns 1 $WIF      |      qn-jar     - Quicknode Stock Token API cross-check
+ |  FriendJar: shared group Jars of one stock                 |      rpc        - read-only proxy (GetBlock, public fallback)
  +------------------------------------------------------------+
                       ^
-      GitHub Actions cron (hourly) calls the permissionless FeePool.distribute()
+      GitHub Actions cron: hourly FeePool.distribute(), daily Chainlink round-table refresh
 ```
 
 The keeper (`.github/workflows/keeper.yml`, `scripts/keeper.ts`) uses a dedicated low-balance key that can only call
@@ -197,7 +271,17 @@ The keeper (`.github/workflows/keeper.yml`, `scripts/keeper.ts`) uses a dedicate
 | Pricing | Chainlink data feeds on Robinhood Chain (ETH/USD, USDG/USD, per-stock history and 24/7 feeds) |
 | Swaps | Uniswap Universal Router 2.1 over v2, v3 and v4 pools |
 | Web | Next.js 15.5 (Turbopack), React 19, wagmi 2, viem 2, TanStack Query, Tailwind CSS 4 |
-| Hosting and ops | Vercel, GitHub Actions (CI + hourly keeper) |
+| Hosting and ops | Vercel, GitHub Actions (CI, hourly keeper, daily Chainlink round-table refresh) |
+
+### Live integrations
+
+| Integration | What Terra Firma uses it for | Where |
+|---|---|---|
+| Chainlink | Prices every meme buy at its block, the stock counterfactual, and the min-out floor on every stock fill | `contracts/src/StockOracle.sol`, `web/lib/hindsight.ts` |
+| Uniswap Universal Router | Meme buys and sells, converts, slices and the $WIF burn buy across v2, v3 and v4 (hooked) pools | `contracts/src/TerraRouter.sol`, `contracts/src/FeePool.sol` |
+| Envio HyperSync | Pulls a wallet's meme transfer history for cards in one query, with an RPC log-scan fallback | `web/lib/hypersync.ts` |
+| Quicknode Stock Token API | Independent cross-check of the Jar's Stock Token holdings | `web/app/api/qn-jar/route.ts` |
+| GetBlock | Private RPC and websocket for server reads and the live event stream | `web/app/api/rpc/route.ts`, `web/app/api/stream/route.ts` |
 
 ## Restricted jurisdictions
 
@@ -219,8 +303,9 @@ and in `SECURITY.md`. Stock Token issuer and transfer restrictions apply indepen
   Other payments are shown as unpriced, never estimated.
 - Hindsight shows gross buys of memes still held. It does not net sells or transfers and is not profit and loss.
 - SPY and QQQ feeds pause on weekends; fills against a stale feed revert, and the FeePool skips and carries.
-- Friend Jars (`/friends`): start a group Jar in one stock, share an invite code, everyone contributes ETH and owns the stock pro rata, and anyone can exit with their share. The FriendJar contract is source verified and covered by the fork test suite (create, contribute pro rata, exit, replayed invites rejected). The full screen flow (create, wrong invite rejected, friend joins, both contribute, both exit) was replayed against the deployed contract on a mainnet fork on 2026-11-12: shares came out exactly 1:2 for 0.001 vs 0.002 ETH and the two exits paid out the whole pot to the wei. It is the newest screen, so keep amounts small.
-- Quicknode Stock Token API: the Jar page cross-checks the Jar's Stock Token holdings with `qn_getStockTokenBalances` against direct `balanceOf` reads and shows a "Verified by Quicknode Stock Token API" badge when they agree to the wei (`web/app/api/qn-jar/route.ts`). Display only, never in the money path.
+- Friend Jars is the newest screen. Its full flow (create, wrong invite rejected, join, two contributions, both exits)
+  was replayed against the deployed FriendJar on a mainnet fork on 2026-11-12: shares came out exactly 1:2 for 0.001 vs
+  0.002 ETH and the exits paid out the whole pot to the wei. No group Jar has been created on mainnet yet.
 
 The full list is in `LIMITATIONS.md`, and every "must not claim" item with where it is avoided is in `HONESTY.md`.
 
@@ -265,7 +350,8 @@ contracts/
   script/         deploy script and config
   deployments/    4663.json, the deployed addresses (source of truth)
 web/
-  app/            routes: /, /app, /app/convert, /card/[addr], /trade, /jar, /stake, /board, /proof, /api/*
+  app/            routes: /, /app, /app/convert, /card/[addr], /trade, /trade/[token], /jar, /jar/report/[addr],
+                  /stake, /friends, /board, /proof, and /api/* (hindsight, quote, card-check, qn-jar, stream, geo, rpc, health)
   components/     UI, including the Fig. 1 strata plate that draws each card to scale
   lib/            hindsight indexer, route builder, Chainlink round tables, chain config
   data/           committed registry, round tables, restricted list, deployments, proof.json

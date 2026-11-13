@@ -5,11 +5,11 @@
 - One-tap convert of non-$WIF memes into one of 6 real Stock Tokens held in an ownerless Jar; withdraw any time.
 - Meme terminal over Uniswap v2/v3/v4 (incl. hooked and dynamic-fee pools) with a same-transaction sweep into stock.
 - 0.5% fee (0.3% for >= 10K $WIF stakers) → hourly $WIF buy-and-burn + real-stock stream to $WIF stakers in the stock they pick.
-- Card mint (burns 1 $WIF), leaderboards, saving streak, weekly report card, live event stream, Quicknode cross-check badge.
+- Card mint (burns 1 $WIF), leaderboards, saving streak, weekly report card, live event stream, Quicknode cross-check badge, Envio HyperSync card history.
+- Friend Jars (`/friends`): shared Jars of one stock, owned pro rata. Newest screen: proven end to end on a mainnet fork against the deployed contract; no group Jar created on mainnet yet.
 - Restricted-jurisdiction geofence (IP + attestation) on stock actions.
 
 ## Feature-gated (deliberately not built for this scope)
-- Friend Jars UI. Reason: gated on the core being green on mainnet by 2026-11-11 23:59 WAT (OD7); contract ships and is tested.
 - Memes outside the registry in Hindsight. Reason: per-token scans keep a card under ~12s; the registry is rebuilt by script.
 - Buys paid in tokens other than ETH/WETH/USDG/curated stocks. Reason: no Chainlink price → shown as "unpriced", never estimated.
 - Fee-on-transfer (taxed) memes in the terminal. Reason: received-amount accounting differs; flagged in the registry.
