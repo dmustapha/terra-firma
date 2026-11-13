@@ -25,3 +25,11 @@ video/out/
 video/remotion/node_modules
 video/remotion/public/clips/
 video/remotion/public/freeze/
+
+# Local pipeline state
+.*-state.json
+.submission-surface.json
+.ship-check.json
+.url-identity.json
+.judge-artifacts.json
+.env*.bak*

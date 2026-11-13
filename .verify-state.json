@@ -1,5 +1,0 @@
-{"status":"complete","mode":"preflight","runDate":"2026-11-12","winnerReadiness":88,"maxScore":100,"overallStatus":"SHIP WITH FIXES",
- "killZones":{"kz1_demo_reliability":"CLEAR","kz2_submission_completeness":"CLEAR_CONDITIONAL","kz3_contract_wrong_network":"CLEAR","kz4_sponsor_integration":"CLEAR","kz5_eligibility_compliance":"CLEAR","kz6_claim_integrity":"CLEAR","kz7_infra":"CLEAR"},
- "kz4_condition":null,"recomputeSampling":{"sampled":6,"passed":5,"failed":0,"stale_superseded":1,"failedFacts":[]},
- "facets":{"f1":22,"f2":15,"f3":19,"f4":14,"f5":8,"f6":5,"f7":3,"f8":2},
- "conditions":["Dami uploads film and pastes link","Dami submits form with payout wallet","Dami pins repo"]}
