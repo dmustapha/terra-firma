@@ -29,6 +29,12 @@ Terra Firma builds a **Hindsight card** for any wallet from its real onchain buy
 - **$WIF is never sold:** `TerraRouter` reverts `WifNotSellable`.
 - **Anti-gaming stakes:** new stakes wait a full epoch before earning.
 - **Card mint burn:** `mintCard` burns exactly 1 $WIF and lands on the leaderboard.
+- **Friend Jars:** a group chat owns one stock together, pro rata, and anyone can exit with their share (`FriendJar`, live at /friends).
+- **Weekly Jar report and share cards:** every card and every Jar report renders its own share image; the report has a Share to X button.
+- **Leaderboard:** biggest regret (each minted card rebuilt from chain history before it ranks), biggest Jars, most fees paid.
+- **Saving streak and Jar history:** consecutive days of sweeps and converts, and where every share in the Jar came from.
+- **Live protocol feed:** server-sent events of every trade, sweep, burn and claim on the landing page.
+- **Independent cross-checks:** Envio HyperSync builds card history; the Quicknode Stock Token API confirms the Jar's holdings to the wei.
 
 ## Tech Stack / Architecture
 `Solidity 0.8.26` · `Foundry` · `Chainlink` · `Uniswap Universal Router` · `Next.js 15` · `wagmi` · `viem` · `Vercel` · `GitHub Actions keeper`

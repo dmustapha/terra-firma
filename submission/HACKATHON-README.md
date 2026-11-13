@@ -1,6 +1,6 @@
 # Terra Firma
 
-> See what your memes would be in stock, then keep a slice of every trade as stock.
+> Your memes, in real stock: see what they could have been, convert the dead ones, keep a slice of every trade, and stake $WIF to earn stock from every fee.
 
 Live on Robinhood Chain mainnet: https://terrafirma-wif.vercel.app · proof: https://terrafirma-wif.vercel.app/proof · repo: https://github.com/dmustapha/terra-firma
 
@@ -8,7 +8,9 @@ Live on Robinhood Chain mainnet: https://terrafirma-wif.vercel.app · proof: htt
 Most meme traders on Robinhood Chain have a number they never look at: what all that money would be worth if it had gone into a real stock instead. One real wallet on the chain put about eighteen thousand dollars into memes; what is left is worth very little, while the same dollars in NVDA, bought at the same moments, would still be most of it. The chain has real Stock Tokens sitting right next to the memes, and nothing connects the two.
 
 ## What We Built
-Terra Firma shows any wallet its Hindsight card, priced from the Chainlink round that was live at every buy. Then it lets you convert the dead memes into real Stock Tokens in an ownerless Jar, and keep a slice of up to ten percent of every future meme buy or sell as stock, in the same transaction.
+Terra Firma shows any wallet its Hindsight card, priced from the Chainlink round that was live at every buy, recomputable onchain and mintable (minting burns 1 $WIF), with a share image for every card. Then it lets you convert the dead memes into real Stock Tokens in an ownerless Jar, and keep a slice of up to ten percent of every future meme buy or sell as stock, in the same transaction.
+
+Around that loop: Friend Jars let a group chat own one stock together, pro rata. The Jar page shows a saving streak, a history of where every share came from, a weekly report with its own share card, and a badge when Quicknode's Stock Token API agrees with the chain on what the Jar holds. A leaderboard ranks the biggest regret (each minted card rebuilt from chain history before it ranks), the biggest Jars and the most fees paid, and the landing page streams protocol events live. The full feature list, every route and API, is in the [repo README](../README.md#what-terra-firma-does).
 
 ## Our Integration
 $WIF holds it together. Every trade pays a half percent fee that only ever buys $WIF. Once an hour the fee pool burns half of what it bought and turns the other half into real Stock Tokens for $WIF stakers, in the stock each of them picked. Staking 10,000 $WIF cuts your own fee to 0.3%, and minting your card burns one more $WIF. The full integration write-up, with file and line references and mainnet transactions, is in [`sponsor-tracks.md`](sponsor-tracks.md).
@@ -20,7 +22,7 @@ I started from what traders already do instead of asking them to stop. The numbe
 Stock Tokens, with hooks and defi and consumer and payments.
 
 ## Tech Stack
-Solidity 0.8.26 with Foundry, Chainlink feeds, the Uniswap Universal Router, Next.js 15 with wagmi and viem on Vercel, and an hourly GitHub Actions keeper. Architecture, invariants and the security table live in the [repo README](../README.md#architecture).
+Solidity 0.8.26 with Foundry, Chainlink feeds, the Uniswap Universal Router, Envio HyperSync for wallet history, the Quicknode Stock Token API for the Jar cross-check, GetBlock RPC and websockets, Next.js 15 with wagmi and viem on Vercel, and GitHub Actions for CI, the hourly keeper and a daily Chainlink round refresh. Architecture, invariants and the security table live in the [repo README](../README.md#architecture).
 
 ## Verify in 60s
 One command re-derives the mainnet claims from chain logs, no API keys:
