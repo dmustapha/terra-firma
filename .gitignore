@@ -33,3 +33,5 @@ video/remotion/public/freeze/
 .url-identity.json
 .judge-artifacts.json
 .env*.bak*
+PULSE.md
+pipeline-log.md
