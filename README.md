@@ -36,8 +36,8 @@ Built for the World is Flat hackathon on Robinhood Chain.
 > **Your wallet will call this site "malicious". Here is why, and how to continue.**
 > Wallets that use the Blockaid scanner (MetaMask, Zerion, Coinbase Wallet) flag brand-new domains and brand-new contracts.
 > You may see two screens: a "deceptive site" page when you open the app, and a red "malicious request" banner on
-> **every** transaction, even after you clicked continue. In MetaMask, tick the risk acknowledgement and confirm; the transaction
-> goes through. Zerion blocks the site outright, so use MetaMask.
+> **every** transaction, even after you clicked continue. In MetaMask, tick the risk acknowledgement and confirm, and the transaction
+> goes through. In Zerion, choose continue on the warning and it proceeds the same way.
 > Terra Firma never asks for a seed phrase, password or signature. It only asks for exact-amount approvals to the
 > [7 source-verified contracts](#proof-robinhood-chain-mainnet-4663), which have no admin keys. A developer verification
 > was filed with Blockaid on 2026-11-12. Buying with ETH needs no approval.
@@ -304,7 +304,7 @@ and in `SECURITY.md`. Stock Token issuer and transfer restrictions apply indepen
 
 - Unaudited hackathon software. Use small amounts.
 - New domain, new contracts: some wallets (Zerion and others using Blockaid) currently show a generic "malicious dApp"
-  warning for `terrafirma-wif.vercel.app` and the older `terra-firma-henna.vercel.app`, and repeat it on every transaction (see the note at the top). MetaMask lets you acknowledge the risk and confirm; Zerion blocks the site. A developer verification was filed with Blockaid on 2026-11-12. The site
+  warning for `terrafirma-wif.vercel.app` and the older `terra-firma-henna.vercel.app`, and repeat it on every transaction (see the note at the top). In both MetaMask and Zerion you can acknowledge the warning and the transaction proceeds. A developer verification was filed with Blockaid on 2026-11-12. The site
   never asks for a seed phrase, password or permit signature; it only requests exact-amount approvals to the 7
   source-verified contracts listed above.
 - The WIF/ETH pool used for the burn has a third-party hook that Terra Firma does not own or control (disclosed in

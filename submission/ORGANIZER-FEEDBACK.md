@@ -30,7 +30,7 @@ _Severity: FRICTION_
 _Severity: FRICTION_
 
 ### Developer Experience
-**What we hit:** wallets running Blockaid (Zerion blocks the site outright, MetaMask asks you to acknowledge a risk on every signature) flag brand new Robinhood Chain dApp domains as malicious. This may be Blockaid being cautious with any new domain rather than anything specific to the chain.
+**What we hit:** wallets running Blockaid (Zerion and MetaMask both show a malicious warning on the site and again on every transaction, which you have to acknowledge each time) flag brand new Robinhood Chain dApp domains as malicious. This may be Blockaid being cautious with any new domain rather than anything specific to the chain.
 **Cost to discover:** it surfaced the first time we signed on mainnet and cost us a full recording session.
 **Delta:** nothing on our side asks for seed phrases or permits; approvals are exact amounts to seven verified contracts.
 **Impact:** a judge or new user meets a red warning before they see the product.
