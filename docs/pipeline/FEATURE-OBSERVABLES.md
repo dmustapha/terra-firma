@@ -1,4 +1,4 @@
-# FEATURE-OBSERVABLES — Terra Firma
+# FEATURE-OBSERVABLES: Terra Firma
 Each observable proves a feature WORKS (not that it exists). Run against mainnet after PLAN P3 unless marked [fork].
 Env: `set -a; source ~/wif-hack/.env.local; set +a; D=web/data/deployments.json; R=$(jq -r .TerraRouter $D); J=$(jq -r .Jar $D); FP=$(jq -r .FeePool $D); S=$(jq -r .WifStaking $D); L=$(jq -r .HindsightLens $D)`
 
@@ -23,7 +23,7 @@ Env: `set -a; source ~/wif-hack/.env.local; set +a; D=web/data/deployments.json;
 | F-017 | Mobile | no horizontal scroll at 390px | Chrome DevTools emulation: `document.documentElement.scrollWidth <= 390` | > 390 | P5.3 |
 | F-018 | Quicknode badge | agreement true | `curl -s "$URL/api/qn-jar?addr=$J" \| jq .agreement` | false | P5.1 |
 | F-019 | Card mint | `CardMinted` + WIF supply −1e18 | `cast logs --address $L "CardMinted(address,uint8,uint256,uint256,uint256)"` | no event | P5.2 |
-| F-020 | Friend Jars (gated) | JarCreated/Contributed/Exited on mainnet | [fork] `test_friendJar_contributeExit`; mainnet only if OD7 passes | — | P6.2 |
+| F-020 | Friend Jars (gated) | JarCreated/Contributed/Exited on mainnet | [fork] `test_friendJar_contributeExit`; mainnet only if OD7 passes |, | P6.2 |
 | F-021 | Staker discount | 30 bps for >= 10K active stake | [fork] `test_feeDiscountForStakers` | 50 bps | fork |
 | F-022 | Live stream | `traded` event within 10s of a trade | `curl -N $URL/api/stream` while sending a buy | no event in 15s | P5 gate |
 | F-023 | Boards | each row links a real tx/address | `/board` rows → explorer 200 | dead link | livetest |

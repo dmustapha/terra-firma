@@ -1,4 +1,4 @@
-# USER-ONBOARDING — Terra Firma
+# USER-ONBOARDING: Terra Firma
 Designed from the real user's entry (AMEND-4, Dami-ratified), not developer convenience.
 
 ## USER CLASSES

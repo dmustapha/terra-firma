@@ -1,4 +1,4 @@
-# Build Report — Terra Firma
+# Build Report: Terra Firma
 Executor model: orchestrator (Claude) + implementation subagents; CAMPAIGN, no conductor; Dami asleep (no-stop directive).
 Note: forge pre-built and fork-tested the code (ARCHITECTURE.md is generated from the real tree), so build P0 is parity/verification.
 
@@ -42,19 +42,19 @@ Note: forge pre-built and fork-tested the code (ARCHITECTURE.md is generated fro
 
 ## Known Risks (for debug)
 - Heavy wallet card latency: 0x3fDB…b09E now takes 28.7s (receipts for 95+ non-ETH txs over the public RPC); /api/hindsight maxDuration is 60s → HyperSync token + receipt batching/caching needed (debug/stress).
-- No dedicated reentrancy fork test (T5 relies on OZ nonReentrant) — add in debug/interrogate.
+- No dedicated reentrancy fork test (T5 relies on OZ nonReentrant), add in debug/interrogate.
 - No root README yet (deploy-to-github owns it; SECURITY.md link above the fold).
 - /proof rubric card 3 says "verified" after deploy; if Blockscout verification (P3.3) fails, that word must be removed (DEV-004).
 - No visual check yet at 360/768/1280px for the new guarantee line and rubric cards (design phase + livetest).
 - Public RPC is the only eth_getLogs path (GetBlock caps ~1,000 blocks); Hindsight under load may hit 429 until ENVIO_API_TOKEN is set.
 - SPY/QQQ feeds stale on weekends (judging Sat–Mon): quotes 409, FeePool skips + carries.
 - Third-party owned WIF/ETH hook could block swaps: burn carries (BurnSkipped).
-- WifStaking accounting is original logic ([ASSUMED]) — covered by 10 staking tests incl. adversarial; interrogate should fuzz it.
+- WifStaking accounting is original logic ([ASSUMED]), covered by 10 staking tests incl. adversarial; interrogate should fuzz it.
 
 ## Contract Addresses
 | Contract | Network | Address | Tx Hash |
 |----------|---------|---------|---------|
-| (pending P3 — mainnet deploy awaits funding) | 4663 | — | — |
+| (pending P3, mainnet deploy awaits funding) | 4663 |, |, |
 
 ## Environment Variables Added
 | Key | Source Step | Value/Description |

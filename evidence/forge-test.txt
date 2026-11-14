@@ -3,16 +3,30 @@ No files changed, compilation skipped
 Ran 2 tests for test/debug-p6-crossepoch-lock.t.sol:DebugP6CrossEpochLock
 [PASS] test_crossEpochPendingDoesNotLockOtherStaker() (gas: 670632)
 [PASS] test_selfTwoStakesNoPhantomActiveAtE2() (gas: 436179)
-Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 4.33ms (1.57ms CPU time)
+Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 4.99ms (1.37ms CPU time)
 
 Ran 1 test for test/debug-p6-hindsight-phase.t.sol:DebugP6HindsightPhase
 [PASS] test_phaseBoundaryRoundRejectedForLaterTs() (gas: 119005)
-Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 723.10ms (1.31ms CPU time)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 1.07s (813.50µs CPU time)
 
 Ran 2 tests for test/debug-p2-weekend-staleness.t.sol:DebugP2WeekendStaleness
 [PASS] test_feePoolSkipsStaleSpyAndCarries() (gas: 1529283)
 [PASS] test_spyDepositRevertsStaleOracle() (gas: 450187)
-Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 727.92ms (7.94ms CPU time)
+Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 1.08s (7.22ms CPU time)
+
+Ran 3 tests for test/HindsightLens.t.sol:HindsightLensTest
+[PASS] test_recomputeOneEthBuy() (gas: 96153)
+[PASS] test_scaledEarlyRoundNormalized() (gas: 29812)
+[PASS] test_wrongRoundReverts() (gas: 169090)
+Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 1.08s (1.95ms CPU time)
+
+Ran 5 tests for test/debug-p6-feepool.t.sol:DebugP6FeePool
+[PASS] test_emptyRevertBurnSkipsAndCarries() (gas: 560441)
+[PASS] test_emptyRevertStockLegSkipsAndCarries() (gas: 999285)
+[PASS] test_emptyRevertUrContractSkipsNotBricks() (gas: 1691960)
+[PASS] test_highWifMinOutCannotSkipBurn() (gas: 690212)
+[PASS] test_outOfGasSwapRevertsNotSkips() (gas: 3333986)
+Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 1.08s (14.41ms CPU time)
 
 Ran 10 tests for test/debug-p2-reentrancy.t.sol:DebugP2Reentrancy
 [PASS] test_convertHostileTokenCallbackReverts() (gas: 738491)
@@ -25,27 +39,13 @@ Ran 10 tests for test/debug-p2-reentrancy.t.sol:DebugP2Reentrancy
 [PASS] test_sellHostileTokenCallbackReverts() (gas: 735173)
 [PASS] test_stakingStakeReentersClaim() (gas: 4153819)
 [PASS] test_stakingWithdrawReentry() (gas: 4130542)
-Suite result: ok. 10 passed; 0 failed; 0 skipped; finished in 730.17ms (9.52ms CPU time)
-
-Ran 5 tests for test/debug-p6-feepool.t.sol:DebugP6FeePool
-[PASS] test_emptyRevertBurnSkipsAndCarries() (gas: 560441)
-[PASS] test_emptyRevertStockLegSkipsAndCarries() (gas: 999285)
-[PASS] test_emptyRevertUrContractSkipsNotBricks() (gas: 1691960)
-[PASS] test_highWifMinOutCannotSkipBurn() (gas: 690212)
-[PASS] test_outOfGasSwapRevertsNotSkips() (gas: 3333986)
-Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 730.22ms (14.61ms CPU time)
-
-Ran 3 tests for test/HindsightLens.t.sol:HindsightLensTest
-[PASS] test_recomputeOneEthBuy() (gas: 96153)
-[PASS] test_scaledEarlyRoundNormalized() (gas: 29812)
-[PASS] test_wrongRoundReverts() (gas: 169090)
-Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 730.67ms (3.20ms CPU time)
+Suite result: ok. 10 passed; 0 failed; 0 skipped; finished in 1.08s (8.34ms CPU time)
 
 Ran 3 tests for test/URProbe.t.sol:URProbeTest
 [PASS] test_v2_cb_withHopArray() (gas: 130888)
 [PASS] test_v2_explicit_withHopArray() (gas: 129304)
 [PASS] test_v3_explicit_withHopArray() (gas: 133714)
-Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 730.72ms (3.36ms CPU time)
+Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 1.08s (2.39ms CPU time)
 
 Ran 32 tests for test/TerraFirma.t.sol:TerraFirmaTest
 [PASS] test_badKindReverts() (gas: 25550)
@@ -80,13 +80,41 @@ Ran 32 tests for test/TerraFirma.t.sol:TerraFirmaTest
 [PASS] test_sweepTooHighReverts() (gas: 25693)
 [PASS] test_unstakeDelay() (gas: 341863)
 [PASS] test_userMinStockEnforced() (gas: 294125)
-Suite result: ok. 32 passed; 0 failed; 0 skipped; finished in 730.71ms (61.05ms CPU time)
+Suite result: ok. 32 passed; 0 failed; 0 skipped; finished in 1.08s (58.62ms CPU time)
+
+Ran 25 tests for test/stress-p5.t.sol:StressP5Test
+[PASS] testFuzz_buyFeeAndSweepAccounting(uint96,uint16) (runs: 48, μ: 452200, ~: 473125)
+[PASS] testFuzz_joinOnlyWithExactInvite(string) (runs: 48, μ: 131321, ~: 131335)
+[PASS] testFuzz_sweepAboveMaxReverts(uint16) (runs: 48, μ: 25177, ~: 25093)
+[PASS] test_buy_badStockIdReverts() (gas: 199122)
+[PASS] test_buy_minTokenOutTooHighReverts() (gas: 214043)
+[PASS] test_buy_sweepAtExactMax() (gas: 462380)
+[PASS] test_buy_zeroValueReverts() (gas: 73916)
+[PASS] test_convert_lengthMismatchReverts() (gas: 20021)
+[PASS] test_deposit_zeroReverts() (gas: 137845)
+[PASS] test_friendJar_doubleExitReverts() (gas: 497494)
+[PASS] test_friendJar_inviteReplayCannotTouchOthersShares() (gas: 545165)
+[PASS] test_friendJar_wrongInviteAndNonMember() (gas: 155545)
+[PASS] test_griefing_distributeOncePerEpochAndThreshold() (gas: 508638)
+[PASS] test_jar_withdrawMoreThanOwnReverts() (gas: 349751)
+[PASS] test_mintCard_badPayKindReverts() (gas: 261216)
+[PASS] test_mintCard_badRoundRevertsBeforeBurn() (gas: 314681)
+[PASS] test_mintCard_burnsExactlyOneWif_andEmitsRecompute() (gas: 363601)
+[PASS] test_mintCard_emptyBuysMintsZeroCard() (gas: 270401)
+[PASS] test_mintCard_revertsWithoutApproval() (gas: 305451)
+[PASS] test_mintCard_revertsWithoutWif() (gas: 133108)
+[PASS] test_sandwich_burnLegBoundedByCap() (gas: 648740)
+[PASS] test_sell_zeroAmountReverts() (gas: 56323)
+[PASS] test_staking_claimNothingIsZero() (gas: 32593)
+[PASS] test_staking_notifyRewardOnlyFeePool() (gas: 12000)
+[PASS] test_staking_zeroAndOverdraw() (gas: 305266)
+Suite result: ok. 25 passed; 0 failed; 0 skipped; finished in 1.11s (74.68ms CPU time)
 
 Ran 4 tests for test/debug-p2-staking-invariant.t.sol:DebugP2StakingInvariant
-[PASS] testFuzz_stakingAccounting(uint256) (runs: 49, μ: 3766958, ~: 3748547)
+[PASS] testFuzz_stakingAccounting(uint256) (runs: 48, μ: 3848507, ~: 3834506)
 [PASS] test_topUpAcrossEpochs_rewardNotStranded() (gas: 505904)
 [PASS] test_topUpAcrossEpochs_switchDoesNotLockOthers() (gas: 484847)
 [PASS] test_topUpAcrossEpochs_thenUnstakeTopUp_doesNotLock() (gas: 313198)
-Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 889.10ms (167.08ms CPU time)
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 1.26s (185.59ms CPU time)
 
-Ran 9 test suites in 893.23ms (6.00s CPU time): 62 tests passed, 0 failed, 0 skipped (62 total tests)
+Ran 10 test suites in 1.26s (9.93s CPU time): 87 tests passed, 0 failed, 0 skipped (87 total tests)

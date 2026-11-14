@@ -343,7 +343,7 @@ The live site runs with Envio HyperSync on: card builds pull a wallet's meme tra
 | Web unit tests (143) | `pnpm test` | Hindsight pricing and Chainlink round bracketing, quote bounds, card cache, API input validation, the event stream route, UI formatting and error states |
 | Typecheck | `pnpm typecheck && pnpm typecheck:web` | Scripts and web compile with no type errors |
 | Contract build | `pnpm forge:build` | All contracts compile (forge wrapped with a 600 s timeout) |
-| Fork tests (62) | `RPC_URL=<robinhood-rpc> FORK_BLOCK=111155803 scripts/forge.sh test -vv` | Every invariant above against a Robinhood Chain mainnet fork: $WIF sell reverts, stale oracle, JIT staking, unbacked credit, no-owner surface, route injection, burn and split math. Output: `evidence/forge-test.txt` |
+| Fork tests (87, full suite) | `RPC_URL=<robinhood-rpc> FORK_BLOCK=111155803 scripts/forge.sh test -vv` | Every invariant above against a Robinhood Chain mainnet fork: $WIF sell reverts, stale oracle, JIT staking, unbacked credit, no-owner surface, route injection, burn and split math. Includes the 25 stress tests below. Output: `evidence/forge-test.txt` |
 | Stress tests (25) | `scripts/forge.sh test --match-path contracts/test/stress-p5.t.sol` on a fork | Card mint burn, zero/max/wrong-state boundaries, burn-leg sandwich cap, distribute griefing, invite replay, 3 fuzz suites. Output: `evidence/stress/p5-contract-stress.txt` |
 | Claims | `pnpm verify-claims` | Every figure in `CLAIMS.md` re-derived from its source |
 
@@ -376,14 +376,14 @@ evidence/         saved test and probe output that CLAIMS.md cites
 | Document | What it covers |
 |---|---|
 | [`SECURITY.md`](SECURITY.md) | Threat matrix with enforcement points, third-party dependencies, what is not defended against |
-| [`INVARIANTS.md`](INVARIANTS.md) | The non-negotiable laws and the decisions behind them |
+| [`INVARIANTS.md`](docs/INVARIANTS.md) | The non-negotiable laws and the decisions behind them |
 | [`LIMITATIONS.md`](LIMITATIONS.md) | What is in scope, what is feature-gated and why |
-| [`HONESTY.md`](HONESTY.md) | Every claim we must not make and where the product avoids it |
+| [`HONESTY.md`](docs/HONESTY.md) | Every claim we must not make and where the product avoids it |
 | [`CLAIMS.md`](CLAIMS.md) | Every headline figure and the command that re-derives it |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | Full component design |
 | [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md) | The Almanac design system: tokens, type, the strata plate |
-| [`DOMAIN-GUIDE.md`](DOMAIN-GUIDE.md) | Robinhood Chain, Chainlink and Universal Router details the code relies on |
-| [`SUBMISSION_STATUS.md`](SUBMISSION_STATUS.md) | What works, what is gated, and why |
+| [`DOMAIN-GUIDE.md`](docs/DOMAIN-GUIDE.md) | Robinhood Chain, Chainlink and Universal Router details the code relies on |
+| [`SUBMISSION_STATUS.md`](docs/SUBMISSION_STATUS.md) | What works, what is gated, and why |
 
 ## Notes
 

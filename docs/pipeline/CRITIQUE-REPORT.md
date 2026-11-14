@@ -1,4 +1,4 @@
-# Critique Report — Terra Firma
+# Critique Report: Terra Firma
 **Hackathon:** World is Flat (Robinhood Chain mainnet 4663) · **Date:** 2026-11-11 · **Mode:** CAMPAIGN, autonomous default (Dami asleep, "no stoppages" directive) · **STAGE-1 SCOPE-REVIEW:** PASS (phases/C1-SCOPE-REVIEW.md), build authorized for SF-1.
 
 ## Competitive Positioning
@@ -12,7 +12,7 @@ Copilot unavailable this run (intel: copilot_available=false); Grid broad search
 
 ### Differentiation Strengths
 - Only entry turning meme activity into **owned real stock** (Hindsight → convert → sweep), with a **per-wallet shocking number** from real chain data (0x3fDB…b09E: $15,314.80 → $2.28 vs $14,798.24 in NVDA).
-- **Onchain recompute** of the card (HindsightLens) — verifiability no entrant offers.
+- **Onchain recompute** of the card (HindsightLens), verifiability no entrant offers.
 - Security legibility at the top tier's bar: 7 ownerless contracts, 62 mainnet-fork tests incl. adversarial (JIT, cross-pool drain, gas starvation, route injection), Chainlink bounds.
 
 ### Differentiation Gaps
@@ -23,7 +23,7 @@ Copilot unavailable this run (intel: copilot_available=false); Grid broad search
 - Stock Tokens: **STRONG** (Jar, StockOracle, sweep/convert, rewards in real stock).
 - hooks and defi: **STRONG** (UR 2.1 routing over hooked v4 pools; burn through the hooked WIF/ETH pool).
 - consumer and payments: **STRONG** (Hindsight card, terminal, mobile-first).
-- onboarding: **WEAK** (read-only lookup is strong; embedded-wallet Friend Jars gated by OD7) — honest as "designed, gated" unless the gate passes.
+- onboarding: **WEAK** (read-only lookup is strong; embedded-wallet Friend Jars gated by OD7), honest as "designed, gated" unless the gate passes.
 
 ## Sponsor Integration Depth
 | Sponsor | Methods Planned | Total Available | Depth | Gap |
@@ -34,14 +34,14 @@ Copilot unavailable this run (intel: copilot_available=false); Grid broad search
 | $WIF | 4 (buy via hooked pool, burn, burnFrom card mint, stake + fee discount) | 4 | deep | none |
 | GetBlock | 3 (JSON-RPC primary, WSS eth_subscribe stream, failover) | ~5 (+ Market SQL, streams) | moderate | Market SQL unused (deferred) |
 | Quicknode | 1 (qn_getStockTokenBalances) | 5 (getStockTokens, getCorporateActions, getOracleHealth, getTransactionFinality) | surface | E-5 (deferred: needs token) |
-| Envio HyperSync | 1 (log query) | — | moderate (optional provider) | token pending |
+| Envio HyperSync | 1 (log query) |, | moderate (optional provider) | token pending |
 Grid ecosystem counts for sponsors: unavailable (Grid returned no Robinhood Chain products).
 
 ### On-Chain Proof
 Mainnet 4663 (not testnet). Tx types: convert, buy/sell with sweep, distribute (burn + stock buys), claim, card mint. Explorer links in every UI number and /proof; proof.ts regenerates submission/proof.md from events. Depth: **Platinum** for the router+sweep and onchain-recompute design; volume honest at demo scale (dust, disclosed).
 
 ### Safety Architecture
-4 independent layers (validation, rate limiting, circuit breakers, degradation) with tests per layer; no single external failure bricks the app (RPC failover, FeePool try/catch carry, read-only mode). Single point of concern: the third-party owned WIF/ETH hook — contained (cap + carry) and disclosed.
+4 independent layers (validation, rate limiting, circuit breakers, degradation) with tests per layer; no single external failure bricks the app (RPC failover, FeePool try/catch carry, read-only mode). Single point of concern: the third-party owned WIF/ETH hook, contained (cap + carry) and disclosed.
 
 ## Narrative Arc
 **Score: compelling.** Problem is real and personal (the per-wallet regret number); the solution feels inevitable (stocks are on the same chain); demo tells a story (connect → your card → convert → trade burns $WIF → staker stream); wow moment = the long-history wallet card + onchain recompute.
@@ -71,7 +71,7 @@ How: PRD §4.13 copy row; PLAN Task P2.3 (web/app/page.tsx, components/hindsight
 
 ### E-2: Rubric map on /proof
 Category: narrative_hook · Impact: high · Effort: quick · Risk: none · Thesis impact: compatible · **[AUTO] approved**
-What: /proof opens with three cards — "A real reason to use $WIF" (burn tx + staker claim + fee discount), "A flywheel that holds up" (routed volume → burn → stream, live totals), "Works and built well" (7 verified ownerless contracts, 38 fork tests, recompute box) — each linking to live evidence.
+What: /proof opens with three cards, "A real reason to use $WIF" (burn tx + staker claim + fee discount), "A flywheel that holds up" (routed volume → burn → stream, live totals), "Works and built well" (7 verified ownerless contracts, 38 fork tests, recompute box), each linking to live evidence.
 Why: pitch-legibility axis; judges have "a few minutes" (judge Vasily).
 How: PRD §7.6; PLAN Task P2.3 (components/proof-view.tsx).
 

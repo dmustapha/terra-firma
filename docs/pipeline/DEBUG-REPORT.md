@@ -1,4 +1,4 @@
-# DEBUG-REPORT — Terra Firma
+# DEBUG-REPORT: Terra Firma
 Mode: full · Run: 2026-11-11 ~09:45–12:30 WAT · Against: mainnet FORK (anvil, block 111155803) + local web · Mainnet deploy pending funding.
 
 ## Executive Summary

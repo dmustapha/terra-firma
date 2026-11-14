@@ -1,4 +1,4 @@
-# SELECTION — Terra Firma design direction
+# SELECTION: Terra Firma design direction
 
 Selection mode: AUTONOMOUS. design_availability = unavailable: Dami's standing directive ("continue ... if im not awake yet. no stoppages") while asleep. The machine gate passed first (.design-gen-verdict.json). Dami may overrule on waking; the proposals stay in proposals/.
 

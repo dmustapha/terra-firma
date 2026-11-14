@@ -1,5 +1,5 @@
-# Wire Report — Terra Firma
-Run 2026-11-11 ~12:40–13:40 WAT · CAMPAIGN · Status **BLOCKED (funding only)** — every connection that can be tested before mainnet deploy passes; onchain integrations are proven on a local mainnet FORK, which is not mainnet proof.
+# Wire Report: Terra Firma
+Run 2026-11-11 ~12:40–13:40 WAT · CAMPAIGN · Status **BLOCKED (funding only)**, every connection that can be tested before mainnet deploy passes; onchain integrations are proven on a local mainnet FORK, which is not mainnet proof.
 
 ## Project Topology
 | Component | Type | Entry Point |
@@ -15,21 +15,21 @@ Run 2026-11-11 ~12:40–13:40 WAT · CAMPAIGN · Status **BLOCKED (funding only)
 |---|---|---|---|:-:|--:|---|
 | web/lib/rpc.ts | GetBlock FRA | rpc | GETBLOCK_RPC_FRA | PASS | 616ms | eth_chainId 0x1237 |
 | web/lib/rpc.ts | GetBlock NYC | rpc | GETBLOCK_RPC_NYC | PASS | 1180ms | 0x1237 |
-| web/lib/rpc.ts | public RPC (log scans) | rpc | — | PASS | — | 5,000-block getLogs → 18 logs; GetBlock rejects the same range ("Block range is too large"), so the routing is correct |
-| web/lib/hypersync.ts | Envio HyperSync | api | ENVIO_API_TOKEN | SKIPPED | — | /height OK, /query 401 without token; eth_getLogs fallback carries the card |
+| web/lib/rpc.ts | public RPC (log scans) | rpc |, | PASS |, | 5,000-block getLogs → 18 logs; GetBlock rejects the same range ("Block range is too large"), so the routing is correct |
+| web/lib/hypersync.ts | Envio HyperSync | api | ENVIO_API_TOKEN | SKIPPED |, | /height OK, /query 401 without token; eth_getLogs fallback carries the card |
 | app/api/stream | GetBlock WSS | websocket | GETBLOCK_WSS_FRA | PASS | 631ms | mainnet newHeads; FORK: Traded/Swept/Credited delivered 53 ms after the tx; 22 concurrent → 20×200 + 2×503 |
-| app/api/qn-jar | Quicknode | rpc | QUICKNODE_TOKEN | SKIPPED | — | UNAUTHORIZED without token; route returns enabled:false, badge hidden |
-| TerraRouter | Universal Router 2.1 | contract | — | PASS (FORK) | — | drill: buy+sweep, convert, hooked-pool WIF buy |
-| StockOracle / HindsightLens / rounds | Chainlink feeds | contract | — | PASS | 497ms | /api/health 7/7 feeds live (mainnet); recompute exact (FORK) |
-| FeePool | WIF/ETH v4 hooked pool | contract | — | PASS (FORK) | — | distribute burned 27.93 WIF (drill) and 204.41 WIF (keeper) |
-| quote.ts | V4Quoter/QuoterV2/Router02 | rpc | — | PASS | ~0.5s | buy → v2, sell → v3 route (mainnet) |
-| app/api/geo | Vercel geo header | api | — | PASS | — | US/CU restricted, NG/DE allowed |
-| scripts/build-registry.ts | DexScreener | api | — | PASS | — | PONS 30 pairs |
-| keeper | FeePool | contract | KEEPER_KEY | PASS (FORK) | — | dry run; live distribute; same-epoch re-run skips |
-| app/api/hindsight | router-buy card branch (DH-2) | api | — | PASS (FORK) | 6.3s | 3 router buys priced $16.1858 = independent recompute (0.00786 ETH meme legs × $2,059.26); after a 4th buy, $118.6341 = recompute (evidence/wire/card-router-fork.txt). The card relies on the deployed TerraRouter address: with the wrong config it counts the full msg.value |
-| app/api/hindsight | heavy mainnet wallet | api | — | PASS | 12.2s cold / 22ms cached | $15,380.80 paid, AI meme |
-| app/api/card-check | board verification | api | — | PASS | 291ms | honest claim verified:true, forged claim verified:false |
-| pages (11) | — | http | — | PASS | 0.35–6.2s | all 200 (/friends 404 by design, gated) |
+| app/api/qn-jar | Quicknode | rpc | QUICKNODE_TOKEN | SKIPPED |, | UNAUTHORIZED without token; route returns enabled:false, badge hidden |
+| TerraRouter | Universal Router 2.1 | contract |, | PASS (FORK) |, | drill: buy+sweep, convert, hooked-pool WIF buy |
+| StockOracle / HindsightLens / rounds | Chainlink feeds | contract |, | PASS | 497ms | /api/health 7/7 feeds live (mainnet); recompute exact (FORK) |
+| FeePool | WIF/ETH v4 hooked pool | contract |, | PASS (FORK) |, | distribute burned 27.93 WIF (drill) and 204.41 WIF (keeper) |
+| quote.ts | V4Quoter/QuoterV2/Router02 | rpc |, | PASS | ~0.5s | buy → v2, sell → v3 route (mainnet) |
+| app/api/geo | Vercel geo header | api |, | PASS |, | US/CU restricted, NG/DE allowed |
+| scripts/build-registry.ts | DexScreener | api |, | PASS |, | PONS 30 pairs |
+| keeper | FeePool | contract | KEEPER_KEY | PASS (FORK) |, | dry run; live distribute; same-epoch re-run skips |
+| app/api/hindsight | router-buy card branch (DH-2) | api |, | PASS (FORK) | 6.3s | 3 router buys priced $16.1858 = independent recompute (0.00786 ETH meme legs × $2,059.26); after a 4th buy, $118.6341 = recompute (evidence/wire/card-router-fork.txt). The card relies on the deployed TerraRouter address: with the wrong config it counts the full msg.value |
+| app/api/hindsight | heavy mainnet wallet | api |, | PASS | 12.2s cold / 22ms cached | $15,380.80 paid, AI meme |
+| app/api/card-check | board verification | api |, | PASS | 291ms | honest claim verified:true, forged claim verified:false |
+| pages (11) |, | http |, | PASS | 0.35–6.2s | all 200 (/friends 404 by design, gated) |
 
 ## Credential Audit
 | Env Var | Required By | Status | Source |

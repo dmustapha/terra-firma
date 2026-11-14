@@ -2,9 +2,9 @@
 # [VERIFIED] arithmetic Phase 3.5 plan metrics (forge reference/quality-gates.md); exit 1 on any FAIL.
 import os, re, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-P = open(os.path.join(ROOT, "PLAN.md")).read()
+P = open(os.path.join(ROOT, "docs/pipeline/PLAN.md")).read()
 A = open(os.path.join(ROOT, "ARCHITECTURE.md")).read()
-PRD = open(os.path.join(ROOT, "PRD.md")).read()
+PRD = open(os.path.join(ROOT, "docs/pipeline/PRD.md")).read()
 tree = re.search(r"### File Structure.*?```\nterra-firma/\n(.*?)\n```", A, re.S).group(1).split("\n")
 tree = {t.strip() for t in tree if t.strip()}
 created = set(re.findall(r"^#### Task F\d+: create `([^`]+)`", P, re.M))

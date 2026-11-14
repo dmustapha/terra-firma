@@ -1,4 +1,4 @@
-# Architecture Decision Records — Terra Firma
+# Architecture Decision Records: Terra Firma
 
 ## ADR-001: Deploy on Robinhood Chain mainnet 4663
 - Context: the brief assumed testnet 46630; rule 3 requires $WIF onchain and $WIF exists only on 4663.

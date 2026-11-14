@@ -1,4 +1,4 @@
-# Terra Firma — Product Requirements Document
+# Terra Firma: Product Requirements Document
 
 **Hackathon:** World is Flat Hackathon (@WIFonRH), Robinhood Chain
 **Track:** Stock Tokens (primary) + hooks and defi, consumer and payments, onboarding
@@ -554,7 +554,7 @@ event CardMinted(address indexed wallet, uint8 stockId, uint256 usdPaid8, uint25
 
 ### Demo Prerequisites
 
-**Seed State Table** — earned, real mainnet state produced by `scripts/seed-demo.ts` (real transactions from the demo wallet, never fabricated; Thesis INVARIANT 3). Idempotent: each step checks onchain state first and skips if satisfied.
+**Seed State Table**, earned, real mainnet state produced by `scripts/seed-demo.ts` (real transactions from the demo wallet, never fabricated; Thesis INVARIANT 3). Idempotent: each step checks onchain state first and skips if satisfied.
 
 | Item | Value | Network / Location | Created By |
 |------|-------|-------------------|------------|
@@ -605,7 +605,7 @@ GetBlock/public RPC → R5, R12. Quicknode Stock Token API → R16. Chainlink fe
 
 ---
 
-## 7.4b USER-FIRST — real user model
+## 7.4b USER-FIRST: real user model
 See `USER-ONBOARDING.md` (user classes, cold-stranger genesis, real path == demo path).
 
 ## 7.4c ROUTE ARCHITECTURE
@@ -717,8 +717,8 @@ Clock: now 2026-11-10 ~23:00 WAT. Build window ≈ 35h to the internal submit ta
 |:---:|------|------------------|--------------------|------------|
 | 0 | Nov 10 21:00 – Nov 11 05:30 | Forge (all phases + gates; contracts, web, scripts pre-built and tested) | critique handoff | Approved docs + 33 fork tests |
 | 1a | Nov 11 05:30 – 09:30 | PLAN P0–P2: verify, repo + honesty scaffold, data builds, local fork hero flow | Dami funds wallets | Hero flow on a fork deployment |
-| 1b | Nov 11 09:30 – 13:30 | **PLAN P3–P4: mainnet deploy + verify + Vercel + keeper; real seed txs; first distribute with burn; proof** | — | Live URL + first-of-kind txs |
-| 1c | Nov 11 13:30 – 18:30 | PLAN P5: depth adds live (stream, board, streak, report, Quicknode, HyperSync, card mint) + mobile | — | F-018..F-026 observable |
+| 1b | Nov 11 09:30 – 13:30 | **PLAN P3–P4: mainnet deploy + verify + Vercel + keeper; real seed txs; first distribute with burn; proof** |, | Live URL + first-of-kind txs |
+| 1c | Nov 11 13:30 – 18:30 | PLAN P5: depth adds live (stream, board, streak, report, Quicknode, HyperSync, card mint) + mobile |, | F-018..F-026 observable |
 | 1d | Nov 11 18:30 – 22:00 | PLAN P6: core-green audit (F-001..F-017); OD7 Friend Jars decision by 23:59 | FriendJar UI only if green | Gate recorded |
 | 2 | Nov 11 22:00 – Nov 12 08:00 | PLAN P7: livetest, design, interrogate, docs, package, video, **submit 08:00 WAT** (3h slack inside) | Regret Index snapshot, ship thread draft | Submission receipt |
 | 3+ | Nov 12 – Nov 16 17:30 UTC | Keep live; keeper runs; respond to judges | Gallery updates | Live until close |

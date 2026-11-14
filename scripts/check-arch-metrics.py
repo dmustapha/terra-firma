@@ -3,7 +3,7 @@
 import os, re, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 A = open(os.path.join(ROOT, "ARCHITECTURE.md")).read()
-PRD = open(os.path.join(ROOT, "PRD.md")).read()
+PRD = open(os.path.join(ROOT, "docs/pipeline/PRD.md")).read()
 blocks = re.findall(r"#### File: (\S+)\n(\[[A-Z]+\])[^\n]*\n```(\w+)\n(.*?)\n```", A, re.S)
 all_fences = len(re.findall(r"^#### File: ", A, re.M))
 tree = re.search(r"### File Structure.*?```\nterra-firma/\n(.*?)\n```", A, re.S).group(1).split("\n")

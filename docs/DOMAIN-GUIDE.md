@@ -1,4 +1,4 @@
-# Domain Guide — Terra Firma
+# Domain Guide: Terra Firma
 
 Generated from ARCHITECTURE.md "Section N+1: Domain Knowledge File". Every code identifier below exists in
 `contracts/src`, `contracts/script` or `web/lib` (checked with `grep -rw <id> contracts web/lib`).
@@ -44,10 +44,10 @@ Network: Robinhood Chain mainnet, chain id 4663. Explorer: https://robinhoodchai
 ## Glossary
 
 - **ETH notional**: the ETH value of the trade (`msg.value` for buys, ETH received for sells) that fee and sweep bps apply to.
-- **Route**: typed swap description (`kind` 1 = v2, 2 = v3, 3 = v4 native-ETH single hop) — the router encodes the Universal Router commands itself from it; callers never pass raw commands.
+- **Route**: typed swap description (`kind` 1 = v2, 2 = v3, 3 = v4 native-ETH single hop), the router encodes the Universal Router commands itself from it; callers never pass raw commands.
 - **Carry**: ETH left in the FeePool when a leg is skipped (stale feed, hook revert, above cap); it is spent in a later epoch.
 - **Distribute**: the permissionless, once-per-epoch FeePool call that buys and burns $WIF with half and buys staker stock with the other half.
-- **Recompute**: `HindsightLens.recompute(buys, stockId)` — an `eth_call` that re-derives a card's USD paid and counterfactual shares from the same Chainlink rounds; it proves pricing, not provenance (the tx hashes prove the buys).
+- **Recompute**: `HindsightLens.recompute(buys, stockId)`, an `eth_call` that re-derives a card's USD paid and counterfactual shares from the same Chainlink rounds; it proves pricing, not provenance (the tx hashes prove the buys).
 - **Registry**: `web/data/memes.json`, the curated list of memes, their pools and the purchase sources Hindsight scans.
 - **Round table**: `web/data/rounds/<feed>.json`, committed Chainlink history `[n, answer8, updatedAt]`; newer rounds are read live (`roundAtLive`).
 

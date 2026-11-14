@@ -3,7 +3,7 @@ _Last updated: verify_preflight, 2026-11-12 ~15:20 UTC (submissions close 17:29 
 
 ## Status
 - [x] 7 contracts on Robinhood Chain mainnet (chain 4663), all exact-match source verified on Sourcify (Blockscout shows them verified)
-- [x] Tests: 62 mainnet-fork contract tests + 25 stress/fuzz tests (87), 143 web tests
+- [x] Tests: 87 mainnet-fork contract tests (62 core + 25 stress/fuzz), 143 web tests
 - [x] Live app: https://terrafirma-wif.vercel.app (same build at https://terra-firma-henna.vercel.app); all routes 200
 - [x] Hourly keeper in GitHub Actions (cron `7 * * * *`), last runs green; keeper gas covers about 19 more distributes through 2026-11-16 17:30 UTC
 - [x] Real mainnet usage: 11 trades, 2 distributes, 22.43 $WIF burned (FeePool.totalWifBurned), 2 staker claims, 1 card minted (submission/proof.md)
