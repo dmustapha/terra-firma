@@ -6,9 +6,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { getAddress, isAddress, parseEventLogs, type Abi, type Address, type Hex } from "viem";
-import { useAccount, useBalance, useReadContract } from "wagmi";
-import { erc20Abi, terraRouterAbi } from "@/lib/abi";
-import { CHAIN_ID, DEFAULT_SWEEP_BPS, FEE_BPS, STAKER_FEE_BPS, STOCKS, TF } from "@/lib/config";
+import { useAccount, useBalance, useReadContract, useReadContracts } from "wagmi";
+import { erc20Abi, feePoolAbi, terraRouterAbi } from "@/lib/abi";
+import { CHAIN_ID, DEFAULT_SWEEP_BPS, DISCOUNT_STAKE, FEE_BPS, STAKER_FEE_BPS, STOCKS, TF } from "@/lib/config";
 import { REGISTRY, memeByToken } from "@/lib/registry";
 import { DEPLOYED, WIF, publicClient } from "@/lib/ui-chain";
 import { PLAIN } from "@/lib/ui-errors";
@@ -181,6 +181,39 @@ function Tabs({ tab, setTab }: { tab: "buy" | "sell"; setTab: (t: "buy" | "sell"
   );
 }
 
+/** Where this trade's fee goes, in $WIF terms, read live from the fee pool. Shown above every trade form. */
+function WifStrip({ feeBps }: { feeBps: number }) {
+  const r = useReadContracts({
+    contracts: [
+      { address: TF.FeePool, abi: feePoolAbi, functionName: "totalWifBurned", chainId: CHAIN_ID },
+      { address: TF.FeePool, abi: feePoolAbi, functionName: "totalEthToStock", chainId: CHAIN_ID },
+    ],
+    query: { enabled: DEPLOYED, refetchInterval: 30_000 },
+  });
+  const burned = r.data?.[0]?.result as bigint | undefined;
+  const toStock = r.data?.[1]?.result as bigint | undefined;
+  const staker = feeBps === STAKER_FEE_BPS;
+  return (
+    <div className="rounded-sm border border-line bg-surface-2 px-4 py-3 text-sm">
+      <p>
+        Your {(feeBps / 100).toFixed(1)}% fee feeds $WIF: half buys $WIF and burns it, half buys stock for $WIF stakers.{" "}
+        {staker ? (
+          <span className="text-accent">0.3% unlocked by your $WIF stake.</span>
+        ) : (
+          <>Stake {fmtToken(DISCOUNT_STAKE)} $WIF and it drops to 0.3%. <Link className="underline underline-offset-4" href="/stake">Stake $WIF</Link></>
+        )}
+      </p>
+      {DEPLOYED && (
+        <p className="mt-1.5 text-muted">
+          So far: <span className="num text-accent">{burned !== undefined ? fmtToken(burned) : "…"}</span> $WIF burned ·{" "}
+          <span className="num text-fg">{toStock !== undefined ? eth(toStock) : "…"}</span> ETH of stock paid to stakers ·{" "}
+          <Link className="underline underline-offset-4" href="/proof#burn-ledger">burn ledger</Link>
+        </p>
+      )}
+    </div>
+  );
+}
+
 function TradeBox({ token }: { token: Address }) {
   const info = useTokenInfo(token);
   const meme = memeByToken(token);
@@ -202,7 +235,7 @@ function TradeBox({ token }: { token: Address }) {
         </div>
       </div>
       {info.error && <Notice tone="danger">This address doesn&apos;t look like a token on Robinhood Chain.</Notice>}
-      {feeBps === STAKER_FEE_BPS && <Notice tone="accent">0.3% fee unlocked by your $WIF stake.</Notice>}
+      <WifStrip feeBps={feeBps} />
       <Tabs tab={tab} setTab={setTab} />
       <div id={`panel-${tab}`} role="tabpanel" aria-labelledby={`tab-${tab}`}>
         {tab === "buy" ? (

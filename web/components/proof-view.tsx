@@ -6,17 +6,18 @@ import { isAddress, type Abi } from "viem";
 import { useAccount, useReadContracts } from "wagmi";
 import evidence from "@/data/evidence.json";
 import { feePoolAbi, hindsightLensAbi } from "@/lib/abi";
-import { ADDR, CHAIN_ID, FEE_BPS, STAKER_FEE_BPS, DISCOUNT_STAKE, TF, addrUrl, stockBySymbol } from "@/lib/config";
+import { ADDR, CHAIN_ID, FEE_BPS, STAKER_FEE_BPS, DISCOUNT_STAKE, STOCKS, TF, addrUrl, stockBySymbol } from "@/lib/config";
+import { flywheelTotals, stockLegs, wifBurnedPerEthTraded } from "@/lib/ui-flywheel";
 import type { Card } from "@/lib/hindsight";
 import { DEPLOYED, REPO_URL, SHOWN_CONTRACTS, VERIFIED, publicClient } from "@/lib/ui-chain";
 import { classifyOwnerProbe, type OwnerProbe } from "@/lib/ui-errors";
-import { DASH, dateTime, eth, token } from "@/lib/ui-format";
+import { DASH, dateTime, eth, shares18, token } from "@/lib/ui-format";
 import { blockTimes, only, type TfLogs } from "@/lib/ui-logs";
 import { lensBuys, RecomputeResult, stockIdOf } from "./card-actions";
 import { getJson, useTfLogs, useTx } from "./hooks";
 import { Dispatches } from "./landing-live";
 import { TxStatus } from "./tx-status";
-import { AddrLink, Badge, Button, ExtLink, Notice, Panel, Skeleton, TxLink, inputCls, isZeroLink } from "./ui";
+import { AddrLink, Badge, Button, ExtLink, Notice, Panel, RuledTable, Skeleton, TxLink, inputCls, isZeroLink } from "./ui";
 
 export function ProofView() {
   return (
@@ -25,6 +26,7 @@ export function ProofView() {
         <Totals />
         <RubricMap />
       </div>
+      <BurnLedger />
       <Contracts />
       <FirstOfKind />
       <div className="grid gap-6 lg:grid-cols-2">
@@ -284,6 +286,57 @@ function Figure({ label, value, sub, href, accent }: { label: string; value: Rea
       )}
       {sub && <p className="mt-1.5 text-xs text-muted">{sub}</p>}
     </div>
+  );
+}
+
+/** BURN LEDGER: every hourly payout as it happened, plus the burn rate the pool has actually achieved. */
+function BurnLedger() {
+  const logs = useTfLogs();
+  const l = logs.data;
+  const dist = l ? only(l.feePool, "Distributed") : [];
+  const skipped = l ? only(l.feePool, "BurnSkipped").length : 0;
+  const args = dist.map((d) => d.args);
+  const t = flywheelTotals(args);
+  const perEth = wifBurnedPerEthTraded(args);
+  const times = useQuery({
+    queryKey: ["dist-times", dist.map((d) => d.blockNumber.toString()).join(",")],
+    enabled: dist.length > 0,
+    queryFn: () => blockTimes(dist.map((d) => d.blockNumber)),
+  });
+  const rows = [...dist].reverse().map((d) => [
+    times.data?.get(d.blockNumber) ? dateTime(times.data.get(d.blockNumber)!) : `epoch ${d.args.epoch}`,
+    `${eth(d.args.ethIn)} ETH`,
+    d.args.wifBurned > 0n ? <span className="text-accent">{token(d.args.wifBurned)}</span> : <span className="text-muted">0</span>,
+    stockLegs(d.args.stockBought).map(([i, a]) => `${shares18(a)} ${STOCKS[i]?.symbol ?? `#${i}`}`).join(", ") || DASH,
+    <TxLink key={d.transactionHash} hash={d.transactionHash} />,
+  ]);
+  return (
+    <Panel id="burn-ledger" aria-labelledby="bl-title" className="scroll-mt-24">
+      <p className="eyebrow text-muted">Burn ledger · every hourly payout</p>
+      <h2 id="bl-title" className="mt-2 font-display text-deck">The flywheel, turn by turn</h2>
+      <p className="mt-1 text-sm text-muted">Every routed trade pays {bps(FEE_BPS)} ({bps(STAKER_FEE_BPS)} for wallets staking {token(DISCOUNT_STAKE)} $WIF). Each hour the fee pool spends what it collected: half buys $WIF and burns it, half buys the stock $WIF stakers picked. Nothing here ever sells $WIF.</p>
+      {!DEPLOYED ? (
+        <p className="mt-4 text-sm text-muted">Fills in once the contracts are live.</p>
+      ) : logs.error ? (
+        <Notice tone="danger" className="mt-4">Live data unavailable: couldn&apos;t read the chain right now.</Notice>
+      ) : !l ? (
+        <Skeleton w="100%" h="6rem" className="mt-4" />
+      ) : (
+        <>
+          <ul className="mt-4 divide-y divide-line border-t border-fg">
+            <Row k="Payouts so far">{t.payouts} ({t.burns} with a $WIF burn{skipped ? `, ${skipped} burn${skipped === 1 ? "" : "s"} skipped and carried over` : ""})</Row>
+            <Row k="ETH the pool has spent">{eth(t.ethIn)} ETH</Row>
+            <Row k="$WIF burned by those payouts"><span className="text-accent">{token(t.burned)}</span></Row>
+            <Row k={`At the rate achieved so far, 1 ETH traded through Terra Firma burns`}>{perEth == null ? <span className="text-muted">not enough data yet</span> : <>{token(perEth)} $WIF</>}</Row>
+          </ul>
+          {rows.length > 0 ? (
+            <RuledTable className="mt-5 overflow-x-auto" caption="Every fee pool payout" heads={["When", "ETH in", "$WIF burned", "Stock for stakers", "Tx"]} rows={rows} foot="Read live from the fee pool's Distributed events on Robinhood Chain. Newest first." />
+          ) : (
+            <p className="mt-4 text-sm text-muted">No payout yet.</p>
+          )}
+        </>
+      )}
+    </Panel>
   );
 }
 
